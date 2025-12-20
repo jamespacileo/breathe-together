@@ -13,6 +13,8 @@ import {
 	type SimulationConfig,
 } from '../lib/simulationConfig';
 
+export type VisualizationTheme = 'orb' | 'water';
+
 export interface UserIdentity {
 	name: string;
 	avatar: string;
@@ -31,6 +33,10 @@ interface AppState {
 	setConfig: (config: VisualizationConfig) => void;
 	updateConfigPartial: (updates: Partial<VisualizationConfig>) => void;
 	resetConfig: () => void;
+
+	// Visualization theme
+	theme: VisualizationTheme;
+	setTheme: (theme: VisualizationTheme) => void;
 
 	// Breathing pattern
 	pattern: PatternId;
@@ -72,6 +78,10 @@ export const useAppStore = create<AppState>()(
 				set({ config: updateConfig(current, updates) });
 			},
 			resetConfig: () => set({ config: DEFAULT_CONFIG }),
+
+			// Visualization theme
+			theme: 'water',
+			setTheme: (theme) => set({ theme }),
 
 			// Breathing pattern
 			pattern: 'box',
@@ -120,6 +130,7 @@ export const useAppStore = create<AppState>()(
 			partialize: (state) => ({
 				user: state.user,
 				config: state.config,
+				theme: state.theme,
 				pattern: state.pattern,
 				simulationConfig: state.simulationConfig,
 			}),

@@ -7,6 +7,8 @@ import {
 } from './components/IdentityPanel';
 import { PatternSelector } from './components/PatternSelector';
 import { PresenceCounter } from './components/PresenceCounter';
+import { ThemeSelector } from './components/ThemeSelector';
+import { WaterBreathingOrb } from './components/WaterBreathingOrb';
 import { useBreathSync } from './hooks/useBreathSync';
 import { usePresence } from './hooks/usePresence';
 import { useSimulation } from './hooks/useSimulation';
@@ -21,6 +23,8 @@ function App() {
 		setUser,
 		config,
 		setConfig,
+		theme,
+		setTheme,
 		pattern,
 		setPattern,
 		showDebug,
@@ -64,13 +68,23 @@ function App() {
 			}}
 		>
 			{/* Main breathing visualization */}
-			<BreathingOrb
-				breathState={breathState}
-				presence={presence}
-				config={config}
-				moodColor={moodColor}
-				currentUser={user}
-			/>
+			{theme === 'water' ? (
+				<WaterBreathingOrb
+					breathState={breathState}
+					presence={presence}
+					config={config}
+					moodColor={moodColor}
+					currentUser={user}
+				/>
+			) : (
+				<BreathingOrb
+					breathState={breathState}
+					presence={presence}
+					config={config}
+					moodColor={moodColor}
+					currentUser={user}
+				/>
+			)}
 
 			{/* Debug panel */}
 			<DebugPanel
@@ -106,15 +120,20 @@ function App() {
 				<PresenceCounter presence={presence} />
 			</div>
 
-			{/* Pattern selector - top right */}
+			{/* Theme and pattern selectors - top right */}
 			<div
 				style={{
 					position: 'absolute',
 					top: '1.5rem',
 					right: '1.5rem',
 					zIndex: 10,
+					display: 'flex',
+					flexDirection: 'column',
+					gap: '0.5rem',
+					alignItems: 'flex-end',
 				}}
 			>
+				<ThemeSelector theme={theme} onChange={setTheme} />
 				<PatternSelector pattern={pattern} onChange={setPattern} />
 			</div>
 
