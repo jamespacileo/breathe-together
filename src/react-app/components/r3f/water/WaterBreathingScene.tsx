@@ -7,11 +7,8 @@ import type { PresenceData } from '../../../hooks/usePresence';
 import type { VisualizationConfig } from '../../../lib/config';
 import type { UserIdentity } from '../../../stores/appStore';
 import { PresenceParticles } from '../PresenceParticles';
-import { WaterBubbles } from './WaterBubbles';
-import { WaterCaustics } from './WaterCaustics';
 import { WaterGlow } from './WaterGlow';
-import { WaterRipples } from './WaterRipples';
-import { WaterSurface } from './WaterSurface';
+import { WaterGrid } from './WaterGrid';
 
 interface WaterBreathingSceneProps {
 	breathState: BreathState;
@@ -23,7 +20,7 @@ interface WaterBreathingSceneProps {
 
 /**
  * React Three Fiber canvas for the water breathing visualization
- * Combines ripples, bubbles, caustics, and surface effects
+ * Uses a simple 3D grid that expands/contracts like fabric
  */
 export function WaterBreathingScene({
 	breathState,
@@ -34,11 +31,11 @@ export function WaterBreathingScene({
 }: WaterBreathingSceneProps) {
 	const [dpr, setDpr] = useState(1.5);
 
-	// Camera settings for underwater view
+	// Camera settings - angled for 3D depth perception
 	const cameraSettings = useMemo(
 		() => ({
-			position: [0, 0, 5] as [number, number, number],
-			fov: 75,
+			position: [0, -1.5, 4] as [number, number, number],
+			fov: 60,
 			near: 0.1,
 			far: 100,
 		}),
@@ -69,36 +66,15 @@ export function WaterBreathingScene({
 			/>
 
 			<Suspense fallback={null}>
-				{/* Caustic light patterns (deepest layer) */}
-				<WaterCaustics
-					breathState={breathState}
-					config={config}
-					moodColor={moodColor}
-				/>
-
-				{/* Central water glow (behind ripples) */}
+				{/* Subtle glow behind the grid */}
 				<WaterGlow
 					breathState={breathState}
 					config={config}
 					moodColor={moodColor}
 				/>
 
-				{/* Expanding ripple rings */}
-				<WaterRipples
-					breathState={breathState}
-					config={config}
-					moodColor={moodColor}
-				/>
-
-				{/* Animated water surface */}
-				<WaterSurface
-					breathState={breathState}
-					config={config}
-					moodColor={moodColor}
-				/>
-
-				{/* Rising bubbles */}
-				<WaterBubbles
+				{/* Main breathing grid - ethereal fabric effect */}
+				<WaterGrid
 					breathState={breathState}
 					config={config}
 					moodColor={moodColor}
