@@ -20,20 +20,20 @@
 		"rules": {
 			"recommended": true,
 			"correctness": {
-				"useExhaustiveDependencies": "off",
+				"useExhaustiveDependencies": "warn",
 				"useHookAtTopLevel": "error"
 			},
 			"suspicious": {
-				"noExplicitAny": "off",
+				"noExplicitAny": "warn",
 				"noArrayIndexKey": "off"
 			},
 			"a11y": {
 				"noSvgWithoutTitle": "off",
 				"useSemanticElements": "off",
-				"useButtonType": "off"
+				"useButtonType": "warn"
 			},
 			"style": {
-				"noNonNullAssertion": "off"
+				"noNonNullAssertion": "warn"
 			}
 		}
 	},

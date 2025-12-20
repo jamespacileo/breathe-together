@@ -61,19 +61,10 @@ export function useBreathingSpring(
 	});
 
 	// Update target when breath state changes
-	// Only depend on specific config properties used by calculateTargetScale
 	useEffect(() => {
 		const targetScale = calculateTargetScale(breathState, config);
 		targetValue.set(targetScale);
-	}, [
-		breathState.phase,
-		breathState.progress,
-		config.breatheInScale,
-		config.breatheOutScale,
-		config.holdOscillation,
-		config.holdOscillationSpeed,
-		targetValue,
-	]);
+	}, [breathState, config, targetValue]);
 
 	return scale;
 }
@@ -103,19 +94,11 @@ export function useParticleSpring(
 		restDelta: 0.001,
 	});
 
-	// Only depend on specific config properties used by calculateTargetScale
+	// Update target when breath state changes
 	useEffect(() => {
 		const targetScale = calculateTargetScale(breathState, config);
 		targetValue.set(targetScale);
-	}, [
-		breathState.phase,
-		breathState.progress,
-		config.breatheInScale,
-		config.breatheOutScale,
-		config.holdOscillation,
-		config.holdOscillationSpeed,
-		targetValue,
-	]);
+	}, [breathState, config, targetValue]);
 
 	return scale;
 }

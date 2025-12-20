@@ -95,7 +95,16 @@ export function ParticleSystem({
 			phaseOffsets,
 			count,
 		};
-	}, [config.particleCount]);
+	}, [
+		config.particleCount,
+		config.radiusVarianceMin,
+		config.radiusVarianceMax,
+		config.angleOffsetRange,
+		config.particleMinSize,
+		config.particleMaxSize,
+		config.particleMinOpacity,
+		config.particleMaxOpacity,
+	]);
 
 	// Update color when mood changes
 	useEffect(() => {
