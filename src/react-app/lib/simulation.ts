@@ -1,15 +1,19 @@
 import PoissonProcess from 'poisson-process';
-import { SimulationConfig, MoodId } from './simulationConfig';
-import { SimulatedUser, generateUser, shouldDepart } from './userGenerator';
+import type { MoodId, SimulationConfig } from './simulationConfig';
+import {
+	generateUser,
+	type SimulatedUser,
+	shouldDepart,
+} from './userGenerator';
 
 /**
  * Snapshot of current population state
  */
 export interface PopulationSnapshot {
-  count: number;
-  users: SimulatedUser[];
-  moods: Record<MoodId, number>;
-  timestamp: number;
+	count: number;
+	users: SimulatedUser[];
+	moods: Record<MoodId, number>;
+	timestamp: number;
 }
 
 /**
@@ -26,205 +30,207 @@ export type PopulationUpdateCallback = (snapshot: PopulationSnapshot) => void;
  * - At equilibrium, population = arrival_rate × mean_stay_duration
  */
 export class SimulationEngine {
-  private users: Map<string, SimulatedUser> = new Map();
-  private config: SimulationConfig;
-  private arrivalProcess: ReturnType<typeof PoissonProcess.create> | null = null;
-  private updateInterval: ReturnType<typeof setInterval> | null = null;
-  private callbacks: Set<PopulationUpdateCallback> = new Set();
-  private isRunning = false;
+	private users: Map<string, SimulatedUser> = new Map();
+	private config: SimulationConfig;
+	private arrivalProcess: ReturnType<typeof PoissonProcess.create> | null =
+		null;
+	private updateInterval: ReturnType<typeof setInterval> | null = null;
+	private callbacks: Set<PopulationUpdateCallback> = new Set();
+	private isRunning = false;
 
-  constructor(config: SimulationConfig) {
-    this.config = config;
-  }
+	constructor(config: SimulationConfig) {
+		this.config = config;
+	}
 
-  /**
-   * Start the simulation
-   */
-  start(): void {
-    if (this.isRunning) return;
-    this.isRunning = true;
+	/**
+	 * Start the simulation
+	 */
+	start(): void {
+		if (this.isRunning) return;
+		this.isRunning = true;
 
-    // Calculate arrival rate to achieve target equilibrium
-    // At equilibrium: N = λ × μ, so λ = N / μ
-    const arrivalRate = this.config.targetPopulation / this.config.meanStayDuration;
-    const meanInterArrival = 1 / arrivalRate; // Average ms between arrivals
+		// Calculate arrival rate to achieve target equilibrium
+		// At equilibrium: N = λ × μ, so λ = N / μ
+		const arrivalRate =
+			this.config.targetPopulation / this.config.meanStayDuration;
+		const meanInterArrival = 1 / arrivalRate; // Average ms between arrivals
 
-    // Scale by timeScale for faster testing
-    const scaledInterArrival = meanInterArrival / this.config.timeScale;
+		// Scale by timeScale for faster testing
+		const scaledInterArrival = meanInterArrival / this.config.timeScale;
 
-    // Create Poisson arrival process
-    this.arrivalProcess = PoissonProcess.create(scaledInterArrival, () => {
-      this.addUser();
-    });
+		// Create Poisson arrival process
+		this.arrivalProcess = PoissonProcess.create(scaledInterArrival, () => {
+			this.addUser();
+		});
 
-    this.arrivalProcess.start();
+		this.arrivalProcess.start();
 
-    // Start update loop to check departures and emit snapshots
-    this.updateInterval = setInterval(() => {
-      this.tick();
-    }, this.config.updateInterval);
+		// Start update loop to check departures and emit snapshots
+		this.updateInterval = setInterval(() => {
+			this.tick();
+		}, this.config.updateInterval);
 
-    // Bootstrap initial population (warm start)
-    this.bootstrapPopulation();
-  }
+		// Bootstrap initial population (warm start)
+		this.bootstrapPopulation();
+	}
 
-  /**
-   * Stop the simulation
-   */
-  stop(): void {
-    if (!this.isRunning) return;
-    this.isRunning = false;
+	/**
+	 * Stop the simulation
+	 */
+	stop(): void {
+		if (!this.isRunning) return;
+		this.isRunning = false;
 
-    if (this.arrivalProcess) {
-      this.arrivalProcess.stop();
-      this.arrivalProcess = null;
-    }
+		if (this.arrivalProcess) {
+			this.arrivalProcess.stop();
+			this.arrivalProcess = null;
+		}
 
-    if (this.updateInterval) {
-      clearInterval(this.updateInterval);
-      this.updateInterval = null;
-    }
-  }
+		if (this.updateInterval) {
+			clearInterval(this.updateInterval);
+			this.updateInterval = null;
+		}
+	}
 
-  /**
-   * Reset the simulation (clears all users)
-   */
-  reset(): void {
-    this.stop();
-    this.users.clear();
-    this.emitSnapshot();
-  }
+	/**
+	 * Reset the simulation (clears all users)
+	 */
+	reset(): void {
+		this.stop();
+		this.users.clear();
+		this.emitSnapshot();
+	}
 
-  /**
-   * Update configuration (requires restart to take effect)
-   */
-  updateConfig(config: Partial<SimulationConfig>): void {
-    this.config = { ...this.config, ...config };
+	/**
+	 * Update configuration (requires restart to take effect)
+	 */
+	updateConfig(config: Partial<SimulationConfig>): void {
+		this.config = { ...this.config, ...config };
 
-    // Restart if running to apply new config
-    if (this.isRunning) {
-      this.stop();
-      this.start();
-    }
-  }
+		// Restart if running to apply new config
+		if (this.isRunning) {
+			this.stop();
+			this.start();
+		}
+	}
 
-  /**
-   * Subscribe to population updates
-   */
-  subscribe(callback: PopulationUpdateCallback): () => void {
-    this.callbacks.add(callback);
+	/**
+	 * Subscribe to population updates
+	 */
+	subscribe(callback: PopulationUpdateCallback): () => void {
+		this.callbacks.add(callback);
 
-    // Immediately emit current state
-    callback(this.getSnapshot());
+		// Immediately emit current state
+		callback(this.getSnapshot());
 
-    // Return unsubscribe function
-    return () => {
-      this.callbacks.delete(callback);
-    };
-  }
+		// Return unsubscribe function
+		return () => {
+			this.callbacks.delete(callback);
+		};
+	}
 
-  /**
-   * Get current population snapshot
-   */
-  getSnapshot(): PopulationSnapshot {
-    const users = Array.from(this.users.values());
+	/**
+	 * Get current population snapshot
+	 */
+	getSnapshot(): PopulationSnapshot {
+		const users = Array.from(this.users.values());
 
-    // Count users per mood
-    const moods: Record<MoodId, number> = {
-      moment: 0,
-      anxious: 0,
-      processing: 0,
-      preparing: 0,
-      grateful: 0,
-      celebrating: 0,
-      here: 0,
-    };
+		// Count users per mood
+		const moods: Record<MoodId, number> = {
+			moment: 0,
+			anxious: 0,
+			processing: 0,
+			preparing: 0,
+			grateful: 0,
+			celebrating: 0,
+			here: 0,
+		};
 
-    for (const user of users) {
-      moods[user.mood]++;
-    }
+		for (const user of users) {
+			moods[user.mood]++;
+		}
 
-    return {
-      count: users.length,
-      users,
-      moods,
-      timestamp: Date.now(),
-    };
-  }
+		return {
+			count: users.length,
+			users,
+			moods,
+			timestamp: Date.now(),
+		};
+	}
 
-  /**
-   * Bootstrap initial population for warm start
-   * Instead of waiting for arrivals to build up, start with users
-   */
-  private bootstrapPopulation(): void {
-    // Start with ~50% of target population
-    const initialCount = Math.floor(this.config.targetPopulation * 0.5);
+	/**
+	 * Bootstrap initial population for warm start
+	 * Instead of waiting for arrivals to build up, start with users
+	 */
+	private bootstrapPopulation(): void {
+		// Start with ~50% of target population
+		const initialCount = Math.floor(this.config.targetPopulation * 0.5);
 
-    for (let i = 0; i < initialCount; i++) {
-      this.addUser();
-    }
+		for (let i = 0; i < initialCount; i++) {
+			this.addUser();
+		}
 
-    this.emitSnapshot();
-  }
+		this.emitSnapshot();
+	}
 
-  /**
-   * Add a new user to the simulation
-   */
-  private addUser(): void {
-    const user = generateUser(
-      this.config.moodDistribution,
-      this.config.meanStayDuration,
-      this.config.timeScale
-    );
+	/**
+	 * Add a new user to the simulation
+	 */
+	private addUser(): void {
+		const user = generateUser(
+			this.config.moodDistribution,
+			this.config.meanStayDuration,
+			this.config.timeScale,
+		);
 
-    this.users.set(user.id, user);
-  }
+		this.users.set(user.id, user);
+	}
 
-  /**
-   * Simulation tick - check departures and emit updates
-   */
-  private tick(): void {
-    // Check for departures
-    const toRemove: string[] = [];
+	/**
+	 * Simulation tick - check departures and emit updates
+	 */
+	private tick(): void {
+		// Check for departures
+		const toRemove: string[] = [];
 
-    for (const [id, user] of this.users) {
-      if (shouldDepart(user)) {
-        toRemove.push(id);
-      }
-    }
+		for (const [id, user] of this.users) {
+			if (shouldDepart(user)) {
+				toRemove.push(id);
+			}
+		}
 
-    // Remove departed users
-    for (const id of toRemove) {
-      this.users.delete(id);
-    }
+		// Remove departed users
+		for (const id of toRemove) {
+			this.users.delete(id);
+		}
 
-    // Emit updated snapshot
-    this.emitSnapshot();
-  }
+		// Emit updated snapshot
+		this.emitSnapshot();
+	}
 
-  /**
-   * Emit snapshot to all subscribers
-   */
-  private emitSnapshot(): void {
-    const snapshot = this.getSnapshot();
-    for (const callback of this.callbacks) {
-      callback(snapshot);
-    }
-  }
+	/**
+	 * Emit snapshot to all subscribers
+	 */
+	private emitSnapshot(): void {
+		const snapshot = this.getSnapshot();
+		for (const callback of this.callbacks) {
+			callback(snapshot);
+		}
+	}
 
-  /**
-   * Check if simulation is running
-   */
-  get running(): boolean {
-    return this.isRunning;
-  }
+	/**
+	 * Check if simulation is running
+	 */
+	get running(): boolean {
+		return this.isRunning;
+	}
 
-  /**
-   * Get current user count
-   */
-  get userCount(): number {
-    return this.users.size;
-  }
+	/**
+	 * Get current user count
+	 */
+	get userCount(): number {
+		return this.users.size;
+	}
 }
 
 /**
@@ -232,16 +238,18 @@ export class SimulationEngine {
  */
 let engineInstance: SimulationEngine | null = null;
 
-export function getSimulationEngine(config: SimulationConfig): SimulationEngine {
-  if (!engineInstance) {
-    engineInstance = new SimulationEngine(config);
-  }
-  return engineInstance;
+export function getSimulationEngine(
+	config: SimulationConfig,
+): SimulationEngine {
+	if (!engineInstance) {
+		engineInstance = new SimulationEngine(config);
+	}
+	return engineInstance;
 }
 
 export function resetSimulationEngine(): void {
-  if (engineInstance) {
-    engineInstance.reset();
-    engineInstance = null;
-  }
+	if (engineInstance) {
+		engineInstance.reset();
+		engineInstance = null;
+	}
 }
