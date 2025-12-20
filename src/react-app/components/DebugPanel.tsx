@@ -138,10 +138,11 @@ export function DebugPanel({
 			<Button
 				onClick={() => setIsOpen(true)}
 				variant="outline"
-				size="sm"
-				className="fixed top-4 left-4 z-50 bg-black/50 backdrop-blur-md"
+				size="icon"
+				className="fixed bottom-4 left-4 z-50 bg-black/50 backdrop-blur-md w-8 h-8 rounded-full p-0"
+				aria-label="Open debug panel"
 			>
-				Debug
+				<span className="text-sm">⚙</span>
 			</Button>
 		);
 	}
