@@ -12,7 +12,6 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from './ui/collapsible';
-import { cn } from '../lib/utils';
 
 interface ConfigSliderProps {
   label: string;

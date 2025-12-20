@@ -50,6 +50,32 @@ export const VisualizationConfigSchema = z.object({
   presenceOpacity: z.number().min(0).max(0.5).describe('Presence particle opacity'),
   presenceOrbitSpeed: z.number().min(0).max(0.001).describe('Presence orbit speed'),
 
+  // Aurora Ribbons (density visualization)
+  ribbonEnabled: z.boolean().describe('Enable aurora ribbon rendering'),
+  ribbonBaseWidth: z.number().min(1).max(30).describe('Base ribbon width in pixels'),
+  ribbonScaleFactor: z.number().min(0.5).max(5).describe('Logarithmic scale factor for user count'),
+  ribbonSegments: z.number().min(8).max(64).describe('Ribbon smoothness (vertex count)'),
+  ribbonPulseAmount: z.number().min(0).max(0.1).describe('Ribbon breathing pulse amplitude'),
+  ribbonBlendWidth: z.number().min(0).max(0.2).describe('Color blend width at segment boundaries'),
+
+  // Firefly Particles (sampled individuals)
+  fireflyCount: z.number().min(0).max(200).describe('Max visible firefly particles'),
+  fireflySize: z.number().min(1).max(8).describe('Firefly particle size'),
+  fireflyPulseSpeed: z.number().min(0.001).max(0.01).describe('Firefly pulse animation speed'),
+  fireflyFadeIn: z.number().min(500).max(5000).describe('Arrival fade-in duration (ms)'),
+  fireflyFadeOut: z.number().min(500).max(5000).describe('Departure fade-out duration (ms)'),
+  fireflyResampleInterval: z.number().min(5000).max(30000).describe('Resample interval (ms)'),
+
+  // You Are Here (current user marker)
+  youAreHereSizeMultiplier: z.number().min(1).max(3).describe('Your particle size multiplier'),
+  youAreHereGlowRadius: z.number().min(0).max(20).describe('Your particle glow radius'),
+  youAreHereGlowOpacity: z.number().min(0).max(1).describe('Your particle glow opacity'),
+
+  // Slice Hover Interaction
+  sliceHoverEnabled: z.boolean().describe('Enable slice hover interaction'),
+  sliceHoverDelay: z.number().min(0).max(500).describe('Hover debounce delay (ms)'),
+  sliceHighlightOpacity: z.number().min(0).max(0.5).describe('Slice highlight opacity'),
+
   // Colors
   primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).describe('Primary color (hex)'),
   backgroundColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/).describe('Background color (hex)'),
@@ -123,6 +149,32 @@ export const DEFAULT_CONFIG: VisualizationConfig = {
   presenceSize: 3,
   presenceOpacity: 0.15,
   presenceOrbitSpeed: 0.0001,
+
+  // Aurora Ribbons
+  ribbonEnabled: true,
+  ribbonBaseWidth: 8,
+  ribbonScaleFactor: 2,
+  ribbonSegments: 32,
+  ribbonPulseAmount: 0.02,
+  ribbonBlendWidth: 0.1,
+
+  // Firefly Particles
+  fireflyCount: 80,
+  fireflySize: 4,
+  fireflyPulseSpeed: 0.004,
+  fireflyFadeIn: 2000,
+  fireflyFadeOut: 2000,
+  fireflyResampleInterval: 10000,
+
+  // You Are Here
+  youAreHereSizeMultiplier: 1.5,
+  youAreHereGlowRadius: 10,
+  youAreHereGlowOpacity: 0.6,
+
+  // Slice Hover
+  sliceHoverEnabled: true,
+  sliceHoverDelay: 200,
+  sliceHighlightOpacity: 0.15,
 
   // Colors
   primaryColor: '#7EB5C1',

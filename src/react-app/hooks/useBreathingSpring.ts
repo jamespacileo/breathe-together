@@ -69,7 +69,7 @@ export function useBreathingSpring(
 export function useParticleSpring(
   breathState: BreathState,
   config: VisualizationConfig,
-  particleId: number
+  _particleId: number
 ): MotionValue<number> {
   // Create unique spring parameters for this particle
   const stiffnessRef = useRef(

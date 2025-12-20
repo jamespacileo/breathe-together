@@ -201,21 +201,15 @@ export function PresenceParticles({
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
-          count={particleData.count}
-          array={particleData.positions}
-          itemSize={3}
+          args={[particleData.positions, 3]}
         />
         <bufferAttribute
           attach="attributes-size"
-          count={particleData.count}
-          array={particleData.sizes}
-          itemSize={1}
+          args={[particleData.sizes, 1]}
         />
         <bufferAttribute
           attach="attributes-particleColor"
-          count={particleData.count}
-          array={particleData.colors}
-          itemSize={3}
+          args={[particleData.colors, 3]}
         />
       </bufferGeometry>
       <shaderMaterial
