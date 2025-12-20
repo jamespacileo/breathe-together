@@ -1,18 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import {
-	hexToRgb,
-	hexToRgba,
-	getAvatarGradient,
-	getMoodColor,
-	lerpColor,
-	createColorScale,
-	lighten,
-	darken,
-	hasContrast,
-	getContrastingText,
-	MOODS,
 	AVATARS,
 	BASE_COLORS,
+	createColorScale,
+	darken,
+	getAvatarGradient,
+	getContrastingText,
+	getMoodColor,
+	hasContrast,
+	hexToRgb,
+	hexToRgba,
+	lerpColor,
+	lighten,
+	MOODS,
 } from './colors';
 
 describe('hexToRgb', () => {

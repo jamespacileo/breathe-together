@@ -1,5 +1,5 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
-import { PATTERNS, getCurrentPhase, type Pattern } from './patterns';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { getCurrentPhase, PATTERNS } from './patterns';
 
 describe('PATTERNS', () => {
 	it('should have box breathing pattern with correct total duration', () => {
@@ -15,8 +15,11 @@ describe('PATTERNS', () => {
 	});
 
 	it('should have matching phase durations to totalDuration', () => {
-		for (const [key, pattern] of Object.entries(PATTERNS)) {
-			const computedTotal = pattern.phases.reduce((sum, p) => sum + p.duration, 0);
+		for (const [_key, pattern] of Object.entries(PATTERNS)) {
+			const computedTotal = pattern.phases.reduce(
+				(sum, p) => sum + p.duration,
+				0,
+			);
 			expect(computedTotal).toBe(pattern.totalDuration);
 		}
 	});
