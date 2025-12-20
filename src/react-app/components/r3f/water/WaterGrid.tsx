@@ -1,5 +1,5 @@
 import { useFrame } from '@react-three/fiber';
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { calculateTargetScale } from '../../../hooks/useBreathingSpring';
 import type { BreathState } from '../../../hooks/useBreathSync';
@@ -15,6 +15,7 @@ export function WaterGrid({ breathState, config, moodColor }: WaterGridProps) {
 	const meshRef = useRef<THREE.Mesh>(null);
 	const scaleRef = useRef(1);
 	const velocityRef = useRef(0);
+	const originalPositionsRef = useRef<Float32Array | null>(null);
 
 	// Get color from mood
 	const color = useMemo(
@@ -22,22 +23,17 @@ export function WaterGrid({ breathState, config, moodColor }: WaterGridProps) {
 		[moodColor, config.primaryColor],
 	);
 
-	// Create a plane geometry with segments for wave deformation
-	const { geometry, material } = useMemo(() => {
-		const geo = new THREE.PlaneGeometry(8, 8, 32, 32);
-		const mat = new THREE.MeshBasicMaterial({
-			color: color,
-			wireframe: true,
-			transparent: true,
-			opacity: 0.7,
-			blending: THREE.AdditiveBlending,
-		});
-		return { geometry: geo, material: mat };
-	}, [color]);
+	// Store original positions once mesh is mounted
+	useEffect(() => {
+		if (meshRef.current) {
+			const positions = meshRef.current.geometry.attributes.position;
+			originalPositionsRef.current = new Float32Array(positions.array);
+		}
+	}, []);
 
 	// Animation loop
 	useFrame((state) => {
-		if (!meshRef.current) return;
+		if (!meshRef.current || !originalPositionsRef.current) return;
 
 		const time = state.clock.elapsedTime;
 
@@ -58,11 +54,12 @@ export function WaterGrid({ breathState, config, moodColor }: WaterGridProps) {
 
 		// Wave deformation on the geometry
 		const positions = meshRef.current.geometry.attributes.position;
-		const initialPositions = geometry.attributes.position;
+		const original = originalPositionsRef.current;
 
 		for (let i = 0; i < positions.count; i++) {
-			const x = initialPositions.getX(i);
-			const y = initialPositions.getY(i);
+			const idx = i * 3;
+			const x = original[idx];
+			const y = original[idx + 1];
 
 			// Create wave effect
 			const wave1 = Math.sin(x * 0.5 + time * 0.8) * 0.3;
@@ -78,11 +75,15 @@ export function WaterGrid({ breathState, config, moodColor }: WaterGridProps) {
 	});
 
 	return (
-		<mesh
-			ref={meshRef}
-			geometry={geometry}
-			material={material}
-			rotation={[-0.6, 0, 0]}
-		/>
+		<mesh ref={meshRef} rotation={[-0.6, 0, 0]}>
+			<planeGeometry args={[8, 8, 32, 32]} />
+			<meshBasicMaterial
+				color={color}
+				wireframe
+				transparent
+				opacity={0.7}
+				blending={THREE.AdditiveBlending}
+			/>
+		</mesh>
 	);
 }
