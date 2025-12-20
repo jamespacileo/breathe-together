@@ -3,6 +3,7 @@ import type { BreathState } from '../hooks/useBreathSync';
 import type { PresenceData } from '../hooks/usePresence';
 import type { VisualizationConfig } from '../lib/config';
 import type { UserIdentity } from '../stores/appStore';
+import { ErrorBoundary } from './ErrorBoundary';
 import { WaterBreathingScene } from './r3f/water';
 
 interface WaterBreathingOrbProps {
@@ -51,13 +52,15 @@ export function WaterBreathingOrb({
 			/>
 
 			{/* React Three Fiber water scene */}
-			<WaterBreathingScene
-				breathState={breathState}
-				presence={presence}
-				config={waterConfig}
-				moodColor={moodColor}
-				currentUser={currentUser}
-			/>
+			<ErrorBoundary fallbackMessage="Water visualization failed to render">
+				<WaterBreathingScene
+					breathState={breathState}
+					presence={presence}
+					config={waterConfig}
+					moodColor={moodColor}
+					currentUser={currentUser}
+				/>
+			</ErrorBoundary>
 
 			{/* Breathing guide text with water-themed styling */}
 			<div className="absolute bottom-[15%] left-1/2 -translate-x-1/2 text-center text-white pointer-events-none select-none">
