@@ -11,7 +11,7 @@ interface GlowEffectProps {
 	moodColor: string;
 }
 
-// Simple, elegant radial glow shader
+// Radial glow shader
 const glowVertexShader = `
   varying vec2 vUv;
 
@@ -24,6 +24,8 @@ const glowVertexShader = `
 const glowFragmentShader = `
   uniform vec3 color;
   uniform float intensity;
+  uniform float coreIntensity;
+  uniform float coreSize;
 
   varying vec2 vUv;
 
@@ -31,13 +33,13 @@ const glowFragmentShader = `
     vec2 center = vec2(0.5);
     float dist = distance(vUv, center);
 
-    // Simple smooth radial falloff - like a soft light source
-    float glow = smoothstep(0.5, 0.0, dist);
+    // Outer glow
+    float outerGlow = smoothstep(0.5, 0.0, dist) * intensity;
 
-    // Cubic falloff for more natural light decay
-    glow = glow * glow * (3.0 - 2.0 * glow);
+    // Core glow (brighter center)
+    float coreGlow = smoothstep(coreSize, 0.0, dist) * coreIntensity;
 
-    float alpha = glow * intensity;
+    float alpha = outerGlow + coreGlow;
 
     gl_FragColor = vec4(color, alpha);
   }
@@ -59,20 +61,26 @@ export function GlowEffect({
 		return Math.min(size.width, size.height) * 0.8;
 	}, [size]);
 
-	// Single color based on mood
-	const glowColor = useMemo(() => {
-		return new THREE.Color(moodColor || config.primaryColor);
-	}, [moodColor, config.primaryColor]);
-
 	// Update color when mood changes
 	useEffect(() => {
 		if (materialRef.current) {
-			materialRef.current.uniforms.color.value.copy(glowColor);
+			materialRef.current.uniforms.color.value.set(
+				moodColor || config.primaryColor,
+			);
 		}
-	}, [glowColor]);
+	}, [moodColor, config.primaryColor]);
+
+	// Update intensity
+	useEffect(() => {
+		if (materialRef.current) {
+			materialRef.current.uniforms.intensity.value = config.glowIntensity;
+			materialRef.current.uniforms.coreIntensity.value = config.coreOpacity;
+			materialRef.current.uniforms.coreSize.value = config.coreRadius / 100;
+		}
+	}, [config.glowIntensity, config.coreOpacity, config.coreRadius]);
 
 	useFrame(() => {
-		if (!meshRef.current || !materialRef.current) return;
+		if (!meshRef.current) return;
 
 		// Calculate target scale with spring physics
 		const targetScale = calculateTargetScale(breathState, config);
@@ -87,15 +95,12 @@ export function GlowEffect({
 		// Apply scale
 		const glowScale = scaleRef.current * config.glowRadius;
 		meshRef.current.scale.setScalar(glowScale);
-
-		// Subtle intensity variation with breathing
-		const normalizedScale =
-			(scaleRef.current - config.breatheInScale) /
-			(config.breatheOutScale - config.breatheInScale);
-		const breathFactor = Math.max(0, Math.min(1, normalizedScale));
-		const dynamicIntensity = config.glowIntensity * (0.6 + breathFactor * 0.4);
-		materialRef.current.uniforms.intensity.value = dynamicIntensity;
 	});
+
+	const color = useMemo(
+		() => new THREE.Color(moodColor || config.primaryColor),
+		[moodColor, config.primaryColor],
+	);
 
 	return (
 		<mesh ref={meshRef} position={[0, 0, -0.1]}>
@@ -105,8 +110,10 @@ export function GlowEffect({
 				vertexShader={glowVertexShader}
 				fragmentShader={glowFragmentShader}
 				uniforms={{
-					color: { value: glowColor },
+					color: { value: color },
 					intensity: { value: config.glowIntensity },
+					coreIntensity: { value: config.coreOpacity },
+					coreSize: { value: config.coreRadius / 100 },
 				}}
 				transparent
 				depthWrite={false}
