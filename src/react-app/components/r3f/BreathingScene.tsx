@@ -6,8 +6,9 @@ import type { BreathState } from '../../hooks/useBreathSync';
 import type { PresenceData } from '../../hooks/usePresence';
 import type { VisualizationConfig } from '../../lib/config';
 import type { UserIdentity } from '../../stores/appStore';
+import { AnimationRenderer } from './AnimationRenderer';
+import type { AnimationId } from './animations';
 import { GlowEffect } from './GlowEffect';
-import { ParticleSystem } from './ParticleSystem';
 import { PresenceParticles } from './PresenceParticles';
 
 interface BreathingSceneProps {
@@ -16,6 +17,7 @@ interface BreathingSceneProps {
 	config: VisualizationConfig;
 	moodColor: string;
 	currentUser?: UserIdentity | null;
+	animationId?: AnimationId;
 }
 
 /**
@@ -28,6 +30,7 @@ export function BreathingScene({
 	config,
 	moodColor,
 	currentUser,
+	animationId = 'orb',
 }: BreathingSceneProps) {
 	const [dpr, setDpr] = useState(1.5);
 
@@ -73,12 +76,12 @@ export function BreathingScene({
 					moodColor={moodColor}
 				/>
 
-				{/* Central particle ring */}
-				<ParticleSystem
+				{/* Central animation (pluggable) */}
+				<AnimationRenderer
 					breathState={breathState}
-					presence={presence}
 					config={config}
 					moodColor={moodColor}
+					animationId={animationId}
 				/>
 
 				{/* Presence particles (orbital ring) */}
