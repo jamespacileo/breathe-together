@@ -66,17 +66,19 @@ jobs:
               comment.body.includes('<!-- preview-comment -->')
             );
 
-            const body = `<!-- preview-comment -->
-## 🚀 Preview Deployment
-
-| | |
-|---|---|
-| **Preview URL** | ${previewUrl} |
-| **Dashboard** | [View Worker](${dashboardUrl}) |
-| **Last deployed** | ${timestamp} |
-
----
-<sub>This preview will be automatically deleted when the PR is closed.</sub>`;
+            const body = [
+              '<!-- preview-comment -->',
+              '## 🚀 Preview Deployment',
+              '',
+              '| Info | Value |',
+              '|------|-------|',
+              `| **Preview URL** | ${previewUrl} |`,
+              `| **Dashboard** | [View Worker](${dashboardUrl}) |`,
+              `| **Last deployed** | ${timestamp} |`,
+              '',
+              '---',
+              '<sub>This preview will be automatically deleted when the PR is closed.</sub>'
+            ].join('\n');
 
             if (botComment) {
               await github.rest.issues.updateComment({
