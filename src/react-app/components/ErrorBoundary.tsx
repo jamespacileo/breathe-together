@@ -132,12 +132,14 @@ Time: ${new Date().toISOString()}
 						{/* Action buttons */}
 						<div style={styles.buttonGroup}>
 							<button
+								type="button"
 								onClick={this.handleRetry}
 								style={{ ...styles.button, ...styles.primaryButton }}
 							>
 								Try Again
 							</button>
 							<button
+								type="button"
 								onClick={this.handleReload}
 								style={{ ...styles.button, ...styles.secondaryButton }}
 							>
@@ -146,12 +148,16 @@ Time: ${new Date().toISOString()}
 						</div>
 
 						{/* Toggle details */}
-						<button onClick={this.toggleDetails} style={styles.detailsToggle}>
+						<button
+							type="button"
+							onClick={this.toggleDetails}
+							style={styles.detailsToggle}
+						>
 							{showDetails ? 'Hide' : 'Show'} Error Details
 						</button>
 
 						{/* Error details */}
-						{showDetails && (
+						{showDetails === true && (
 							<div style={styles.details}>
 								<div style={styles.detailSection}>
 									<strong>Error:</strong>
@@ -160,19 +166,19 @@ Time: ${new Date().toISOString()}
 									</pre>
 								</div>
 
-								{error?.stack && (
+								{error?.stack ? (
 									<div style={styles.detailSection}>
 										<strong>Stack Trace:</strong>
 										<pre style={styles.code}>{error.stack}</pre>
 									</div>
-								)}
+								) : null}
 
-								{errorInfo?.componentStack && (
+								{errorInfo?.componentStack ? (
 									<div style={styles.detailSection}>
 										<strong>Component Stack:</strong>
 										<pre style={styles.code}>{errorInfo.componentStack}</pre>
 									</div>
-								)}
+								) : null}
 
 								<div style={styles.detailSection}>
 									<strong>Device Info:</strong>
@@ -180,6 +186,7 @@ Time: ${new Date().toISOString()}
 								</div>
 
 								<button
+									type="button"
 									onClick={this.copyErrorInfo}
 									style={{ ...styles.button, ...styles.copyButton }}
 								>

@@ -58,7 +58,7 @@ export function MinimalAnimation({
 	);
 
 	useFrame(() => {
-		if (!meshRef.current || !materialRef.current) return;
+		if (!(meshRef.current && materialRef.current)) return;
 
 		const targetScale = calculateTargetScale(breathState, config);
 		const stiffness = config.mainSpringTension * 0.0001;

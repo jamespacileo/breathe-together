@@ -166,10 +166,12 @@ export function NebulaAnimation({
 
 	useFrame((_state, delta) => {
 		if (
-			!nebulaRef.current ||
-			!containerRef.current ||
-			!coreEmitterRef.current ||
-			!ringEmitterRef.current
+			!(
+				nebulaRef.current &&
+				containerRef.current &&
+				coreEmitterRef.current &&
+				ringEmitterRef.current
+			)
 		)
 			return;
 

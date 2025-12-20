@@ -1,4 +1,4 @@
-import { motion, useSpring, useTransform } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useMemo } from 'react';
 import type { BreathState } from '../hooks/useBreathSync';
 import type { VisualizationConfig } from '../lib/config';
@@ -22,38 +22,31 @@ export function CSSBreathingOrb({
 	const { phase, progress } = breathState;
 
 	// Calculate scale: inhale = contract (small), exhale = expand (large)
-	const targetScale = useMemo(() => {
+	const scale = useMemo(() => {
 		if (phase === 'in') {
-			// Inhale: contract from 1.0 to 0.6 (getting smaller/tighter)
+			// Inhale: contract from 1.0 to 0.6
 			return 1.0 - progress * 0.4;
 		} else if (phase === 'out') {
-			// Exhale: expand from 0.6 to 1.2 (getting larger/relaxed)
+			// Exhale: expand from 0.6 to 1.2
 			return 0.6 + progress * 0.6;
 		} else if (phase === 'hold-in') {
-			// Hold after inhale: stay contracted with subtle pulse
-			return 0.6 + Math.sin(Date.now() * 0.003) * 0.02;
+			return 0.6;
 		} else {
-			// Hold after exhale: stay expanded with gentle drift
-			return 1.2 + Math.sin(Date.now() * 0.002) * 0.03;
+			return 1.2;
 		}
 	}, [phase, progress]);
 
-	const scale = useSpring(targetScale, {
-		stiffness: 120,
-		damping: 20,
-	});
-
 	// Particles scatter on exhale, gather on inhale
-	const particleSpread = useSpring(
-		phase === 'out' || phase === 'hold-out' ? 1.3 : 0.85,
-		{ stiffness: 80, damping: 15 },
-	);
+	const particleSpread = phase === 'out' || phase === 'hold-out' ? 1.3 : 0.85;
 
-	// Glow intensity: brighter when contracted (focused), softer when expanded
-	const glowIntensity = useTransform(scale, [0.6, 1.2], [1, 0.5]);
+	// Glow intensity: brighter when contracted
+	const glowIntensity = 1 - ((scale - 0.6) / 0.6) * 0.5;
 
-	// Ring opacity: more visible when contracted
-	const ringOpacity = useTransform(scale, [0.6, 1.2], [0.9, 0.4]);
+	// Ring opacity
+	const ringOpacity = 0.9 - ((scale - 0.6) / 0.6) * 0.5;
+
+	// Phase-based rotation
+	const rotation = phase === 'in' ? -5 : phase === 'out' ? 5 : 0;
 
 	// Generate particles
 	const particles = useMemo(() => {
@@ -80,11 +73,8 @@ export function CSSBreathingOrb({
 
 	const color = moodColor || config.primaryColor;
 
-	// Phase-based rotation for organic feel
-	const rotation = useSpring(phase === 'in' ? -5 : phase === 'out' ? 5 : 0, {
-		stiffness: 30,
-		damping: 20,
-	});
+	// Outer particle opacity
+	const outerOpacity = 0.2 + ((scale - 0.6) / 0.6) * 0.6;
 
 	return (
 		<div
@@ -99,6 +89,11 @@ export function CSSBreathingOrb({
 		>
 			{/* Outer ambient glow - expands on exhale */}
 			<motion.div
+				animate={{
+					scale: scale * 1.2,
+					opacity: 0.4 + ((scale - 0.6) / 0.6) * 0.4,
+				}}
+				transition={{ type: 'spring', stiffness: 100, damping: 20 }}
 				style={{
 					position: 'absolute',
 					width: '100vmin',
@@ -106,13 +101,16 @@ export function CSSBreathingOrb({
 					borderRadius: '50%',
 					background: `radial-gradient(circle, ${color}30 0%, ${color}15 30%, ${color}05 50%, transparent 70%)`,
 					filter: 'blur(30px)',
-					scale: useTransform(scale, (s) => s * 1.2),
-					opacity: useTransform(scale, [0.6, 1.2], [0.4, 0.8]),
 				}}
 			/>
 
 			{/* Middle glow ring */}
 			<motion.div
+				animate={{
+					scale,
+					opacity: glowIntensity,
+				}}
+				transition={{ type: 'spring', stiffness: 120, damping: 20 }}
 				style={{
 					position: 'absolute',
 					width: '60vmin',
@@ -120,13 +118,16 @@ export function CSSBreathingOrb({
 					borderRadius: '50%',
 					background: `radial-gradient(circle, transparent 40%, ${color}20 60%, ${color}40 75%, transparent 90%)`,
 					filter: 'blur(8px)',
-					scale,
-					opacity: glowIntensity,
 				}}
 			/>
 
 			{/* Core glow - bright when contracted */}
 			<motion.div
+				animate={{
+					scale,
+					opacity: glowIntensity,
+				}}
+				transition={{ type: 'spring', stiffness: 120, damping: 20 }}
 				style={{
 					position: 'absolute',
 					width: '25vmin',
@@ -134,13 +135,17 @@ export function CSSBreathingOrb({
 					borderRadius: '50%',
 					background: `radial-gradient(circle, ${color}90 0%, ${color}50 30%, ${color}20 60%, transparent 80%)`,
 					filter: 'blur(5px)',
-					scale,
-					opacity: glowIntensity,
 				}}
 			/>
 
 			{/* Main breathing ring */}
 			<motion.div
+				animate={{
+					scale,
+					opacity: ringOpacity,
+					rotate: rotation,
+				}}
+				transition={{ type: 'spring', stiffness: 120, damping: 20 }}
 				style={{
 					position: 'absolute',
 					width: '45vmin',
@@ -152,34 +157,37 @@ export function CSSBreathingOrb({
 						0 0 30px ${color}30,
 						inset 0 0 15px ${color}30
 					`,
-					scale,
-					opacity: ringOpacity,
-					rotate: rotation,
 				}}
 			/>
 
 			{/* Secondary inner ring */}
 			<motion.div
+				animate={{
+					scale,
+					opacity: 0.7 - ((scale - 0.6) / 0.6) * 0.5,
+					rotate: -rotation * 0.5,
+				}}
+				transition={{ type: 'spring', stiffness: 120, damping: 20 }}
 				style={{
 					position: 'absolute',
 					width: '35vmin',
 					height: '35vmin',
 					borderRadius: '50%',
 					border: `1px solid ${color}60`,
-					scale,
-					opacity: useTransform(scale, [0.6, 1.2], [0.7, 0.2]),
-					rotate: useTransform(rotation, (r) => -r * 0.5),
 				}}
 			/>
 
 			{/* Particles container with rotation */}
 			<motion.div
+				animate={{
+					rotate: rotation * 0.3,
+					scale: particleSpread,
+				}}
+				transition={{ type: 'spring', stiffness: 80, damping: 15 }}
 				style={{
 					position: 'absolute',
 					width: '50vmin',
 					height: '50vmin',
-					rotate: useTransform(rotation, (r) => r * 0.3),
-					scale: particleSpread,
 				}}
 			>
 				{particles.map((p) => (
@@ -223,11 +231,12 @@ export function CSSBreathingOrb({
 
 			{/* Outer scattered particles - more visible on exhale */}
 			<motion.div
+				animate={{ opacity: outerOpacity }}
+				transition={{ type: 'spring', stiffness: 80, damping: 15 }}
 				style={{
 					position: 'absolute',
 					width: '70vmin',
 					height: '70vmin',
-					opacity: useTransform(scale, [0.6, 1.2], [0.2, 0.8]),
 				}}
 			>
 				{particles.slice(0, 24).map((p) => (
