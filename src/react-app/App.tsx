@@ -1,66 +1,138 @@
-// src/App.tsx
-
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import viteLogo from "/vite.svg";
-import cloudflareLogo from "./assets/Cloudflare_Logo.svg";
-import honoLogo from "./assets/hono.svg";
-import "./App.css";
+import { useBreathSync } from './hooks/useBreathSync';
+import { usePresence } from './hooks/usePresence';
+import { useSimulation } from './hooks/useSimulation';
+import { BreathingOrb } from './components/BreathingOrb';
+import { DebugPanel } from './components/DebugPanel';
+import { IdentityPanel, UserBadge, JoinButton } from './components/IdentityPanel';
+import { PatternSelector } from './components/PatternSelector';
+import { PresenceCounter } from './components/PresenceCounter';
+import { getMoodColor } from './lib/colors';
+import { useAppStore, UserIdentity } from './stores/appStore';
+import './App.css';
 
 function App() {
-	const [count, setCount] = useState(0);
-	const [name, setName] = useState("unknown");
+  // Zustand store
+  const {
+    user,
+    setUser,
+    config,
+    setConfig,
+    pattern,
+    setPattern,
+    showDebug,
+    setShowDebug,
+    showIdentity,
+    setShowIdentity,
+    simulationConfig,
+    updateSimulationConfig,
+  } = useAppStore();
 
-	return (
-		<>
-			<div>
-				<a href="https://vite.dev" target="_blank">
-					<img src={viteLogo} className="logo" alt="Vite logo" />
-				</a>
-				<a href="https://react.dev" target="_blank">
-					<img src={reactLogo} className="logo react" alt="React logo" />
-				</a>
-				<a href="https://hono.dev/" target="_blank">
-					<img src={honoLogo} className="logo cloudflare" alt="Hono logo" />
-				</a>
-				<a href="https://workers.cloudflare.com/" target="_blank">
-					<img
-						src={cloudflareLogo}
-						className="logo cloudflare"
-						alt="Cloudflare logo"
-					/>
-				</a>
-			</div>
-			<h1>Vite + React + Hono + Cloudflare</h1>
-			<div className="card">
-				<button
-					onClick={() => setCount((count) => count + 1)}
-					aria-label="increment"
-				>
-					count is {count}
-				</button>
-				<p>
-					Edit <code>src/App.tsx</code> and save to test HMR
-				</p>
-			</div>
-			<div className="card">
-				<button
-					onClick={() => {
-						fetch("/api/")
-							.then((res) => res.json() as Promise<{ name: string }>)
-							.then((data) => setName(data.name));
-					}}
-					aria-label="get name"
-				>
-					Name from API is: {name}
-				</button>
-				<p>
-					Edit <code>worker/index.ts</code> to change the name
-				</p>
-			</div>
-			<p className="read-the-docs">Click on the logos to learn more</p>
-		</>
-	);
+  const breathState = useBreathSync(pattern);
+
+  // Simulation controls
+  const { snapshot, isRunning, start, stop, reset, updateConfig: updateSimConfig } = useSimulation(simulationConfig);
+
+  // Presence data (uses simulation snapshot when simulated)
+  const presence = usePresence({
+    simulated: simulationConfig.enabled,
+    simulationSnapshot: snapshot,
+  });
+
+  const handleUserChange = (newUser: UserIdentity) => {
+    setUser(newUser);
+  };
+
+  const moodColor = getMoodColor(user?.mood);
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        overflow: 'hidden',
+      }}
+    >
+      {/* Main breathing visualization */}
+      <BreathingOrb
+        breathState={breathState}
+        presence={presence}
+        config={config}
+        moodColor={moodColor}
+      />
+
+      {/* Debug panel */}
+      <DebugPanel
+        config={config}
+        setConfig={setConfig}
+        breathState={breathState}
+        presence={presence}
+        isOpen={showDebug}
+        setIsOpen={setShowDebug}
+        simulationControls={{
+          simulationConfig,
+          updateSimulationConfig: (updates) => {
+            updateSimulationConfig(updates);
+            updateSimConfig(updates);
+          },
+          isSimulationRunning: isRunning,
+          onStart: start,
+          onStop: stop,
+          onReset: reset,
+        }}
+      />
+
+      {/* Presence counter - top center */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '1.5rem',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 10,
+        }}
+      >
+        <PresenceCounter presence={presence} />
+      </div>
+
+      {/* Pattern selector - top right */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '1.5rem',
+          right: '1.5rem',
+          zIndex: 10,
+        }}
+      >
+        <PatternSelector pattern={pattern} onChange={setPattern} />
+      </div>
+
+      {/* User badge or join button - bottom center */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: '1.5rem',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 10,
+        }}
+      >
+        {user ? (
+          <UserBadge user={user} onClick={() => setShowIdentity(true)} />
+        ) : (
+          <JoinButton onClick={() => setShowIdentity(true)} />
+        )}
+      </div>
+
+      {/* Identity panel modal */}
+      {showIdentity && (
+        <IdentityPanel
+          user={user || { name: '', avatar: '', mood: '', moodDetail: '' }}
+          onUserChange={handleUserChange}
+          onClose={() => setShowIdentity(false)}
+        />
+      )}
+    </div>
+  );
 }
 
 export default App;

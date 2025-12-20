@@ -1,0 +1,31 @@
+import { PATTERNS, PatternId } from '../lib/patterns';
+import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
+import { cn } from '../lib/utils';
+
+interface PatternSelectorProps {
+  pattern: PatternId;
+  onChange: (pattern: PatternId) => void;
+  className?: string;
+}
+
+export function PatternSelector({ pattern, onChange, className }: PatternSelectorProps) {
+  return (
+    <ToggleGroup
+      type="single"
+      value={pattern}
+      onValueChange={(value) => value && onChange(value as PatternId)}
+      className={cn("bg-white/5 rounded-full p-1", className)}
+    >
+      {Object.entries(PATTERNS).map(([key, cfg]) => (
+        <ToggleGroupItem
+          key={key}
+          value={key}
+          aria-label={`${cfg.name} breathing pattern`}
+          className="rounded-full px-3 py-1.5 text-xs data-[state=on]:bg-white/20"
+        >
+          {cfg.name}
+        </ToggleGroupItem>
+      ))}
+    </ToggleGroup>
+  );
+}
