@@ -1,3 +1,4 @@
+import { AnimationSelector } from './components/AnimationSelector';
 import { BreathingOrb } from './components/BreathingOrb';
 import { DebugPanel } from './components/DebugPanel';
 import {
@@ -23,6 +24,8 @@ function App() {
 		setConfig,
 		pattern,
 		setPattern,
+		animationId,
+		setAnimationId,
 		showDebug,
 		setShowDebug,
 		showIdentity,
@@ -56,13 +59,7 @@ function App() {
 	const moodColor = getMoodColor(user?.mood);
 
 	return (
-		<div
-			style={{
-				position: 'fixed',
-				inset: 0,
-				overflow: 'hidden',
-			}}
-		>
+		<div className="fixed inset-0 overflow-hidden">
 			{/* Main breathing visualization */}
 			<BreathingOrb
 				breathState={breathState}
@@ -70,6 +67,7 @@ function App() {
 				config={config}
 				moodColor={moodColor}
 				currentUser={user}
+				animationId={animationId}
 			/>
 
 			{/* Debug panel */}
@@ -93,46 +91,44 @@ function App() {
 				}}
 			/>
 
-			{/* Presence counter - top center */}
-			<div
-				style={{
-					position: 'absolute',
-					top: '1.5rem',
-					left: '50%',
-					transform: 'translateX(-50%)',
-					zIndex: 10,
-				}}
-			>
-				<PresenceCounter presence={presence} />
+			{/* Top bar - responsive layout */}
+			<div className="absolute top-0 left-0 right-0 z-10 p-3 sm:p-4">
+				<div className="flex items-start justify-between gap-2">
+					{/* Left side - presence counter on mobile */}
+					<div className="flex-1 sm:flex-none">
+						<div className="sm:hidden">
+							<PresenceCounter presence={presence} />
+						</div>
+					</div>
+
+					{/* Center - presence counter on desktop */}
+					<div className="hidden sm:block absolute left-1/2 -translate-x-1/2 top-4">
+						<PresenceCounter presence={presence} />
+					</div>
+
+					{/* Right side - pattern selector */}
+					<div className="flex-shrink-0">
+						<PatternSelector pattern={pattern} onChange={setPattern} />
+					</div>
+				</div>
 			</div>
 
-			{/* Pattern selector - top right */}
-			<div
-				style={{
-					position: 'absolute',
-					top: '1.5rem',
-					right: '1.5rem',
-					zIndex: 10,
-				}}
-			>
-				<PatternSelector pattern={pattern} onChange={setPattern} />
-			</div>
+			{/* Bottom bar - responsive layout */}
+			<div className="absolute bottom-0 left-0 right-0 z-10 p-3 sm:p-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+				<div className="flex flex-col items-center gap-3">
+					{/* Animation selector */}
+					<AnimationSelector
+						animationId={animationId}
+						onChange={setAnimationId}
+					/>
 
-			{/* User badge or join button - bottom center */}
-			<div
-				style={{
-					position: 'absolute',
-					bottom: '1.5rem',
-					left: '50%',
-					transform: 'translateX(-50%)',
-					zIndex: 10,
-				}}
-			>
-				{user ? (
-					<UserBadge user={user} onClick={() => setShowIdentity(true)} />
-				) : (
-					<JoinButton onClick={() => setShowIdentity(true)} />
-				)}
+					{/* User badge or join button */}
+					{user ? (
+						<UserBadge user={user} onClick={() => setShowIdentity(true)} />
+					) : (
+						<JoinButton onClick={() => setShowIdentity(true)} />
+					)}
+				</div>
 			</div>
 
 			{/* Identity panel modal */}

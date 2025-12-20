@@ -238,12 +238,12 @@ export function updateConfig(
 }
 
 export const DEFAULT_CONFIG: VisualizationConfig = {
-	// Particle System
-	particleCount: 200,
+	// Particle System - optimized for galaxy/nebula effect
+	particleCount: 200, // Will be multiplied by 3 for galaxy effect
 	particleMinSize: 1.5,
-	particleMaxSize: 4,
-	particleMinOpacity: 0.2,
-	particleMaxOpacity: 0.5,
+	particleMaxSize: 5,
+	particleMinOpacity: 0.25,
+	particleMaxOpacity: 0.7,
 
 	// Spring Physics
 	springTension: 120,
@@ -251,26 +251,26 @@ export const DEFAULT_CONFIG: VisualizationConfig = {
 	springFriction: 18,
 	springFrictionVariance: 12,
 
-	// Breathing Animation
+	// Breathing Animation - galaxy contracts on inhale, expands on exhale
 	baseRadius: 0.28,
 	breatheInScale: 0.7,
 	breatheOutScale: 1.2,
 	holdOscillation: 0.02,
 	holdOscillationSpeed: 0.003,
 
-	// Main Spring
-	mainSpringTension: 100,
-	mainSpringFriction: 20,
+	// Main Spring - slightly slower for nebula effect
+	mainSpringTension: 80,
+	mainSpringFriction: 18,
 
-	// Visual Effects
-	glowIntensity: 0.1,
-	glowRadius: 1.5,
+	// Visual Effects - subtle ambient glow
+	glowIntensity: 0.08,
+	glowRadius: 1.4,
 	trailFade: 0.12,
 	coreRadius: 10,
-	coreOpacity: 0.25,
+	coreOpacity: 0.2,
 
-	// Particle Movement
-	wobbleAmount: 0.05,
+	// Particle Movement - subtle wobble for organic feel
+	wobbleAmount: 0.03,
 	wobbleSpeed: 0.0007,
 	radiusVarianceMin: 0.8,
 	radiusVarianceMax: 1.2,
@@ -278,7 +278,7 @@ export const DEFAULT_CONFIG: VisualizationConfig = {
 
 	// Presence Particles
 	presenceCount: 50,
-	presenceRadius: 1.3,
+	presenceRadius: 1.5,
 	presenceSize: 3,
 	presenceOpacity: 0.1,
 	presenceOrbitSpeed: 0.0001,
@@ -309,8 +309,8 @@ export const DEFAULT_CONFIG: VisualizationConfig = {
 	sliceHoverDelay: 200,
 	sliceHighlightOpacity: 0.15,
 
-	// Colors
-	primaryColor: '#7EB5C1',
-	backgroundColor: '#0f1723',
-	backgroundColorMid: '#1a2634',
+	// Colors - cosmic nebula palette
+	primaryColor: '#9B7EBD',
+	backgroundColor: '#0a0d14',
+	backgroundColorMid: '#131824',
 };

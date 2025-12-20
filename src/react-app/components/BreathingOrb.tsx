@@ -3,6 +3,7 @@ import type { BreathState } from '../hooks/useBreathSync';
 import type { PresenceData } from '../hooks/usePresence';
 import type { VisualizationConfig } from '../lib/config';
 import type { UserIdentity } from '../stores/appStore';
+import type { AnimationId } from './r3f/animations';
 import { BreathingScene } from './r3f/BreathingScene';
 
 interface BreathingOrbProps {
@@ -11,6 +12,7 @@ interface BreathingOrbProps {
 	config: VisualizationConfig;
 	moodColor: string;
 	currentUser?: UserIdentity | null;
+	animationId?: AnimationId;
 }
 
 /**
@@ -23,6 +25,7 @@ export function BreathingOrb({
 	config,
 	moodColor,
 	currentUser,
+	animationId = 'orb',
 }: BreathingOrbProps) {
 	return (
 		<div
@@ -38,6 +41,7 @@ export function BreathingOrb({
 				config={config}
 				moodColor={moodColor}
 				currentUser={currentUser}
+				animationId={animationId}
 			/>
 
 			{/* Breathing guide text with Framer Motion animations */}
