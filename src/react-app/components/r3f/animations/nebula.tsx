@@ -17,15 +17,8 @@ import Nebula, {
 	SpriteRenderer,
 	Vector3D,
 } from 'three-nebula';
-import { calculateTargetScale } from '../../hooks/useBreathingSpring';
-import type { BreathState } from '../../hooks/useBreathSync';
-import type { VisualizationConfig } from '../../lib/config';
-
-interface NebulaParticlesProps {
-	breathState: BreathState;
-	config: VisualizationConfig;
-	moodColor: string;
-}
+import { calculateTargetScale } from '../../../hooks/useBreathingSpring';
+import type { ParticleAnimationProps } from './types';
 
 // Create a soft, beautiful particle texture
 function createParticleTexture(size = 128): THREE.Texture {
@@ -35,7 +28,6 @@ function createParticleTexture(size = 128): THREE.Texture {
 	const ctx = canvas.getContext('2d')!;
 	const center = size / 2;
 
-	// Beautiful soft radial gradient
 	const gradient = ctx.createRadialGradient(
 		center,
 		center,
@@ -58,11 +50,15 @@ function createParticleTexture(size = 128): THREE.Texture {
 	return texture;
 }
 
-export function NebulaParticles({
+/**
+ * Nebula-based particle animation with dual emitters.
+ * Features a central pulsing core and orbiting ring particles.
+ */
+export function NebulaAnimation({
 	breathState,
 	config,
 	moodColor,
-}: NebulaParticlesProps) {
+}: ParticleAnimationProps) {
 	const nebulaRef = useRef<Nebula | null>(null);
 	const coreEmitterRef = useRef<Emitter | null>(null);
 	const ringEmitterRef = useRef<Emitter | null>(null);
@@ -70,22 +66,16 @@ export function NebulaParticles({
 	const scaleRef = useRef(1);
 	const velocityRef = useRef(0);
 	const materialRef = useRef<THREE.SpriteMaterial | null>(null);
-	const textureRef = useRef<THREE.Texture | null>(null);
 
-	// Create particle color from mood
 	const particleColor = useMemo(() => {
 		const color = new THREE.Color(moodColor || config.primaryColor);
 		return { r: color.r, g: color.g, b: color.b };
 	}, [moodColor, config.primaryColor]);
 
-	// Initialize Nebula system with beautiful particles
 	useEffect(() => {
 		if (!containerRef.current) return;
 
 		const texture = createParticleTexture();
-		textureRef.current = texture;
-
-		// Create beautiful sprite material
 		const material = new THREE.SpriteMaterial({
 			map: texture,
 			color: new THREE.Color(moodColor || config.primaryColor),
@@ -98,7 +88,7 @@ export function NebulaParticles({
 
 		const sprite = new THREE.Sprite(material);
 
-		// Core emitter - gentle central pulsing
+		// Core emitter
 		const coreEmitter = new Emitter();
 		coreEmitter
 			.setRate(new Rate(new Span(2, 4), new Span(0.1, 0.2)))
@@ -117,7 +107,7 @@ export function NebulaParticles({
 			])
 			.emit();
 
-		// Ring emitter - particles that orbit and flow
+		// Ring emitter
 		const ringEmitter = new Emitter();
 		ringEmitter
 			.setRate(new Rate(new Span(1, 3), new Span(0.15, 0.25)))
@@ -136,7 +126,6 @@ export function NebulaParticles({
 			])
 			.emit();
 
-		// Create Nebula system
 		const nebula = new Nebula();
 		const renderer = new SpriteRenderer(containerRef.current, THREE);
 
@@ -155,34 +144,26 @@ export function NebulaParticles({
 		};
 	}, []);
 
-	// Update colors when mood changes
 	useEffect(() => {
 		if (materialRef.current) {
 			materialRef.current.color.set(moodColor || config.primaryColor);
 		}
 
-		// Update core emitter color
 		if (coreEmitterRef.current) {
 			const colorBehavior = coreEmitterRef.current.behaviours.find(
 				(b: unknown) => b instanceof Color,
 			) as Color | undefined;
-			if (colorBehavior) {
-				colorBehavior.reset(particleColor, { r: 0.2, g: 0.4, b: 0.5 });
-			}
+			colorBehavior?.reset(particleColor, { r: 0.2, g: 0.4, b: 0.5 });
 		}
 
-		// Update ring emitter color
 		if (ringEmitterRef.current) {
 			const colorBehavior = ringEmitterRef.current.behaviours.find(
 				(b: unknown) => b instanceof Color,
 			) as Color | undefined;
-			if (colorBehavior) {
-				colorBehavior.reset(particleColor, { r: 0.3, g: 0.5, b: 0.6 });
-			}
+			colorBehavior?.reset(particleColor, { r: 0.3, g: 0.5, b: 0.6 });
 		}
 	}, [particleColor, moodColor, config.primaryColor]);
 
-	// Animation loop
 	useFrame((_state, delta) => {
 		if (
 			!nebulaRef.current ||
@@ -192,7 +173,6 @@ export function NebulaParticles({
 		)
 			return;
 
-		// Calculate breathing scale with spring physics
 		const targetScale = calculateTargetScale(breathState, config);
 		const stiffness = config.mainSpringTension * 0.0001;
 		const damping = config.mainSpringFriction * 0.05;
@@ -200,17 +180,11 @@ export function NebulaParticles({
 		velocityRef.current = velocityRef.current * (1 - damping) + force;
 		scaleRef.current += velocityRef.current;
 
-		// Apply breathing scale to container
-		const scale = scaleRef.current * 1.5;
-		containerRef.current.scale.setScalar(scale);
+		containerRef.current.scale.setScalar(scaleRef.current * 1.5);
 
-		// Breathing-synchronized particle behavior
-		const phase = breathState.phase;
-		const progress = breathState.progress;
+		const { phase, progress } = breathState;
 
-		// Modulate emission based on breathing phase
 		if (phase === 'in') {
-			// Inhale: more particles, gathering inward
 			const intensity = 3 + progress * 4;
 			coreEmitterRef.current.rate = new Rate(
 				new Span(intensity, intensity + 3),
@@ -221,7 +195,6 @@ export function NebulaParticles({
 				new Span(0.1, 0.15),
 			);
 		} else if (phase === 'out') {
-			// Exhale: particles flow outward gently
 			const intensity = 5 - progress * 3;
 			coreEmitterRef.current.rate = new Rate(
 				new Span(intensity, intensity + 2),
@@ -232,7 +205,6 @@ export function NebulaParticles({
 				new Span(0.15, 0.25),
 			);
 		} else if (phase === 'hold-in') {
-			// Hold after inhale: calm, sustained glow
 			coreEmitterRef.current.rate = new Rate(
 				new Span(3, 5),
 				new Span(0.1, 0.18),
@@ -242,7 +214,6 @@ export function NebulaParticles({
 				new Span(0.2, 0.3),
 			);
 		} else {
-			// Hold after exhale: minimal, peaceful
 			coreEmitterRef.current.rate = new Rate(
 				new Span(1, 3),
 				new Span(0.15, 0.25),
@@ -253,15 +224,13 @@ export function NebulaParticles({
 			);
 		}
 
-		// Rotate ring emitter position slowly for orbital effect
 		const time = Date.now() * 0.0003;
 		const orbitRadius = 0.25 + Math.sin(time * 2) * 0.05;
 		ringEmitterRef.current.position.x = Math.cos(time) * orbitRadius;
 		ringEmitterRef.current.position.y = Math.sin(time) * orbitRadius;
 
-		// Update Nebula system
 		nebulaRef.current.update(delta);
 	});
 
-	return <group ref={containerRef} position={[0, 0, 0]} />;
+	return <group ref={containerRef} />;
 }

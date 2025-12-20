@@ -6,8 +6,8 @@ import type { BreathState } from '../../hooks/useBreathSync';
 import type { PresenceData } from '../../hooks/usePresence';
 import type { VisualizationConfig } from '../../lib/config';
 import type { UserIdentity } from '../../stores/appStore';
+import { ANIMATIONS } from './animations';
 import { GlowEffect } from './GlowEffect';
-import { NebulaParticles } from './NebulaParticles';
 import { PresenceParticles } from './PresenceParticles';
 
 interface BreathingSceneProps {
@@ -42,6 +42,9 @@ export function BreathingScene({
 		[],
 	);
 
+	// Get the selected animation component from registry
+	const AnimationComponent = ANIMATIONS[config.animationType].component;
+
 	return (
 		<Canvas
 			dpr={dpr}
@@ -73,8 +76,8 @@ export function BreathingScene({
 					moodColor={moodColor}
 				/>
 
-				{/* Central nebula particle system */}
-				<NebulaParticles
+				{/* Central particle animation (selected by config) */}
+				<AnimationComponent
 					breathState={breathState}
 					config={config}
 					moodColor={moodColor}

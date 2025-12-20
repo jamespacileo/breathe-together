@@ -1,10 +1,19 @@
 import { z } from 'zod';
 
 /**
+ * Available animation types for the particle system
+ */
+export const AnimationTypeSchema = z.enum(['nebula', 'ring', 'minimal']);
+export type AnimationType = z.infer<typeof AnimationTypeSchema>;
+
+/**
  * Zod schema for breathing visualization configuration
  * Provides runtime validation with min/max ranges
  */
 export const VisualizationConfigSchema = z.object({
+	// Animation Type
+	animationType: AnimationTypeSchema.describe('Particle animation style'),
+
 	// Particle System
 	particleCount: z.number().min(10).max(500).describe('Number of particles'),
 	particleMinSize: z
@@ -238,6 +247,9 @@ export function updateConfig(
 }
 
 export const DEFAULT_CONFIG: VisualizationConfig = {
+	// Animation Type
+	animationType: 'nebula',
+
 	// Particle System
 	particleCount: 200,
 	particleMinSize: 1.5,
