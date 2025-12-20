@@ -262,12 +262,12 @@ export const DEFAULT_CONFIG: VisualizationConfig = {
 	mainSpringTension: 80,
 	mainSpringFriction: 18,
 
-	// Visual Effects - enhanced for nebula glow
-	glowIntensity: 0.15,
-	glowRadius: 1.8,
+	// Visual Effects - subtle ambient glow
+	glowIntensity: 0.08,
+	glowRadius: 1.4,
 	trailFade: 0.12,
-	coreRadius: 15,
-	coreOpacity: 0.35,
+	coreRadius: 10,
+	coreOpacity: 0.2,
 
 	// Particle Movement - subtle wobble for organic feel
 	wobbleAmount: 0.03,
