@@ -11,7 +11,7 @@ interface GlowEffectProps {
 	moodColor: string;
 }
 
-// Radial glow shader
+// Nebula glow shader with multiple color layers
 const glowVertexShader = `
   varying vec2 vUv;
 
@@ -22,26 +22,51 @@ const glowVertexShader = `
 `;
 
 const glowFragmentShader = `
-  uniform vec3 color;
+  uniform vec3 color1;
+  uniform vec3 color2;
+  uniform vec3 color3;
   uniform float intensity;
   uniform float coreIntensity;
   uniform float coreSize;
+  uniform float time;
+  uniform float diffuseFactor;
 
   varying vec2 vUv;
+
+  // Simple noise function for nebula effect
+  float noise(vec2 p) {
+    return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+  }
 
   void main() {
     vec2 center = vec2(0.5);
     float dist = distance(vUv, center);
 
-    // Outer glow
-    float outerGlow = smoothstep(0.5, 0.0, dist) * intensity;
+    // Animated distortion for nebula effect
+    vec2 offset = vec2(
+      sin(time * 0.3 + vUv.y * 4.0) * 0.02,
+      cos(time * 0.2 + vUv.x * 4.0) * 0.02
+    ) * diffuseFactor;
+    float distortedDist = distance(vUv + offset, center);
+
+    // Multiple glow layers with different colors
+    float layer1 = smoothstep(0.5, 0.0, distortedDist) * intensity;
+    float layer2 = smoothstep(0.35, 0.05, distortedDist) * intensity * 0.7;
+    float layer3 = smoothstep(0.25, 0.0, distortedDist) * intensity * 0.5;
 
     // Core glow (brighter center)
     float coreGlow = smoothstep(coreSize, 0.0, dist) * coreIntensity;
 
-    float alpha = outerGlow + coreGlow;
+    // Blend colors based on distance
+    vec3 nebulaColor = mix(color1, color2, smoothstep(0.0, 0.3, distortedDist));
+    nebulaColor = mix(nebulaColor, color3, smoothstep(0.2, 0.5, distortedDist));
 
-    gl_FragColor = vec4(color, alpha);
+    // Add subtle noise texture
+    float n = noise(vUv * 50.0 + time * 0.1) * 0.1 * diffuseFactor;
+
+    float alpha = (layer1 + layer2 * 0.5 + layer3 * 0.3 + coreGlow) * (1.0 + n);
+
+    gl_FragColor = vec4(nebulaColor, alpha);
   }
 `;
 
@@ -61,14 +86,24 @@ export function GlowEffect({
 		return Math.min(size.width, size.height) * 0.8;
 	}, [size]);
 
-	// Update color when mood changes
+	// Nebula colors - cosmic palette
+	const nebulaColors = useMemo(() => {
+		const moodCol = new THREE.Color(moodColor || config.primaryColor);
+		return {
+			color1: new THREE.Color('#9B7EBD').lerp(moodCol, 0.3), // Purple blend
+			color2: new THREE.Color('#7EB5C1').lerp(moodCol, 0.2), // Teal blend
+			color3: new THREE.Color('#C17EB5').lerp(moodCol, 0.2), // Pink blend
+		};
+	}, [moodColor, config.primaryColor]);
+
+	// Update colors when mood changes
 	useEffect(() => {
 		if (materialRef.current) {
-			materialRef.current.uniforms.color.value.set(
-				moodColor || config.primaryColor,
-			);
+			materialRef.current.uniforms.color1.value.copy(nebulaColors.color1);
+			materialRef.current.uniforms.color2.value.copy(nebulaColors.color2);
+			materialRef.current.uniforms.color3.value.copy(nebulaColors.color3);
 		}
-	}, [moodColor, config.primaryColor]);
+	}, [nebulaColors]);
 
 	// Update intensity
 	useEffect(() => {
@@ -79,8 +114,8 @@ export function GlowEffect({
 		}
 	}, [config.glowIntensity, config.coreOpacity, config.coreRadius]);
 
-	useFrame(() => {
-		if (!meshRef.current) return;
+	useFrame((state) => {
+		if (!meshRef.current || !materialRef.current) return;
 
 		// Calculate target scale with spring physics
 		const targetScale = calculateTargetScale(breathState, config);
@@ -92,15 +127,26 @@ export function GlowEffect({
 		velocityRef.current = velocityRef.current * (1 - damping) + force;
 		scaleRef.current += velocityRef.current;
 
-		// Apply scale
-		const glowScale = scaleRef.current * config.glowRadius;
-		meshRef.current.scale.setScalar(glowScale);
-	});
+		// Calculate diffuse factor for nebula animation
+		const normalizedScale =
+			(scaleRef.current - config.breatheInScale) /
+			(config.breatheOutScale - config.breatheInScale);
+		const diffuseFactor = Math.max(0, Math.min(1, normalizedScale));
 
-	const color = useMemo(
-		() => new THREE.Color(moodColor || config.primaryColor),
-		[moodColor, config.primaryColor],
-	);
+		// Apply scale - larger when diffuse
+		const glowScale =
+			scaleRef.current * config.glowRadius * (1 + diffuseFactor * 0.3);
+		meshRef.current.scale.setScalar(glowScale);
+
+		// Update time and diffuse uniforms
+		materialRef.current.uniforms.time.value = state.clock.elapsedTime;
+		materialRef.current.uniforms.diffuseFactor.value = diffuseFactor;
+
+		// Animate intensity based on breathing
+		const breathingIntensity =
+			config.glowIntensity * (0.8 + diffuseFactor * 0.4);
+		materialRef.current.uniforms.intensity.value = breathingIntensity;
+	});
 
 	return (
 		<mesh ref={meshRef} position={[0, 0, -0.1]}>
@@ -110,10 +156,14 @@ export function GlowEffect({
 				vertexShader={glowVertexShader}
 				fragmentShader={glowFragmentShader}
 				uniforms={{
-					color: { value: color },
+					color1: { value: nebulaColors.color1 },
+					color2: { value: nebulaColors.color2 },
+					color3: { value: nebulaColors.color3 },
 					intensity: { value: config.glowIntensity },
 					coreIntensity: { value: config.coreOpacity },
 					coreSize: { value: config.coreRadius / 100 },
+					time: { value: 0 },
+					diffuseFactor: { value: 0 },
 				}}
 				transparent
 				depthWrite={false}
