@@ -1,4 +1,4 @@
-import type { AnimationId, AnimationMeta } from './types';
+import type { AnimationComponent, AnimationId, AnimationMeta } from './types';
 
 // Lazy imports for code splitting
 const OrbAnimation = () =>
@@ -29,7 +29,7 @@ export const ANIMATION_REGISTRY: Record<AnimationId, AnimationMeta> = {
  */
 export const ANIMATION_LOADERS: Record<
 	AnimationId,
-	() => Promise<{ default: React.ComponentType<unknown> }>
+	() => Promise<{ default: AnimationComponent }>
 > = {
 	orb: OrbAnimation,
 	galaxy: GalaxyAnimation,
