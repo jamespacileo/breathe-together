@@ -26,10 +26,11 @@ export function GalaxyAnimation({
 		const positions = new Float32Array(count * 3);
 		const sizes = new Float32Array(count);
 		const opacities = new Float32Array(count);
-		const colors = new Float32Array(count * 3);
+		const particleColors = new Float32Array(count * 3);
 
 		const numArms = 3;
-		const baseColor = new THREE.Color(moodColor || config.primaryColor);
+		const colorValue = moodColor || config.primaryColor || '#7EB5C1';
+		const baseColor = new THREE.Color(colorValue);
 
 		for (let i = 0; i < count; i++) {
 			const armIndex = i % numArms;
@@ -54,14 +55,14 @@ export function GalaxyAnimation({
 
 			// Vary colors slightly
 			const hueShift = (Math.random() - 0.5) * 0.1;
-			const color = baseColor.clone();
-			color.offsetHSL(hueShift, 0, (Math.random() - 0.5) * 0.2);
-			colors[i * 3] = color.r;
-			colors[i * 3 + 1] = color.g;
-			colors[i * 3 + 2] = color.b;
+			const pColor = baseColor.clone();
+			pColor.offsetHSL(hueShift, 0, (Math.random() - 0.5) * 0.2);
+			particleColors[i * 3] = pColor.r;
+			particleColors[i * 3 + 1] = pColor.g;
+			particleColors[i * 3 + 2] = pColor.b;
 		}
 
-		return { positions, sizes, opacities, colors, count };
+		return { positions, sizes, opacities, particleColors, count };
 	}, [config.particleCount, moodColor, config.primaryColor]);
 
 	useFrame((state) => {
@@ -98,21 +99,21 @@ export function GalaxyAnimation({
 					args={[particleData.opacities, 1]}
 				/>
 				<bufferAttribute
-					attach="attributes-color"
-					args={[particleData.colors, 3]}
+					attach="attributes-particleColor"
+					args={[particleData.particleColors, 3]}
 				/>
 			</bufferGeometry>
 			<shaderMaterial
 				vertexShader={`
 					attribute float size;
 					attribute float opacity;
-					attribute vec3 color;
+					attribute vec3 particleColor;
 					varying float vOpacity;
 					varying vec3 vColor;
 
 					void main() {
 						vOpacity = opacity;
-						vColor = color;
+						vColor = particleColor;
 						vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
 						gl_PointSize = size * (300.0 / -mvPosition.z);
 						gl_Position = projectionMatrix * mvPosition;
