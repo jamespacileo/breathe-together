@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import type { AnimationId } from '../components/r3f/animations';
 import {
 	DEFAULT_CONFIG,
 	updateConfig,
@@ -35,6 +36,10 @@ interface AppState {
 	// Breathing pattern
 	pattern: PatternId;
 	setPattern: (pattern: PatternId) => void;
+
+	// Animation style
+	animationId: AnimationId;
+	setAnimationId: (animationId: AnimationId) => void;
 
 	// UI state
 	showDebug: boolean;
@@ -76,6 +81,10 @@ export const useAppStore = create<AppState>()(
 			// Breathing pattern
 			pattern: 'box',
 			setPattern: (pattern) => set({ pattern }),
+
+			// Animation style
+			animationId: 'orb',
+			setAnimationId: (animationId) => set({ animationId }),
 
 			// UI state
 			showDebug: false,
@@ -121,6 +130,7 @@ export const useAppStore = create<AppState>()(
 				user: state.user,
 				config: state.config,
 				pattern: state.pattern,
+				animationId: state.animationId,
 				simulationConfig: state.simulationConfig,
 			}),
 		},
