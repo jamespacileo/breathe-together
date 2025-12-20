@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react';
+import { hasLimitedWebGL } from '../../../lib/device';
 import { MinimalAnimation } from './minimal';
 import { NebulaAnimation } from './nebula';
 import { RingAnimation } from './ring';
@@ -70,3 +71,23 @@ export function getAnimationList(): AnimationMeta[] {
  * Default animation type
  */
 export const DEFAULT_ANIMATION: AnimationType = 'nebula';
+
+/**
+ * iOS fallback animation (nebula has issues on iOS Safari)
+ */
+export const IOS_FALLBACK_ANIMATION: AnimationType = 'ring';
+
+/**
+ * Get effective animation type, applying device-specific fallbacks.
+ * iOS Safari has WebGL issues with three-nebula's SpriteRenderer,
+ * so we fall back to the simpler ring animation.
+ */
+export function getEffectiveAnimationType(
+	requested: AnimationType,
+): AnimationType {
+	// If nebula is requested but device has limited WebGL, use ring instead
+	if (requested === 'nebula' && hasLimitedWebGL()) {
+		return IOS_FALLBACK_ANIMATION;
+	}
+	return requested;
+}

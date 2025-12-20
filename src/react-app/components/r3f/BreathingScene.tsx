@@ -6,7 +6,7 @@ import type { BreathState } from '../../hooks/useBreathSync';
 import type { PresenceData } from '../../hooks/usePresence';
 import type { VisualizationConfig } from '../../lib/config';
 import type { UserIdentity } from '../../stores/appStore';
-import { ANIMATIONS } from './animations';
+import { ANIMATIONS, getEffectiveAnimationType } from './animations';
 import { GlowEffect } from './GlowEffect';
 import { PresenceParticles } from './PresenceParticles';
 
@@ -42,8 +42,9 @@ export function BreathingScene({
 		[],
 	);
 
-	// Get the selected animation component from registry
-	const AnimationComponent = ANIMATIONS[config.animationType].component;
+	// Get the selected animation component, with iOS fallback
+	const effectiveType = getEffectiveAnimationType(config.animationType);
+	const AnimationComponent = ANIMATIONS[effectiveType].component;
 
 	return (
 		<Canvas
