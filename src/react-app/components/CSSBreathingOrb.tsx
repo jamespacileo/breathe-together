@@ -1,6 +1,5 @@
-import { motion } from 'framer-motion';
+import { motion, useSpring, useTransform } from 'framer-motion';
 import { useMemo } from 'react';
-import { useBreathingSpring } from '../hooks/useBreathingSpring';
 import type { BreathState } from '../hooks/useBreathSync';
 import type { VisualizationConfig } from '../lib/config';
 
@@ -12,37 +11,80 @@ interface CSSBreathingOrbProps {
 
 /**
  * Pure CSS breathing orb - no WebGL required.
- * Uses CSS transforms, gradients, and blur for a beautiful effect.
- * 100% compatible with iOS Safari.
+ * Inhale: contracted, focused circle
+ * Exhale: expanded, relaxed, scattered
  */
 export function CSSBreathingOrb({
 	breathState,
 	config,
 	moodColor,
 }: CSSBreathingOrbProps) {
-	const scale = useBreathingSpring(breathState, config);
+	const { phase, progress } = breathState;
 
-	// Generate particles using CSS
+	// Calculate scale: inhale = contract (small), exhale = expand (large)
+	const targetScale = useMemo(() => {
+		if (phase === 'in') {
+			// Inhale: contract from 1.0 to 0.6 (getting smaller/tighter)
+			return 1.0 - progress * 0.4;
+		} else if (phase === 'out') {
+			// Exhale: expand from 0.6 to 1.2 (getting larger/relaxed)
+			return 0.6 + progress * 0.6;
+		} else if (phase === 'hold-in') {
+			// Hold after inhale: stay contracted with subtle pulse
+			return 0.6 + Math.sin(Date.now() * 0.003) * 0.02;
+		} else {
+			// Hold after exhale: stay expanded with gentle drift
+			return 1.2 + Math.sin(Date.now() * 0.002) * 0.03;
+		}
+	}, [phase, progress]);
+
+	const scale = useSpring(targetScale, {
+		stiffness: 120,
+		damping: 20,
+	});
+
+	// Particles scatter on exhale, gather on inhale
+	const particleSpread = useSpring(
+		phase === 'out' || phase === 'hold-out' ? 1.3 : 0.85,
+		{ stiffness: 80, damping: 15 },
+	);
+
+	// Glow intensity: brighter when contracted (focused), softer when expanded
+	const glowIntensity = useTransform(scale, [0.6, 1.2], [1, 0.5]);
+
+	// Ring opacity: more visible when contracted
+	const ringOpacity = useTransform(scale, [0.6, 1.2], [0.9, 0.4]);
+
+	// Generate particles
 	const particles = useMemo(() => {
-		const count = Math.min(config.particleCount, 60); // Limit for performance
+		const count = 48;
 		return Array.from({ length: count }, (_, i) => {
-			const angle = (i / count) * Math.PI * 2;
-			const radiusVar =
-				config.radiusVarianceMin +
-				Math.random() * (config.radiusVarianceMax - config.radiusVarianceMin);
-			const size =
-				config.particleMinSize +
-				Math.random() * (config.particleMaxSize - config.particleMinSize);
-			const opacity =
-				config.particleMinOpacity +
-				Math.random() * (config.particleMaxOpacity - config.particleMinOpacity);
-			const delay = Math.random() * 2;
+			const baseAngle = (i / count) * Math.PI * 2;
+			const radiusOffset = 0.85 + Math.random() * 0.3;
+			const size = 2 + Math.random() * 4;
+			const opacity = 0.3 + Math.random() * 0.5;
+			const pulseDelay = Math.random() * Math.PI * 2;
+			const driftSpeed = 0.5 + Math.random() * 1;
 
-			return { angle, radiusVar, size, opacity, delay, id: i };
+			return {
+				baseAngle,
+				radiusOffset,
+				size,
+				opacity,
+				pulseDelay,
+				driftSpeed,
+				id: i,
+			};
 		});
-	}, [config.particleCount]);
+	}, []);
 
 	const color = moodColor || config.primaryColor;
+
+	// Phase-based rotation for organic feel
+	const rotation = useSpring(phase === 'in' ? -5 : phase === 'out' ? 5 : 0, {
+		stiffness: 30,
+		damping: 20,
+	});
 
 	return (
 		<div
@@ -55,29 +97,45 @@ export function CSSBreathingOrb({
 				overflow: 'hidden',
 			}}
 		>
-			{/* Background glow */}
+			{/* Outer ambient glow - expands on exhale */}
 			<motion.div
 				style={{
 					position: 'absolute',
-					width: '80vmin',
-					height: '80vmin',
+					width: '100vmin',
+					height: '100vmin',
 					borderRadius: '50%',
-					background: `radial-gradient(circle, ${color}40 0%, ${color}20 30%, ${color}05 60%, transparent 70%)`,
-					filter: 'blur(20px)',
-					scale,
+					background: `radial-gradient(circle, ${color}30 0%, ${color}15 30%, ${color}05 50%, transparent 70%)`,
+					filter: 'blur(30px)',
+					scale: useTransform(scale, (s) => s * 1.2),
+					opacity: useTransform(scale, [0.6, 1.2], [0.4, 0.8]),
 				}}
 			/>
 
-			{/* Core glow */}
+			{/* Middle glow ring */}
 			<motion.div
 				style={{
 					position: 'absolute',
-					width: '30vmin',
-					height: '30vmin',
+					width: '60vmin',
+					height: '60vmin',
 					borderRadius: '50%',
-					background: `radial-gradient(circle, ${color}60 0%, ${color}30 40%, transparent 70%)`,
-					filter: 'blur(10px)',
+					background: `radial-gradient(circle, transparent 40%, ${color}20 60%, ${color}40 75%, transparent 90%)`,
+					filter: 'blur(8px)',
 					scale,
+					opacity: glowIntensity,
+				}}
+			/>
+
+			{/* Core glow - bright when contracted */}
+			<motion.div
+				style={{
+					position: 'absolute',
+					width: '25vmin',
+					height: '25vmin',
+					borderRadius: '50%',
+					background: `radial-gradient(circle, ${color}90 0%, ${color}50 30%, ${color}20 60%, transparent 80%)`,
+					filter: 'blur(5px)',
+					scale,
+					opacity: glowIntensity,
 				}}
 			/>
 
@@ -85,26 +143,43 @@ export function CSSBreathingOrb({
 			<motion.div
 				style={{
 					position: 'absolute',
-					width: '50vmin',
-					height: '50vmin',
+					width: '45vmin',
+					height: '45vmin',
 					borderRadius: '50%',
-					border: `2px solid ${color}80`,
+					border: `2px solid ${color}`,
 					boxShadow: `
-						0 0 20px ${color}40,
-						0 0 40px ${color}20,
-						inset 0 0 20px ${color}20
+						0 0 15px ${color}60,
+						0 0 30px ${color}30,
+						inset 0 0 15px ${color}30
 					`,
 					scale,
+					opacity: ringOpacity,
+					rotate: rotation,
 				}}
 			/>
 
-			{/* Particles */}
+			{/* Secondary inner ring */}
+			<motion.div
+				style={{
+					position: 'absolute',
+					width: '35vmin',
+					height: '35vmin',
+					borderRadius: '50%',
+					border: `1px solid ${color}60`,
+					scale,
+					opacity: useTransform(scale, [0.6, 1.2], [0.7, 0.2]),
+					rotate: useTransform(rotation, (r) => -r * 0.5),
+				}}
+			/>
+
+			{/* Particles container with rotation */}
 			<motion.div
 				style={{
 					position: 'absolute',
 					width: '50vmin',
 					height: '50vmin',
-					scale,
+					rotate: useTransform(rotation, (r) => r * 0.3),
+					scale: particleSpread,
 				}}
 			>
 				{particles.map((p) => (
@@ -114,41 +189,75 @@ export function CSSBreathingOrb({
 							position: 'absolute',
 							left: '50%',
 							top: '50%',
-							width: p.size * 3,
-							height: p.size * 3,
-							marginLeft: -(p.size * 3) / 2,
-							marginTop: -(p.size * 3) / 2,
+							width: p.size,
+							height: p.size,
+							marginLeft: -p.size / 2,
+							marginTop: -p.size / 2,
 							borderRadius: '50%',
-							background: `radial-gradient(circle, ${color} 0%, ${color}80 30%, transparent 70%)`,
-							opacity: p.opacity,
-							transform: `
-								rotate(${p.angle}rad)
-								translateX(${25 * p.radiusVar}vmin)
-							`,
+							background: `radial-gradient(circle, ${color} 0%, ${color}60 40%, transparent 70%)`,
+							boxShadow: `0 0 ${p.size}px ${color}40`,
 						}}
 						animate={{
-							opacity: [p.opacity * 0.5, p.opacity, p.opacity * 0.5],
+							opacity: [p.opacity * 0.4, p.opacity, p.opacity * 0.4],
+							x: [
+								Math.cos(p.baseAngle) * 22 * p.radiusOffset,
+								Math.cos(p.baseAngle + 0.05) * 23 * p.radiusOffset,
+								Math.cos(p.baseAngle) * 22 * p.radiusOffset,
+							].map((v) => `${v}vmin`),
+							y: [
+								Math.sin(p.baseAngle) * 22 * p.radiusOffset,
+								Math.sin(p.baseAngle + 0.05) * 23 * p.radiusOffset,
+								Math.sin(p.baseAngle) * 22 * p.radiusOffset,
+							].map((v) => `${v}vmin`),
+							scale: [1, 1.2, 1],
 						}}
 						transition={{
-							duration: 2 + p.delay,
+							duration: 2 + p.driftSpeed,
 							repeat: Infinity,
 							ease: 'easeInOut',
+							delay: p.pulseDelay * 0.3,
 						}}
 					/>
 				))}
 			</motion.div>
 
-			{/* Inner pulse ring */}
+			{/* Outer scattered particles - more visible on exhale */}
 			<motion.div
 				style={{
 					position: 'absolute',
-					width: '40vmin',
-					height: '40vmin',
-					borderRadius: '50%',
-					border: `1px solid ${color}40`,
-					scale,
+					width: '70vmin',
+					height: '70vmin',
+					opacity: useTransform(scale, [0.6, 1.2], [0.2, 0.8]),
 				}}
-			/>
+			>
+				{particles.slice(0, 24).map((p) => (
+					<motion.div
+						key={`outer-${p.id}`}
+						style={{
+							position: 'absolute',
+							left: '50%',
+							top: '50%',
+							width: p.size * 0.6,
+							height: p.size * 0.6,
+							marginLeft: (-p.size * 0.6) / 2,
+							marginTop: (-p.size * 0.6) / 2,
+							borderRadius: '50%',
+							background: `radial-gradient(circle, ${color}80 0%, transparent 70%)`,
+						}}
+						animate={{
+							opacity: [0.2, 0.5, 0.2],
+							x: `${Math.cos(p.baseAngle + Math.PI / 6) * 32 * p.radiusOffset}vmin`,
+							y: `${Math.sin(p.baseAngle + Math.PI / 6) * 32 * p.radiusOffset}vmin`,
+						}}
+						transition={{
+							duration: 3 + p.driftSpeed,
+							repeat: Infinity,
+							ease: 'easeInOut',
+							delay: p.pulseDelay * 0.5,
+						}}
+					/>
+				))}
+			</motion.div>
 		</div>
 	);
 }
