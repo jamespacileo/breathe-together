@@ -101,7 +101,9 @@ export function useSimulation(
 		};
 	}, []);
 
-	// Sync running state with engine
+	// Sync running state with engine whenever snapshot updates
+	// The snapshot dependency is intentional - it triggers a re-sync when the engine publishes updates
+	// biome-ignore lint/correctness/useExhaustiveDependencies: snapshot triggers re-sync intentionally
 	useEffect(() => {
 		if (engineRef.current) {
 			setIsRunning(engineRef.current.running);

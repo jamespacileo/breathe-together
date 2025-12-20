@@ -117,6 +117,7 @@ function getAngleForUser(
  * Sample users to display as firefly particles
  * Guarantees: new arrivals are visible, departures fade out, others sampled
  */
+// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Particle sampling algorithm with inherent complexity - well-structured with clear sections
 export function sampleParticles(
 	users: SimulatedUser[],
 	moodCounts: Record<MoodId, number>,

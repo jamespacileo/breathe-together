@@ -8,6 +8,7 @@ describe('cn (className utility)', () => {
 	});
 
 	it('should handle conditional classes', () => {
+		// biome-ignore lint/complexity/useSimplifiedLogicExpression: Testing cn() with conditional class patterns
 		const result = cn('base', true && 'truthy', false && 'falsy');
 		expect(result).toBe('base truthy');
 	});
