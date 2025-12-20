@@ -7,6 +7,7 @@ import { hasLimitedWebGL } from '../lib/device';
 import type { UserIdentity } from '../stores/appStore';
 import { CSSBreathingOrb } from './CSSBreathingOrb';
 import { BreathingScene } from './r3f/BreathingScene';
+import { WebGLErrorBoundary } from './WebGLErrorBoundary';
 
 interface BreathingOrbProps {
 	breathState: BreathState;
@@ -19,6 +20,7 @@ interface BreathingOrbProps {
 /**
  * Main breathing visualization component
  * Uses CSS on iOS (WebGL issues), WebGL on desktop
+ * Falls back to CSS if WebGL crashes
  */
 export function BreathingOrb({
 	breathState,
@@ -30,6 +32,15 @@ export function BreathingOrb({
 	// Detect if we should use CSS fallback (iOS has WebGL issues)
 	const useCSS = useMemo(() => hasLimitedWebGL(), []);
 
+	// CSS fallback (used on iOS or if WebGL crashes)
+	const cssFallback = (
+		<CSSBreathingOrb
+			breathState={breathState}
+			config={config}
+			moodColor={moodColor}
+		/>
+	);
+
 	return (
 		<div
 			className="absolute inset-0 overflow-hidden"
@@ -37,21 +48,19 @@ export function BreathingOrb({
 				background: `linear-gradient(135deg, ${config.backgroundColor} 0%, ${config.backgroundColorMid} 50%, ${config.backgroundColor} 100%)`,
 			}}
 		>
-			{/* Render CSS or WebGL based on device */}
+			{/* Render CSS or WebGL based on device, with error fallback */}
 			{useCSS ? (
-				<CSSBreathingOrb
-					breathState={breathState}
-					config={config}
-					moodColor={moodColor}
-				/>
+				cssFallback
 			) : (
-				<BreathingScene
-					breathState={breathState}
-					presence={presence}
-					config={config}
-					moodColor={moodColor}
-					currentUser={currentUser}
-				/>
+				<WebGLErrorBoundary fallback={cssFallback}>
+					<BreathingScene
+						breathState={breathState}
+						presence={presence}
+						config={config}
+						moodColor={moodColor}
+						currentUser={currentUser}
+					/>
+				</WebGLErrorBoundary>
 			)}
 
 			{/* Breathing guide text with Framer Motion animations */}
