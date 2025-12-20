@@ -7,7 +7,7 @@ import type { PresenceData } from '../../hooks/usePresence';
 import type { VisualizationConfig } from '../../lib/config';
 import type { UserIdentity } from '../../stores/appStore';
 import { GlowEffect } from './GlowEffect';
-import { ParticleSystem } from './ParticleSystem';
+import { NebulaParticles } from './NebulaParticles';
 import { PresenceParticles } from './PresenceParticles';
 
 interface BreathingSceneProps {
@@ -73,10 +73,9 @@ export function BreathingScene({
 					moodColor={moodColor}
 				/>
 
-				{/* Central particle ring */}
-				<ParticleSystem
+				{/* Central nebula particle system */}
+				<NebulaParticles
 					breathState={breathState}
-					presence={presence}
 					config={config}
 					moodColor={moodColor}
 				/>
