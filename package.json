@@ -38,17 +38,22 @@
 		"@biomejs/biome": "2.3.10",
 		"@cloudflare/vite-plugin": "1.15.3",
 		"@tailwindcss/postcss": "^4.1.18",
+		"@testing-library/jest-dom": "^6.9.1",
+		"@testing-library/react": "^16.3.1",
 		"@types/chroma-js": "^3.1.2",
 		"@types/node": "^24.10.1",
 		"@types/react": "19.2.7",
 		"@types/react-dom": "19.2.3",
 		"@types/three": "^0.182.0",
 		"@vitejs/plugin-react": "5.1.1",
+		"@vitest/ui": "^4.0.16",
 		"autoprefixer": "^10.4.23",
+		"jsdom": "^27.3.0",
 		"postcss": "^8.5.6",
 		"tailwindcss": "^4.1.18",
 		"typescript": "5.8.3",
 		"vite": "^6.0.0",
+		"vitest": "^4.0.16",
 		"wrangler": "^4.56.0"
 	},
 	"private": true,
@@ -61,7 +66,10 @@
 		"lint": "biome check .",
 		"lint:fix": "biome check --write .",
 		"format": "biome format --write .",
-		"preview": "npm run build && vite preview"
+		"preview": "npm run build && vite preview",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"test:coverage": "vitest run --coverage"
 	},
 	"type": "module"
 }
