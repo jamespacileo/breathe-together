@@ -81,7 +81,16 @@ export function RingAnimation({
 			phaseOffsets,
 			count,
 		};
-	}, [config.particleCount]);
+	}, [
+		config.particleCount,
+		config.radiusVarianceMin,
+		config.radiusVarianceMax,
+		config.angleOffsetRange,
+		config.particleMinSize,
+		config.particleMaxSize,
+		config.particleMinOpacity,
+		config.particleMaxOpacity,
+	]);
 
 	useFrame((state) => {
 		if (!pointsRef.current) return;

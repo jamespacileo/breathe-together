@@ -50,5 +50,17 @@ fi
 
 echo "==> Type check passed"
 
+# Run tests
+echo "==> Running tests..."
+npm run test 2>&1
+test_status=$?
+
+if [ $test_status -ne 0 ]; then
+  echo "==> Tests FAILED. Please fix failing tests before ${operation}ing." >&2
+  exit 2
+fi
+
+echo "==> Tests passed"
+
 echo "==> All pre-$operation checks passed!"
 exit 0

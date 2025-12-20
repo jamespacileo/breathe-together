@@ -95,7 +95,8 @@ export function useHeartbeat(sessionId: string | null, mood?: string) {
 	const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
 	const { mutate } = useMutation({
-		mutationFn: () => sendHeartbeat(sessionId!, mood),
+		mutationFn: (params: { sid: string; m?: string }) =>
+			sendHeartbeat(params.sid, params.m),
 		onSuccess: () => {
 			// Invalidate presence data after successful heartbeat
 			queryClient.invalidateQueries({ queryKey: ['presence'] });
@@ -105,12 +106,16 @@ export function useHeartbeat(sessionId: string | null, mood?: string) {
 	useEffect(() => {
 		if (!sessionId) return;
 
+		// Capture current values for the effect
+		const currentSessionId = sessionId;
+		const currentMood = mood;
+
 		// Send initial heartbeat
-		mutate();
+		mutate({ sid: currentSessionId, m: currentMood });
 
 		// Set up interval for recurring heartbeats
 		intervalRef.current = setInterval(() => {
-			mutate();
+			mutate({ sid: currentSessionId, m: currentMood });
 		}, 30000); // Every 30s
 
 		return () => {

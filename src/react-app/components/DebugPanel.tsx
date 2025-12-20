@@ -35,7 +35,9 @@ function ConfigSlider({
 			<div className="flex justify-between text-xs mb-1">
 				<span className="text-white/70">{label}</span>
 				<span className="font-mono text-white/90">
-					{typeof value === 'number' ? value.toFixed(step < 1 ? 2 : 0) : value}
+					{typeof value === 'number'
+						? value.toFixed(step < 1 ? 2 : 0)
+						: String(value)}
 				</span>
 			</div>
 			<Slider
@@ -213,7 +215,7 @@ export function DebugPanel({
 				</Section>
 
 				{/* Simulation Controls */}
-				{simulationControls && (
+				{simulationControls ? (
 					<Section title="Simulation" defaultOpen={true}>
 						<div className="mb-2 flex gap-2">
 							{simulationControls.isSimulationRunning ? (
@@ -279,7 +281,7 @@ export function DebugPanel({
 							step={1}
 						/>
 					</Section>
-				)}
+				) : null}
 
 				{/* Particle System */}
 				<Section title="Particles">

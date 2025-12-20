@@ -139,6 +139,7 @@ function YouAreHereMarker({
 	const angleRef = useRef(Math.random() * Math.PI * 2); // Random starting position
 
 	useFrame(() => {
+		// biome-ignore lint/complexity/useSimplifiedLogicExpression: Early return pattern is more readable
 		if (!pointsRef.current || !materialRef.current) return;
 
 		// Null check for geometry attribute
@@ -277,6 +278,7 @@ function AuroraRibbons({
 
 	// Update ribbon geometry each frame (reuse pre-allocated buffers)
 	useFrame(() => {
+		// biome-ignore lint/complexity/useSimplifiedLogicExpression: Early return pattern is more readable
 		if (!meshRef.current || !ribbonData || !buffersRef.current) return;
 
 		const { vertices, colors } = buffersRef.current;
@@ -569,14 +571,14 @@ export function PresenceParticles({
 			)}
 
 			{/* "You Are Here" marker for current user */}
-			{currentUser && (
+			{currentUser ? (
 				<YouAreHereMarker
 					config={config}
 					scale={scaleRef.current}
 					breathProgress={breathProgressRef.current}
 					moodColor={currentUserMoodColor}
 				/>
-			)}
+			) : null}
 		</group>
 	);
 }
