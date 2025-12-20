@@ -6,8 +6,6 @@ import type { BreathState } from '../../../hooks/useBreathSync';
 import type { PresenceData } from '../../../hooks/usePresence';
 import type { VisualizationConfig } from '../../../lib/config';
 import type { UserIdentity } from '../../../stores/appStore';
-import { PresenceParticles } from '../PresenceParticles';
-import { WaterGlow } from './WaterGlow';
 import { WaterGrid } from './WaterGrid';
 
 interface WaterBreathingSceneProps {
@@ -24,18 +22,16 @@ interface WaterBreathingSceneProps {
  */
 export function WaterBreathingScene({
 	breathState,
-	presence,
 	config,
 	moodColor,
-	currentUser,
 }: WaterBreathingSceneProps) {
 	const [dpr, setDpr] = useState(1.5);
 
-	// Camera settings - angled for 3D depth perception
+	// Camera settings - angled view looking at the grid
 	const cameraSettings = useMemo(
 		() => ({
-			position: [0, -1.5, 4] as [number, number, number],
-			fov: 60,
+			position: [0, -2, 5] as [number, number, number],
+			fov: 50,
 			near: 0.1,
 			far: 100,
 		}),
@@ -66,26 +62,11 @@ export function WaterBreathingScene({
 			/>
 
 			<Suspense fallback={null}>
-				{/* Subtle glow behind the grid */}
-				<WaterGlow
-					breathState={breathState}
-					config={config}
-					moodColor={moodColor}
-				/>
-
 				{/* Main breathing grid - ethereal fabric effect */}
 				<WaterGrid
 					breathState={breathState}
 					config={config}
 					moodColor={moodColor}
-				/>
-
-				{/* Presence particles (orbital ring with other users) */}
-				<PresenceParticles
-					breathState={breathState}
-					presence={presence}
-					config={config}
-					currentUser={currentUser}
 				/>
 			</Suspense>
 		</Canvas>
