@@ -13,7 +13,7 @@ interface WaterGridProps {
 
 export function WaterGrid({ breathState, config, moodColor }: WaterGridProps) {
 	const meshRef = useRef<THREE.Mesh>(null);
-	const scaleRef = useRef(1);
+	const breathRef = useRef(1);
 	const velocityRef = useRef(0);
 	const originalPositionsRef = useRef<Float32Array | null>(null);
 
@@ -36,57 +36,77 @@ export function WaterGrid({ breathState, config, moodColor }: WaterGridProps) {
 
 	// Animation loop
 	useFrame((state) => {
-		if (!meshRef.current) return;
+		if (!meshRef.current || !originalPositionsRef.current) return;
 
 		const time = state.clock.elapsedTime;
 
-		// Spring physics for breathing
+		// Spring physics for breathing - INVERTED: inhale = small/focused, exhale = expanded
 		const targetScale = calculateTargetScale(breathState, config);
+		// Invert: when targetScale is high (inhale), we want contraction
+		// Map from [0.85, 1.15] to [1.3, 0.7] approximately
+		const invertedTarget = 2 - targetScale;
+
 		const stiffness = config.mainSpringTension * 0.0001;
 		const damping = config.mainSpringFriction * 0.05;
-		const force = (targetScale - scaleRef.current) * stiffness;
+		const force = (invertedTarget - breathRef.current) * stiffness;
 		velocityRef.current = velocityRef.current * (1 - damping) + force;
-		scaleRef.current += velocityRef.current;
+		breathRef.current += velocityRef.current;
 
-		// Apply scale
-		const scale = scaleRef.current;
-		meshRef.current.scale.set(scale, scale, scale);
+		const breath = breathRef.current;
 
 		// Gentle rotation
-		meshRef.current.rotation.z = Math.sin(time * 0.2) * 0.05;
+		meshRef.current.rotation.z = Math.sin(time * 0.15) * 0.03;
 
-		// Wave deformation on the geometry (only if we have original positions)
-		if (originalPositionsRef.current) {
-			const positions = meshRef.current.geometry.attributes.position;
-			const original = originalPositionsRef.current;
+		// Deform vertices based on breathing
+		const positions = meshRef.current.geometry.attributes.position;
+		const original = originalPositionsRef.current;
 
-			for (let i = 0; i < positions.count; i++) {
-				const idx = i * 3;
-				const x = original[idx];
-				const y = original[idx + 1];
+		for (let i = 0; i < positions.count; i++) {
+			const idx = i * 3;
+			const ox = original[idx];
+			const oy = original[idx + 1];
 
-				// Create wave effect
-				const wave1 = Math.sin(x * 0.5 + time * 0.8) * 0.3;
-				const wave2 = Math.sin(y * 0.5 + time * 0.6) * 0.3;
-				const wave3 = Math.sin((x + y) * 0.3 + time * 0.4) * 0.2;
+			// Distance from center
+			const dist = Math.sqrt(ox * ox + oy * oy);
+			const maxDist = 5; // radius of our circle geometry
+			const normalizedDist = dist / maxDist;
 
-				// Combine waves with breath intensity
-				const z = (wave1 + wave2 + wave3) * scale * 0.5;
-				positions.setZ(i, z);
-			}
+			// Radial breathing effect:
+			// - Inhale (breath low): vertices move toward center, forming tighter circle
+			// - Exhale (breath high): vertices expand outward, relaxed fabric
+			const breathExpansion = 0.5 + breath * 0.5; // 0.5 to 1.5 range
+			const radialScale =
+				breathExpansion + normalizedDist * (1 - breathExpansion) * 0.3;
 
-			positions.needsUpdate = true;
+			// New X,Y positions with radial scaling
+			const newX = ox * radialScale;
+			const newY = oy * radialScale;
+
+			// Z deformation - waves that are stronger toward edges
+			const edgeFactor = normalizedDist * normalizedDist;
+			const wave1 = Math.sin(dist * 0.8 + time * 0.6) * 0.4;
+			const wave2 = Math.sin(ox * 0.3 + oy * 0.3 + time * 0.4) * 0.3;
+			const breathWave = Math.sin(dist * 2 - time * 0.8) * (1 - breath) * 0.5;
+
+			// Center rises on inhale (focused), flattens on exhale (relaxed)
+			const centerRise = (1 - normalizedDist) * (2 - breath) * 0.8;
+
+			const z = (wave1 + wave2) * edgeFactor + breathWave + centerRise;
+
+			positions.setXYZ(i, newX, newY, z);
 		}
+
+		positions.needsUpdate = true;
 	});
 
 	return (
-		<mesh ref={meshRef} rotation={[-0.6, 0, 0]}>
-			<planeGeometry args={[8, 8, 32, 32]} />
+		<mesh ref={meshRef} rotation={[-0.5, 0, 0]}>
+			<circleGeometry args={[5, 64, 64]} />
 			<meshBasicMaterial
 				color={color}
 				wireframe={true}
 				transparent={true}
-				opacity={0.8}
+				opacity={0.7}
 				side={THREE.DoubleSide}
 			/>
 		</mesh>
