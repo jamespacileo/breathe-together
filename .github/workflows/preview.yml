@@ -52,7 +52,7 @@ jobs:
             const workerName = `breathe-together-pr-${prNumber}`;
             const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
             const previewUrl = `https://${workerName}.palladio-registry.workers.dev`;
-            const dashboardUrl = `https://dash.cloudflare.com/${accountId}/workers/services/view/${workerName}`;
+            const dashboardUrl = `https://dash.cloudflare.com/${accountId}/workers-and-pages/application/workers/${workerName}`;
             const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
 
             // Check if we already commented
