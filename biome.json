@@ -34,6 +34,25 @@
 			},
 			"style": {
 				"noNonNullAssertion": "warn"
+			},
+			"complexity": {
+				"noExcessiveCognitiveComplexity": {
+					"level": "warn",
+					"options": { "maxAllowedComplexity": 15 }
+				},
+				"noUselessStringConcat": "warn",
+				"noUselessUndefinedInitialization": "warn",
+				"useDateNow": "warn",
+				"useSimplifiedLogicExpression": "warn"
+			},
+			"nursery": {
+				"noFloatingPromises": "error",
+				"noMisusedPromises": "warn",
+				"noShadow": "warn",
+				"noUnusedExpressions": "warn",
+				"noLeakedRender": "warn",
+				"useExhaustiveSwitchCases": "warn",
+				"noImportCycles": "warn"
 			}
 		}
 	},

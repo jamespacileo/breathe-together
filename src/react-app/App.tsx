@@ -136,13 +136,13 @@ function App() {
 			</div>
 
 			{/* Identity panel modal */}
-			{showIdentity && (
+			{showIdentity ? (
 				<IdentityPanel
 					user={user || { name: '', avatar: '', mood: '', moodDetail: '' }}
 					onUserChange={handleUserChange}
 					onClose={() => setShowIdentity(false)}
 				/>
-			)}
+			) : null}
 		</div>
 	);
 }

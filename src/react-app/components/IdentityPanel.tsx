@@ -114,7 +114,7 @@ export function IdentityPanel({
 						</div>
 
 						{/* Mood detail input */}
-						{selectedMood?.hasDetail && (
+						{selectedMood?.hasDetail ? (
 							<Input
 								type="text"
 								value={moodDetail}
@@ -122,7 +122,7 @@ export function IdentityPanel({
 								placeholder="Add detail (optional)"
 								className="mt-2"
 							/>
-						)}
+						) : null}
 					</div>
 				</div>
 
@@ -159,12 +159,12 @@ export function UserBadge({ user, onClick }: UserBadgeProps) {
 			/>
 			<div className="text-left">
 				<div className="font-medium text-sm">{user.name}</div>
-				{mood && (
+				{mood ? (
 					<div className="text-xs text-white/70">
 						{mood.label}
 						{user.moodDetail ? ` ${user.moodDetail}` : ''}
 					</div>
-				)}
+				) : null}
 			</div>
 		</button>
 	);
