@@ -1,3 +1,4 @@
+// Breathe Together API - Cloudflare Worker
 import { Hono } from 'hono';
 
 const app = new Hono<{ Bindings: Env }>();
