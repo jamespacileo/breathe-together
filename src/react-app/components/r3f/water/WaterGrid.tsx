@@ -17,11 +17,14 @@ export function WaterGrid({ breathState, config, moodColor }: WaterGridProps) {
 	const velocityRef = useRef(0);
 	const originalPositionsRef = useRef<Float32Array | null>(null);
 
-	// Get color from mood
-	const color = useMemo(
-		() => new THREE.Color(moodColor || config.primaryColor),
-		[moodColor, config.primaryColor],
-	);
+	// Get color from mood - ensure valid color
+	const color = useMemo(() => {
+		try {
+			return new THREE.Color(moodColor || config.primaryColor || '#4a90d9');
+		} catch {
+			return new THREE.Color('#4a90d9');
+		}
+	}, [moodColor, config.primaryColor]);
 
 	// Store original positions once mesh is mounted
 	useEffect(() => {
@@ -33,7 +36,7 @@ export function WaterGrid({ breathState, config, moodColor }: WaterGridProps) {
 
 	// Animation loop
 	useFrame((state) => {
-		if (!meshRef.current || !originalPositionsRef.current) return;
+		if (!meshRef.current) return;
 
 		const time = state.clock.elapsedTime;
 
@@ -52,26 +55,28 @@ export function WaterGrid({ breathState, config, moodColor }: WaterGridProps) {
 		// Gentle rotation
 		meshRef.current.rotation.z = Math.sin(time * 0.2) * 0.05;
 
-		// Wave deformation on the geometry
-		const positions = meshRef.current.geometry.attributes.position;
-		const original = originalPositionsRef.current;
+		// Wave deformation on the geometry (only if we have original positions)
+		if (originalPositionsRef.current) {
+			const positions = meshRef.current.geometry.attributes.position;
+			const original = originalPositionsRef.current;
 
-		for (let i = 0; i < positions.count; i++) {
-			const idx = i * 3;
-			const x = original[idx];
-			const y = original[idx + 1];
+			for (let i = 0; i < positions.count; i++) {
+				const idx = i * 3;
+				const x = original[idx];
+				const y = original[idx + 1];
 
-			// Create wave effect
-			const wave1 = Math.sin(x * 0.5 + time * 0.8) * 0.3;
-			const wave2 = Math.sin(y * 0.5 + time * 0.6) * 0.3;
-			const wave3 = Math.sin((x + y) * 0.3 + time * 0.4) * 0.2;
+				// Create wave effect
+				const wave1 = Math.sin(x * 0.5 + time * 0.8) * 0.3;
+				const wave2 = Math.sin(y * 0.5 + time * 0.6) * 0.3;
+				const wave3 = Math.sin((x + y) * 0.3 + time * 0.4) * 0.2;
 
-			// Combine waves with breath intensity
-			const z = (wave1 + wave2 + wave3) * scale * 0.5;
-			positions.setZ(i, z);
+				// Combine waves with breath intensity
+				const z = (wave1 + wave2 + wave3) * scale * 0.5;
+				positions.setZ(i, z);
+			}
+
+			positions.needsUpdate = true;
 		}
-
-		positions.needsUpdate = true;
 	});
 
 	return (
@@ -79,10 +84,10 @@ export function WaterGrid({ breathState, config, moodColor }: WaterGridProps) {
 			<planeGeometry args={[8, 8, 32, 32]} />
 			<meshBasicMaterial
 				color={color}
-				wireframe
-				transparent
-				opacity={0.7}
-				blending={THREE.AdditiveBlending}
+				wireframe={true}
+				transparent={true}
+				opacity={0.8}
+				side={THREE.DoubleSide}
 			/>
 		</mesh>
 	);

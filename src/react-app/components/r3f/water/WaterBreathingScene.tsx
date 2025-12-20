@@ -1,7 +1,5 @@
-import { PerformanceMonitor } from '@react-three/drei';
 import { Canvas } from '@react-three/fiber';
-import { Suspense, useMemo, useState } from 'react';
-import * as THREE from 'three';
+import { Suspense, useMemo } from 'react';
 import type { BreathState } from '../../../hooks/useBreathSync';
 import type { PresenceData } from '../../../hooks/usePresence';
 import type { VisualizationConfig } from '../../../lib/config';
@@ -25,12 +23,10 @@ export function WaterBreathingScene({
 	config,
 	moodColor,
 }: WaterBreathingSceneProps) {
-	const [dpr, setDpr] = useState(1.5);
-
 	// Camera settings - angled view looking at the grid
 	const cameraSettings = useMemo(
 		() => ({
-			position: [0, -2, 5] as [number, number, number],
+			position: [0, -2, 8] as [number, number, number],
 			fov: 50,
 			near: 0.1,
 			far: 100,
@@ -40,12 +36,13 @@ export function WaterBreathingScene({
 
 	return (
 		<Canvas
-			dpr={dpr}
+			dpr={[1, 2]}
 			camera={cameraSettings}
 			gl={{
 				alpha: true,
-				antialias: true,
-				toneMapping: THREE.NoToneMapping,
+				antialias: false,
+				powerPreference: 'default',
+				preserveDrawingBuffer: true,
 			}}
 			style={{
 				position: 'absolute',
@@ -53,14 +50,6 @@ export function WaterBreathingScene({
 				background: 'transparent',
 			}}
 		>
-			{/* Performance monitor to auto-adjust quality */}
-			<PerformanceMonitor
-				onIncline={() => setDpr(Math.min(2, dpr + 0.5))}
-				onDecline={() => setDpr(Math.max(1, dpr - 0.5))}
-				flipflops={3}
-				onFallback={() => setDpr(1)}
-			/>
-
 			<Suspense fallback={null}>
 				{/* Main breathing grid - ethereal fabric effect */}
 				<WaterGrid
