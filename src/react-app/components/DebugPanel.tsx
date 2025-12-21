@@ -3,6 +3,7 @@ import type { BreathState } from '../hooks/useBreathSync';
 import type { PresenceData } from '../hooks/usePresence';
 import { getMoodColor, MOODS } from '../lib/colors';
 import { DEFAULT_CONFIG, type VisualizationConfig } from '../lib/config';
+import { getShapeOptions } from '../lib/shapes';
 import { MOOD_IDS, type SimulationConfig } from '../lib/simulationConfig';
 import { Button } from './ui/button';
 import {
@@ -11,7 +12,15 @@ import {
 	CollapsibleTrigger,
 } from './ui/collapsible';
 import { Label } from './ui/label';
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from './ui/select';
 import { Slider } from './ui/slider';
+import { Switch } from './ui/switch';
 
 interface ConfigSliderProps {
 	label: string;
@@ -456,6 +465,69 @@ export function DebugPanel({
 						onChange={(v) => updateConfig('angleOffsetRange', v)}
 						min={0}
 						max={1}
+					/>
+				</Section>
+
+				{/* Shape Formation */}
+				<Section title="Shape Formation" defaultOpen={true}>
+					<div className="mb-3 flex items-center justify-between">
+						<Label className="text-xs text-white/70">Enable Shape</Label>
+						<Switch
+							checked={config.shapeEnabled}
+							onCheckedChange={(v) => updateConfig('shapeEnabled', v)}
+						/>
+					</div>
+					<div className="mb-3">
+						<Label className="text-xs text-white/70 mb-1 block">Shape</Label>
+						<Select
+							value={config.shapeName}
+							onValueChange={(v) => updateConfig('shapeName', v)}
+						>
+							<SelectTrigger className="w-full bg-white/5 border-white/20 text-white text-xs">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent className="bg-black/90 border-white/20">
+								{getShapeOptions().map((opt) => (
+									<SelectItem
+										key={opt.value}
+										value={opt.value}
+										className="text-white text-xs hover:bg-white/10"
+									>
+										{opt.label}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					</div>
+					<ConfigSlider
+						label="Formation Strength"
+						value={config.shapeFormationStrength}
+						onChange={(v) => updateConfig('shapeFormationStrength', v)}
+						min={0}
+						max={1}
+					/>
+					<ConfigSlider
+						label="Spring Tension"
+						value={config.shapeSpringTension}
+						onChange={(v) => updateConfig('shapeSpringTension', v)}
+						min={50}
+						max={300}
+						step={5}
+					/>
+					<ConfigSlider
+						label="Spring Friction"
+						value={config.shapeSpringFriction}
+						onChange={(v) => updateConfig('shapeSpringFriction', v)}
+						min={5}
+						max={40}
+						step={1}
+					/>
+					<ConfigSlider
+						label="Hold Wobble"
+						value={config.shapeHoldWobble}
+						onChange={(v) => updateConfig('shapeHoldWobble', v)}
+						min={0}
+						max={0.1}
 					/>
 				</Section>
 

@@ -99,6 +99,32 @@ export const VisualizationConfigSchema = z.object({
 		.describe('Maximum radius variance'),
 	angleOffsetRange: z.number().min(0).max(1).describe('Angle offset range'),
 
+	// Shape Formation (particles form shapes on inhale)
+	shapeEnabled: z.boolean().describe('Enable shape formation on inhale'),
+	shapeName: z
+		.string()
+		.describe('Shape to form: heart, star, infinity, diamond, lotus, etc.'),
+	shapeFormationStrength: z
+		.number()
+		.min(0)
+		.max(1)
+		.describe('How tightly particles conform to shape (0-1)'),
+	shapeSpringTension: z
+		.number()
+		.min(50)
+		.max(300)
+		.describe('Spring tension for shape transitions'),
+	shapeSpringFriction: z
+		.number()
+		.min(5)
+		.max(40)
+		.describe('Spring friction for shape transitions'),
+	shapeHoldWobble: z
+		.number()
+		.min(0)
+		.max(0.1)
+		.describe('Subtle wobble when holding shape'),
+
 	// Presence Particles
 	presenceCount: z.number().min(0).max(200).describe('Presence particle count'),
 	presenceRadius: z.number().min(1).max(2).describe('Presence orbit radius'),
@@ -275,6 +301,14 @@ export const DEFAULT_CONFIG: VisualizationConfig = {
 	radiusVarianceMin: 0.8,
 	radiusVarianceMax: 1.2,
 	angleOffsetRange: 0.3,
+
+	// Shape Formation
+	shapeEnabled: true,
+	shapeName: 'heart',
+	shapeFormationStrength: 0.85,
+	shapeSpringTension: 120,
+	shapeSpringFriction: 18,
+	shapeHoldWobble: 0.02,
 
 	// Presence Particles
 	presenceCount: 50,
