@@ -10,6 +10,8 @@ export interface ParticleAnimationProps {
 	breathState: BreathState;
 	config: VisualizationConfig;
 	moodColor: string;
+	/** Number of users currently breathing together */
+	userCount?: number;
 }
 
 /**

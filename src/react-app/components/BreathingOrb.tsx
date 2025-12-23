@@ -38,6 +38,7 @@ export function BreathingOrb({
 			breathState={breathState}
 			config={config}
 			moodColor={moodColor}
+			userCount={presence.count}
 		/>
 	);
 

@@ -82,6 +82,7 @@ export function BreathingScene({
 					breathState={breathState}
 					config={config}
 					moodColor={moodColor}
+					userCount={presence.count}
 				/>
 
 				{/* Presence particles (orbital ring) */}
