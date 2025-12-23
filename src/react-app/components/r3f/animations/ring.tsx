@@ -85,7 +85,6 @@ export function RingAnimation({
 		config.particleCount,
 		config.radiusVarianceMin,
 		config.radiusVarianceMax,
-		config.angleOffsetRange,
 		config.particleMinSize,
 		config.particleMaxSize,
 		config.particleMinOpacity,
