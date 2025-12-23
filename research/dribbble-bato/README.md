@@ -7,7 +7,11 @@
 
 ## Screenshots
 
-View the live design on Dribbble (link above).
+![Bato App Overview](./bato-overview.png)
+*Multi-screen overview showing home, breathing timer, and feedback screens*
+
+![Bato Breathing Screen](./bato-clean.png)
+*Clean breathing timer with concentric rings and progress indicator*
 
 ## Key Screens
 
@@ -65,3 +69,36 @@ View the live design on Dribbble (link above).
 3. Clear phase text in center
 4. Timer display format
 5. Post-session feedback flow
+
+## Design Community Reception
+
+### Dribbble Engagement
+With **61.5k views** and **291 likes**, this design concept resonated strongly with the Dribbble design community, indicating strong aesthetic appeal and relevance.
+
+### UI/UX Best Practices Demonstrated
+
+**From meditation app design research:**
+- Dark themes enhance focus and reduce eye strain during meditation
+- Concentric ring progress indicators are intuitive and calming
+- Post-session feedback improves user engagement and retention
+
+### Breathing App UI Trends (Reddit/Medium Insights)
+
+**What users praise in breathing app designs:**
+> "Clean and intuitive design... straightforward navigation and clear presentation of features"
+> "The layout being easy to use is important, even for those new to meditation apps"
+
+**Common criticisms to avoid:**
+- Cluttered interfaces that distract from the breathing exercise
+- Lack of clear visual progress indication
+- Confusing phase transitions
+
+### Key Patterns This Design Nails
+1. **Clear visual hierarchy**: Large breathing circle dominates, controls are subtle
+2. **Progress visibility**: Multiple indicators (ring, dot, timer) show progress
+3. **Dark theme**: Reduces distractions, enhances focus
+4. **Feedback loop**: Post-session mood check improves engagement
+
+### Sources
+- [Medium - Grow Meditation App UX Case Study](https://medium.com/@jacquestrouillet/grow-the-meditation-app-a-ui-design-case-5d0f0da5c2d3)
+- [Medium - What Users Say About Meditation Apps](https://medium.com/@smart_answers/what-do-users-say-about-popular-mobile-apps-for-meditation-7dc7fdbdd699)

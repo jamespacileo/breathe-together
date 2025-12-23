@@ -2,15 +2,13 @@ import { motion } from 'framer-motion';
 import type { BreathState } from '../hooks/useBreathSync';
 import type { PresenceData } from '../hooks/usePresence';
 import type { VisualizationConfig } from '../lib/config';
-import type { UserIdentity } from '../stores/appStore';
+import { BreathingFallback, ErrorBoundary } from './ErrorBoundary';
 import { BreathingScene } from './r3f/BreathingScene';
 
 interface BreathingOrbProps {
 	breathState: BreathState;
 	presence: PresenceData;
 	config: VisualizationConfig;
-	moodColor: string;
-	currentUser?: UserIdentity | null;
 }
 
 /**
@@ -21,8 +19,6 @@ export function BreathingOrb({
 	breathState,
 	presence,
 	config,
-	moodColor,
-	currentUser,
 }: BreathingOrbProps) {
 	return (
 		<div
@@ -31,14 +27,19 @@ export function BreathingOrb({
 				background: `linear-gradient(135deg, ${config.backgroundColor} 0%, ${config.backgroundColorMid} 50%, ${config.backgroundColor} 100%)`,
 			}}
 		>
-			{/* React Three Fiber scene */}
-			<BreathingScene
-				breathState={breathState}
-				presence={presence}
-				config={config}
-				moodColor={moodColor}
-				currentUser={currentUser}
-			/>
+			{/* React Three Fiber scene with error boundary for GPU failures */}
+			<ErrorBoundary
+				fallback={<BreathingFallback />}
+				onError={(error) => {
+					console.error('WebGL/R3F error:', error.message);
+				}}
+			>
+				<BreathingScene
+					breathState={breathState}
+					presence={presence}
+					config={config}
+				/>
+			</ErrorBoundary>
 
 			{/* Breathing guide text with Framer Motion animations */}
 			<div className="absolute bottom-[15%] left-1/2 -translate-x-1/2 text-center text-white pointer-events-none select-none">

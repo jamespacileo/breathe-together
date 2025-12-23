@@ -160,11 +160,11 @@ export class SimulationEngine {
 
 	/**
 	 * Bootstrap initial population for warm start
-	 * Instead of waiting for arrivals to build up, start with users
+	 * Start with full target population so users see expected count immediately
 	 */
 	private bootstrapPopulation(): void {
-		// Start with ~50% of target population
-		const initialCount = Math.floor(this.config.targetPopulation * 0.5);
+		// Start with full target population (e.g., 50 users)
+		const initialCount = this.config.targetPopulation;
 
 		for (let i = 0; i < initialCount; i++) {
 			this.addUser();

@@ -17,8 +17,12 @@ export function PresenceCounter({ presence, className }: PresenceCounterProps) {
 			aria-live="polite"
 			aria-label={`${presence.count} people breathing together`}
 		>
-			<span className="text-xl font-light">{presence.count}</span>
-			<span className="text-sm ml-1">breathing together</span>
+			<span className="text-lg sm:text-xl font-light tabular-nums">
+				{presence.count}
+			</span>
+			<span className="text-xs sm:text-sm ml-1 opacity-80">
+				breathing together
+			</span>
 		</div>
 	);
 }

@@ -9,6 +9,7 @@ export interface FireflyParticle {
 	userId: string;
 	user: SimulatedUser;
 	angle: number; // Position on orbital ring
+	segmentCenter: number; // Center angle of mood segment (for balloon effect)
 	phaseOffset: number; // Individual pulse offset (firefly effect)
 	opacity: number; // Current opacity (0-1, animated)
 	birthTime: number; // When this particle became visible
@@ -84,25 +85,27 @@ export function calculateMoodAngles(
 }
 
 /**
- * Get the angle for a user within their mood's segment
+ * Get the angle and segment center for a user within their mood's segment
  * Uses pre-computed position index for O(1) lookup instead of O(n) findIndex
  */
 function getAngleForUser(
 	user: SimulatedUser,
 	moodAngles: Map<MoodId, { startAngle: number; arcSize: number }>,
 	userPositionIndex: Map<string, { idx: number; total: number }>,
-): number {
+): { angle: number; segmentCenter: number } {
 	const segment = moodAngles.get(user.mood);
-	if (!segment) return 0;
+	if (!segment) return { angle: 0, segmentCenter: 0 };
+
+	const segmentCenter = segment.startAngle + segment.arcSize / 2;
 
 	// O(1) lookup for user's position within their mood group
 	const posInfo = userPositionIndex.get(user.id);
-	if (!posInfo) return segment.startAngle + segment.arcSize / 2;
+	if (!posInfo) return { angle: segmentCenter, segmentCenter };
 
 	const { idx, total } = posInfo;
 
 	if (total <= 1) {
-		return segment.startAngle + segment.arcSize / 2;
+		return { angle: segmentCenter, segmentCenter };
 	}
 
 	// Distribute users evenly within the arc, with some randomness
@@ -110,7 +113,8 @@ function getAngleForUser(
 	const jitter = (Math.random() - 0.5) * 0.1; // Small random offset
 	const t = Math.max(0, Math.min(1, basePosition + jitter));
 
-	return segment.startAngle + t * segment.arcSize;
+	const angle = segment.startAngle + t * segment.arcSize;
+	return { angle, segmentCenter };
 }
 
 /**
@@ -191,12 +195,17 @@ export function sampleParticles(
 
 	// 3. Add new arrivals as particles (guaranteed visibility)
 	for (const user of newArrivals) {
-		const angle = getAngleForUser(user, moodAngles, userPositionIndex);
+		const { angle, segmentCenter } = getAngleForUser(
+			user,
+			moodAngles,
+			userPositionIndex,
+		);
 
 		newParticles.set(user.id, {
 			userId: user.id,
 			user,
 			angle,
+			segmentCenter,
 			phaseOffset: Math.random() * Math.PI * 2,
 			opacity: 0, // Will fade in
 			birthTime: now,
@@ -222,12 +231,17 @@ export function sampleParticles(
 
 		for (let i = 0; i < toAdd; i++) {
 			const user = shuffled[i];
-			const angle = getAngleForUser(user, moodAngles, userPositionIndex);
+			const { angle, segmentCenter } = getAngleForUser(
+				user,
+				moodAngles,
+				userPositionIndex,
+			);
 
 			newParticles.set(user.id, {
 				userId: user.id,
 				user,
 				angle,
+				segmentCenter,
 				phaseOffset: Math.random() * Math.PI * 2,
 				opacity: 0, // Will fade in
 				birthTime: now,

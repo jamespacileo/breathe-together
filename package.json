@@ -26,11 +26,13 @@
 		"clsx": "^2.1.1",
 		"framer-motion": "^12.23.26",
 		"hono": "4.11.1",
+		"lucide-react": "^0.562.0",
 		"poisson-process": "^1.0.1",
 		"react": "19.2.1",
 		"react-dom": "19.2.1",
 		"tailwind-merge": "^3.4.0",
 		"three": "^0.182.0",
+		"three-nebula": "^10.0.3",
 		"zod": "^4.2.1",
 		"zustand": "^5.0.9"
 	},

@@ -44,7 +44,7 @@ export function IdentityPanel({
 
 	return (
 		<Dialog open onOpenChange={(open) => !open && onClose()}>
-			<DialogContent className="max-w-sm">
+			<DialogContent className="max-w-sm mx-4 sm:mx-auto max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle className="text-center font-light">
 						Join the circle
@@ -63,6 +63,7 @@ export function IdentityPanel({
 							value={name}
 							onChange={(e) => setName(e.target.value)}
 							placeholder="Someone"
+							className="min-h-[48px] sm:min-h-0"
 						/>
 					</div>
 
@@ -78,7 +79,7 @@ export function IdentityPanel({
 									aria-label={`Select avatar ${a.id}`}
 									aria-pressed={avatar === a.id}
 									className={cn(
-										'w-10 h-10 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50',
+										'w-11 h-11 sm:w-10 sm:h-10 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50',
 										avatar === a.id
 											? 'scale-110 ring-2 ring-white'
 											: 'hover:scale-105',
@@ -102,7 +103,7 @@ export function IdentityPanel({
 									onClick={() => setMood(m.id)}
 									aria-pressed={mood === m.id}
 									className={cn(
-										'p-2 text-left text-sm rounded-lg border transition-all',
+										'p-3 sm:p-2 text-left text-sm rounded-lg border transition-all min-h-[48px]',
 										mood === m.id
 											? 'border-white/30 bg-white/15'
 											: 'border-white/20 bg-white/5 hover:bg-white/10',
@@ -120,17 +121,24 @@ export function IdentityPanel({
 								value={moodDetail}
 								onChange={(e) => setMoodDetail(e.target.value)}
 								placeholder="Add detail (optional)"
-								className="mt-2"
+								className="mt-2 min-h-[48px] sm:min-h-0"
 							/>
 						) : null}
 					</div>
 				</div>
 
-				<DialogFooter className="gap-3 sm:gap-3">
-					<Button variant="outline" onClick={onClose} className="flex-1">
+				<DialogFooter className="gap-3 flex-col-reverse sm:flex-row">
+					<Button
+						variant="outline"
+						onClick={onClose}
+						className="flex-1 min-h-[48px] sm:min-h-0"
+					>
 						Skip
 					</Button>
-					<Button onClick={handleSave} className="flex-1">
+					<Button
+						onClick={handleSave}
+						className="flex-1 min-h-[48px] sm:min-h-0"
+					>
 						Join
 					</Button>
 				</DialogFooter>
@@ -151,16 +159,16 @@ export function UserBadge({ user, onClick }: UserBadgeProps) {
 		<button
 			type="button"
 			onClick={onClick}
-			className="flex items-center gap-3 px-4 py-2 bg-white/10 border border-white/20 rounded-full text-white cursor-pointer hover:bg-white/15 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+			className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-white cursor-pointer hover:bg-white/15 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 min-h-[48px]"
 		>
 			<div
-				className="w-8 h-8 rounded-full"
+				className="w-8 h-8 rounded-full shrink-0"
 				style={{ background: getAvatarGradient(user.avatar) }}
 			/>
 			<div className="text-left">
 				<div className="font-medium text-sm">{user.name}</div>
 				{mood ? (
-					<div className="text-xs text-white/70">
+					<div className="text-xs text-white/70 truncate max-w-[120px] sm:max-w-none">
 						{mood.label}
 						{user.moodDetail ? ` ${user.moodDetail}` : ''}
 					</div>
@@ -179,7 +187,7 @@ export function JoinButton({ onClick }: JoinButtonProps) {
 		<Button
 			onClick={onClick}
 			variant="outline"
-			className="rounded-full px-6 py-3 h-auto"
+			className="rounded-full px-6 py-3 h-auto min-h-[48px] backdrop-blur-sm"
 		>
 			Join the circle
 		</Button>

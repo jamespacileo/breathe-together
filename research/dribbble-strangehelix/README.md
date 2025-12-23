@@ -2,8 +2,15 @@
 
 **Source**: [Dribbble](https://dribbble.com/strangehelix)
 **Designer**: strangehelix
-**Stats**: 13.6k views, 159 likes
-**Type**: Mobile App Concept
+**Stats**: 53,953 followers on Dribbble
+**Type**: Mobile App Concept (Healthcare/Wellness Focus)
+
+## Screenshots
+
+![Strangehelix Profile](./strangehelix-profile.png)
+*Strangehelix Dribbble profile showcasing their holistic design approach for biotech & healthcare apps*
+
+**Note**: The original breathing app shot referenced in earlier research is no longer publicly available. Strangehelix now focuses on comprehensive healthcare UI design kits.
 
 ## Overview
 

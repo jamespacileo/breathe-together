@@ -1,5 +1,5 @@
 import { type MotionValue, useMotionValue, useSpring } from 'framer-motion';
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import type { VisualizationConfig } from '../lib/config';
 import type { BreathState } from './useBreathSync';
 
@@ -25,21 +25,23 @@ export function calculateTargetScale(
 	} = config;
 
 	if (phase === 'in') {
-		// Breathing in: scale from breatheInScale to breatheOutScale
-		return breatheInScale + (breatheOutScale - breatheInScale) * progress;
-	} else if (phase === 'out') {
-		// Breathing out: scale from breatheOutScale to breatheInScale
+		// REVERSED: Breathing in contracts (expanded → contracted)
+		// Like taking a controlled breath, visualization pulls inward
 		return breatheOutScale - (breatheOutScale - breatheInScale) * progress;
+	} else if (phase === 'out') {
+		// REVERSED: Breathing out expands (contracted → expanded)
+		// Like relaxing a muscle, visualization spreads outward
+		return breatheInScale + (breatheOutScale - breatheInScale) * progress;
 	} else if (phase === 'hold-in') {
-		// Holding after inhale: subtle oscillation around breatheOutScale
-		const oscillation =
-			Math.sin(Date.now() * holdOscillationSpeed) * holdOscillation;
-		return breatheOutScale + oscillation;
-	} else {
-		// Holding after exhale: subtle oscillation around breatheInScale
+		// Holding after inhale: subtle oscillation around contracted state
 		const oscillation =
 			Math.sin(Date.now() * holdOscillationSpeed) * holdOscillation;
 		return breatheInScale + oscillation;
+	} else {
+		// Holding after exhale: subtle oscillation around expanded state
+		const oscillation =
+			Math.sin(Date.now() * holdOscillationSpeed) * holdOscillation;
+		return breatheOutScale + oscillation;
 	}
 }
 
@@ -61,44 +63,19 @@ export function useBreathingSpring(
 	});
 
 	// Update target when breath state changes
+	// Only depend on specific config properties used by calculateTargetScale
+	// Note: targetValue is stable (MotionValue) so excluded from deps
 	useEffect(() => {
 		const targetScale = calculateTargetScale(breathState, config);
 		targetValue.set(targetScale);
-	}, [breathState, config, targetValue]);
-
-	return scale;
-}
-
-/**
- * Hook that provides multiple spring values for particle animations
- * with variance for organic movement
- */
-export function useParticleSpring(
-	breathState: BreathState,
-	config: VisualizationConfig,
-	_particleId: number,
-): MotionValue<number> {
-	// Create unique spring parameters for this particle
-	const stiffnessRef = useRef(
-		config.springTension + Math.random() * config.springTensionVariance,
-	);
-	const dampingRef = useRef(
-		config.springFriction + Math.random() * config.springFrictionVariance,
-	);
-
-	const targetValue = useMotionValue(1);
-
-	const scale = useSpring(targetValue, {
-		stiffness: stiffnessRef.current,
-		damping: dampingRef.current,
-		restDelta: 0.001,
-	});
-
-	// Update target when breath state changes
-	useEffect(() => {
-		const targetScale = calculateTargetScale(breathState, config);
-		targetValue.set(targetScale);
-	}, [breathState, config, targetValue]);
+	}, [
+		breathState.phase,
+		breathState.progress,
+		config.breatheInScale,
+		config.breatheOutScale,
+		config.holdOscillation,
+		config.holdOscillationSpeed,
+	]);
 
 	return scale;
 }

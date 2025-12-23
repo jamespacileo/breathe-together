@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { BreathingOrb } from './components/BreathingOrb';
 import { DebugPanel } from './components/DebugPanel';
 import {
@@ -7,14 +8,28 @@ import {
 } from './components/IdentityPanel';
 import { PatternSelector } from './components/PatternSelector';
 import { PresenceCounter } from './components/PresenceCounter';
+import { SettingsPanel } from './components/SettingsPanel';
 import { useBreathSync } from './hooks/useBreathSync';
 import { usePresence } from './hooks/usePresence';
 import { useSimulation } from './hooks/useSimulation';
-import { getMoodColor } from './lib/colors';
 import { type UserIdentity, useAppStore } from './stores/appStore';
 import './App.css';
 
 function App() {
+	// Dev mode toggle (Cmd/Ctrl + Shift + D)
+	const [isDevMode, setIsDevMode] = useState(false);
+
+	useEffect(() => {
+		const handler = (e: KeyboardEvent) => {
+			if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'D') {
+				e.preventDefault();
+				setIsDevMode((prev) => !prev);
+			}
+		};
+		window.addEventListener('keydown', handler);
+		return () => window.removeEventListener('keydown', handler);
+	}, []);
+
 	// Zustand store
 	const {
 		user,
@@ -53,81 +68,60 @@ function App() {
 		setUser(newUser);
 	};
 
-	const moodColor = getMoodColor(user?.mood);
-
 	return (
-		<div
-			style={{
-				position: 'fixed',
-				inset: 0,
-				overflow: 'hidden',
-			}}
-		>
+		<div className="fixed inset-0 overflow-hidden">
 			{/* Main breathing visualization */}
 			<BreathingOrb
 				breathState={breathState}
 				presence={presence}
 				config={config}
-				moodColor={moodColor}
-				currentUser={user}
 			/>
 
-			{/* Debug panel */}
-			<DebugPanel
-				config={config}
-				setConfig={setConfig}
-				breathState={breathState}
-				presence={presence}
-				isOpen={showDebug}
-				setIsOpen={setShowDebug}
-				simulationControls={{
-					simulationConfig,
-					updateSimulationConfig: (updates) => {
-						updateSimulationConfig(updates);
-						updateSimConfig(updates);
-					},
-					isSimulationRunning: isRunning,
-					onStart: start,
-					onStop: stop,
-					onReset: reset,
-				}}
-			/>
+			{/* Settings/Debug panel - top left */}
+			<div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-50">
+				{isDevMode ? (
+					<DebugPanel
+						config={config}
+						setConfig={setConfig}
+						breathState={breathState}
+						presence={presence}
+						isOpen={showDebug}
+						setIsOpen={setShowDebug}
+						simulationControls={{
+							simulationConfig,
+							updateSimulationConfig: (updates) => {
+								updateSimulationConfig(updates);
+								updateSimConfig(updates);
+							},
+							isSimulationRunning: isRunning,
+							onStart: start,
+							onStop: stop,
+							onReset: reset,
+						}}
+					/>
+				) : (
+					<SettingsPanel
+						config={config}
+						setConfig={setConfig}
+						isOpen={showDebug}
+						setIsOpen={setShowDebug}
+						onEnableDevMode={() => setIsDevMode(true)}
+					/>
+				)}
+			</div>
 
 			{/* Presence counter - top center */}
-			<div
-				style={{
-					position: 'absolute',
-					top: '1.5rem',
-					left: '50%',
-					transform: 'translateX(-50%)',
-					zIndex: 10,
-				}}
-			>
+			<div className="absolute top-3 sm:top-6 left-1/2 -translate-x-1/2 z-10">
 				<PresenceCounter presence={presence} />
 			</div>
 
 			{/* Pattern selector - top right */}
-			<div
-				style={{
-					position: 'absolute',
-					top: '1.5rem',
-					right: '1.5rem',
-					zIndex: 10,
-				}}
-			>
+			<div className="absolute top-3 right-3 sm:top-6 sm:right-6 z-10">
 				<PatternSelector pattern={pattern} onChange={setPattern} />
 			</div>
 
 			{/* User badge or join button - bottom center */}
-			<div
-				style={{
-					position: 'absolute',
-					bottom: '1.5rem',
-					left: '50%',
-					transform: 'translateX(-50%)',
-					zIndex: 10,
-				}}
-			>
+			<div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-10">
 				{user ? (
 					<UserBadge user={user} onClick={() => setShowIdentity(true)} />
 				) : (

@@ -106,3 +106,42 @@ The breathe-together app currently leans toward **Dark/Immersive** style with pa
 3. Keep UI minimal during breathing
 4. Add personality through subtle animations
 5. The global/connected aspect is unique - emphasize it
+
+## Design Industry Insights
+
+### What Award-Winning Meditation Apps Get Right
+
+**From UX research and Reddit discussions:**
+
+**Positive Design Elements:**
+> "Apps described as simple, clean, and easy to use help users focus on the meditation rather than getting distracted by the app itself"
+
+**Common UI Criticisms:**
+- "Some free apps may have a less polished or intuitive design"
+- "The UI could be modernised"
+- "You're not given a predefined progression of sessions"
+
+### Award-Winning Design Principles
+
+1. **Generous whitespace**: Creates breathing room (pun intended)
+2. **Soft, rounded shapes**: Avoids sharp angles that interfere with relaxation
+3. **Nature imagery**: Mountains, water, forests create calm associations
+4. **Smooth animations**: Transitions should be organic, not jarring
+5. **Mobile-first**: Most meditation happens on phones
+
+### Top Breathing App Alternatives (User Recommendations)
+
+From various sources, users recommend these alongside Calm:
+
+| App | Key Strength |
+|-----|--------------|
+| **Breathwrk** | Personalized breathing patterns, tracks progress |
+| **iBreathe** | Ultra-simple, beautifully designed |
+| **Breathe2Relax** | Free, includes visual tools and instructions |
+| **Breath Ball** | Great for chronic anxiety and panic attacks |
+| **Othership** | 500+ guided sessions, variety |
+
+### Sources
+- [The Good Trade - Best Meditation Apps](https://www.thegoodtrade.com/features/best-meditation-apps/)
+- [Othership - Deep Breathing Apps Guide](https://www.othership.us/resources/best-deep-breathing-apps)
+- [Pzizz - Breathing Apps for Anxiety](https://pzizz.com/blog/articles/apps-that-help-you-breathe/)

@@ -5,43 +5,6 @@ import { z } from 'zod';
  * Provides runtime validation with min/max ranges
  */
 export const VisualizationConfigSchema = z.object({
-	// Particle System
-	particleCount: z.number().min(10).max(500).describe('Number of particles'),
-	particleMinSize: z
-		.number()
-		.min(0.5)
-		.max(10)
-		.describe('Minimum particle size in pixels'),
-	particleMaxSize: z
-		.number()
-		.min(1)
-		.max(15)
-		.describe('Maximum particle size in pixels'),
-	particleMinOpacity: z
-		.number()
-		.min(0.05)
-		.max(1)
-		.describe('Minimum particle opacity'),
-	particleMaxOpacity: z
-		.number()
-		.min(0.1)
-		.max(1)
-		.describe('Maximum particle opacity'),
-
-	// Spring Physics (per particle)
-	springTension: z.number().min(20).max(300).describe('Spring tension'),
-	springTensionVariance: z
-		.number()
-		.min(0)
-		.max(150)
-		.describe('Spring tension variance'),
-	springFriction: z.number().min(5).max(50).describe('Spring friction'),
-	springFrictionVariance: z
-		.number()
-		.min(0)
-		.max(25)
-		.describe('Spring friction variance'),
-
 	// Breathing Animation
 	baseRadius: z
 		.number()
@@ -61,7 +24,7 @@ export const VisualizationConfigSchema = z.object({
 		.max(0.01)
 		.describe('Hold oscillation speed'),
 
-	// Main Spring (global breathing)
+	// Main Spring (global breathing physics)
 	mainSpringTension: z
 		.number()
 		.min(20)
@@ -73,132 +36,54 @@ export const VisualizationConfigSchema = z.object({
 		.max(40)
 		.describe('Main spring friction'),
 
-	// Visual Effects
-	glowIntensity: z.number().min(0).max(1).describe('Glow intensity'),
-	glowRadius: z.number().min(1).max(3).describe('Glow radius multiplier'),
-	trailFade: z
+	// 3D Breathing Sphere
+	nebulaEnabled: z
+		.boolean()
+		.describe('Enable 3D breathing sphere visualization'),
+	sphereContractedRadius: z
 		.number()
-		.min(0)
-		.max(1)
-		.describe('Trail fade (0=trail, 1=instant clear)'),
-	coreRadius: z.number().min(5).max(50).describe('Core radius in pixels'),
-	coreOpacity: z.number().min(0).max(1).describe('Core opacity'),
-
-	// Particle Movement
-	wobbleAmount: z.number().min(0).max(0.2).describe('Wobble amount'),
-	wobbleSpeed: z.number().min(0).max(0.005).describe('Wobble speed'),
-	radiusVarianceMin: z
-		.number()
-		.min(0.5)
-		.max(1)
-		.describe('Minimum radius variance'),
-	radiusVarianceMax: z
-		.number()
-		.min(1)
+		.min(0.3)
 		.max(1.5)
-		.describe('Maximum radius variance'),
-	angleOffsetRange: z.number().min(0).max(1).describe('Angle offset range'),
-
-	// Presence Particles
-	presenceCount: z.number().min(0).max(200).describe('Presence particle count'),
-	presenceRadius: z.number().min(1).max(2).describe('Presence orbit radius'),
-	presenceSize: z.number().min(1).max(10).describe('Presence particle size'),
-	presenceOpacity: z
-		.number()
-		.min(0)
-		.max(0.5)
-		.describe('Presence particle opacity'),
-	presenceOrbitSpeed: z
-		.number()
-		.min(0)
-		.max(0.001)
-		.describe('Presence orbit speed'),
-
-	// Aurora Ribbons (density visualization)
-	ribbonEnabled: z.boolean().describe('Enable aurora ribbon rendering'),
-	ribbonBaseWidth: z
+		.describe('Sphere radius when fully contracted (inhaled)'),
+	sphereExpandedRadius: z
 		.number()
 		.min(1)
-		.max(30)
-		.describe('Base ribbon width in pixels'),
-	ribbonScaleFactor: z
-		.number()
-		.min(0.5)
-		.max(5)
-		.describe('Logarithmic scale factor for user count'),
-	ribbonSegments: z
-		.number()
-		.min(8)
-		.max(64)
-		.describe('Ribbon smoothness (vertex count)'),
-	ribbonPulseAmount: z
+		.max(4)
+		.describe('Sphere radius when fully expanded (exhaled)'),
+	sphereRotationSpeed: z
 		.number()
 		.min(0)
 		.max(0.1)
-		.describe('Ribbon breathing pulse amplitude'),
-	ribbonBlendWidth: z
-		.number()
-		.min(0)
-		.max(0.2)
-		.describe('Color blend width at segment boundaries'),
+		.describe('Sphere rotation speed (radians per second)'),
 
-	// Firefly Particles (sampled individuals)
-	fireflyCount: z
+	// Connection Lines
+	connectionEnabled: z
+		.boolean()
+		.describe('Enable connection lines between particles'),
+	connectionDistance: z
 		.number()
-		.min(0)
-		.max(200)
-		.describe('Max visible firefly particles'),
-	fireflySize: z.number().min(1).max(8).describe('Firefly particle size'),
-	fireflyPulseSpeed: z
-		.number()
-		.min(0.001)
-		.max(0.01)
-		.describe('Firefly pulse animation speed'),
-	fireflyFadeIn: z
-		.number()
-		.min(500)
-		.max(5000)
-		.describe('Arrival fade-in duration (ms)'),
-	fireflyFadeOut: z
-		.number()
-		.min(500)
-		.max(5000)
-		.describe('Departure fade-out duration (ms)'),
-	fireflyResampleInterval: z
-		.number()
-		.min(5000)
-		.max(30000)
-		.describe('Resample interval (ms)'),
-
-	// You Are Here (current user marker)
-	youAreHereSizeMultiplier: z
-		.number()
-		.min(1)
-		.max(3)
-		.describe('Your particle size multiplier'),
-	youAreHereGlowRadius: z
-		.number()
-		.min(0)
-		.max(20)
-		.describe('Your particle glow radius'),
-	youAreHereGlowOpacity: z
-		.number()
-		.min(0)
+		.min(0.1)
 		.max(1)
-		.describe('Your particle glow opacity'),
-
-	// Slice Hover Interaction
-	sliceHoverEnabled: z.boolean().describe('Enable slice hover interaction'),
-	sliceHoverDelay: z
-		.number()
-		.min(0)
-		.max(500)
-		.describe('Hover debounce delay (ms)'),
-	sliceHighlightOpacity: z
+		.describe('Max distance for particle connections'),
+	connectionOpacity: z
 		.number()
 		.min(0)
 		.max(0.5)
-		.describe('Slice highlight opacity'),
+		.describe('Base opacity of connection lines'),
+
+	// Haze Layer
+	hazeEnabled: z.boolean().describe('Enable atmospheric haze particles'),
+	hazeOpacity: z.number().min(0).max(0.3).describe('Haze particle opacity'),
+
+	// Post-processing Bloom
+	bloomEnabled: z.boolean().describe('Enable post-processing bloom'),
+	bloomStrength: z.number().min(0).max(3).describe('Bloom intensity'),
+	bloomThreshold: z
+		.number()
+		.min(0)
+		.max(1)
+		.describe('Luminance threshold for bloom'),
+	bloomRadius: z.number().min(0).max(1).describe('Bloom blur radius'),
 
 	// Colors
 	primaryColor: z
@@ -238,19 +123,6 @@ export function updateConfig(
 }
 
 export const DEFAULT_CONFIG: VisualizationConfig = {
-	// Particle System
-	particleCount: 200,
-	particleMinSize: 1.5,
-	particleMaxSize: 4,
-	particleMinOpacity: 0.2,
-	particleMaxOpacity: 0.5,
-
-	// Spring Physics
-	springTension: 120,
-	springTensionVariance: 60,
-	springFriction: 18,
-	springFrictionVariance: 12,
-
 	// Breathing Animation
 	baseRadius: 0.28,
 	breatheInScale: 0.7,
@@ -262,52 +134,26 @@ export const DEFAULT_CONFIG: VisualizationConfig = {
 	mainSpringTension: 100,
 	mainSpringFriction: 20,
 
-	// Visual Effects
-	glowIntensity: 0.1,
-	glowRadius: 1.5,
-	trailFade: 0.12,
-	coreRadius: 10,
-	coreOpacity: 0.25,
+	// 3D Breathing Sphere
+	nebulaEnabled: true,
+	sphereContractedRadius: 0.7,
+	sphereExpandedRadius: 2.2,
+	sphereRotationSpeed: 0.025,
 
-	// Particle Movement
-	wobbleAmount: 0.05,
-	wobbleSpeed: 0.0007,
-	radiusVarianceMin: 0.8,
-	radiusVarianceMax: 1.2,
-	angleOffsetRange: 0.3,
+	// Connection Lines
+	connectionEnabled: true,
+	connectionDistance: 0.4,
+	connectionOpacity: 0.15,
 
-	// Presence Particles
-	presenceCount: 50,
-	presenceRadius: 1.3,
-	presenceSize: 3,
-	presenceOpacity: 0.1,
-	presenceOrbitSpeed: 0.0001,
+	// Haze Layer
+	hazeEnabled: true,
+	hazeOpacity: 0.08,
 
-	// Aurora Ribbons
-	ribbonEnabled: true,
-	ribbonBaseWidth: 6,
-	ribbonScaleFactor: 2,
-	ribbonSegments: 32,
-	ribbonPulseAmount: 0.02,
-	ribbonBlendWidth: 0.1,
-
-	// Firefly Particles
-	fireflyCount: 80,
-	fireflySize: 3,
-	fireflyPulseSpeed: 0.003,
-	fireflyFadeIn: 2000,
-	fireflyFadeOut: 2000,
-	fireflyResampleInterval: 10000,
-
-	// You Are Here
-	youAreHereSizeMultiplier: 1.5,
-	youAreHereGlowRadius: 10,
-	youAreHereGlowOpacity: 0.4,
-
-	// Slice Hover
-	sliceHoverEnabled: true,
-	sliceHoverDelay: 200,
-	sliceHighlightOpacity: 0.15,
+	// Post-processing Bloom
+	bloomEnabled: false,
+	bloomStrength: 0.3,
+	bloomThreshold: 0.6,
+	bloomRadius: 0.3,
 
 	// Colors
 	primaryColor: '#7EB5C1',
