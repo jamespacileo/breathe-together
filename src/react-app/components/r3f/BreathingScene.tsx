@@ -6,8 +6,8 @@ import type { BreathState } from '../../hooks/useBreathSync';
 import type { PresenceData } from '../../hooks/usePresence';
 import type { VisualizationConfig } from '../../lib/config';
 import type { UserIdentity } from '../../stores/appStore';
+import { ANIMATIONS, getEffectiveAnimationType } from './animations';
 import { GlowEffect } from './GlowEffect';
-import { ParticleSystem } from './ParticleSystem';
 import { PresenceParticles } from './PresenceParticles';
 
 interface BreathingSceneProps {
@@ -42,6 +42,10 @@ export function BreathingScene({
 		[],
 	);
 
+	// Get the selected animation component, with iOS fallback
+	const effectiveType = getEffectiveAnimationType(config.animationType);
+	const AnimationComponent = ANIMATIONS[effectiveType].component;
+
 	return (
 		<Canvas
 			dpr={dpr}
@@ -73,12 +77,12 @@ export function BreathingScene({
 					moodColor={moodColor}
 				/>
 
-				{/* Central particle ring */}
-				<ParticleSystem
+				{/* Central particle animation (selected by config) */}
+				<AnimationComponent
 					breathState={breathState}
-					presence={presence}
 					config={config}
 					moodColor={moodColor}
+					userCount={presence.count}
 				/>
 
 				{/* Presence particles (orbital ring) */}

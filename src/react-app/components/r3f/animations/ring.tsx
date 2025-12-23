@@ -1,23 +1,12 @@
 import { useFrame } from '@react-three/fiber';
-import { useEffect, useMemo, useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { calculateTargetScale } from '../../hooks/useBreathingSpring';
-import type { BreathState } from '../../hooks/useBreathSync';
-import type { PresenceData } from '../../hooks/usePresence';
-import type { VisualizationConfig } from '../../lib/config';
+import { calculateTargetScale } from '../../../hooks/useBreathingSpring';
+import type { ParticleAnimationProps } from './types';
 
-interface ParticleSystemProps {
-	breathState: BreathState;
-	presence: PresenceData;
-	config: VisualizationConfig;
-	moodColor: string;
-}
-
-// Custom shader material for soft particles
-const particleVertexShader = `
+const vertexShader = `
   attribute float size;
   attribute float opacity;
-
   varying float vOpacity;
 
   void main() {
@@ -28,30 +17,32 @@ const particleVertexShader = `
   }
 `;
 
-const particleFragmentShader = `
+const fragmentShader = `
   uniform vec3 color;
   varying float vOpacity;
 
   void main() {
     float dist = length(gl_PointCoord - vec2(0.5));
     if (dist > 0.5) discard;
-
     float alpha = smoothstep(0.5, 0.1, dist) * vOpacity;
     gl_FragColor = vec4(color, alpha);
   }
 `;
 
-export function ParticleSystem({
+/**
+ * Simple ring animation using WebGL points.
+ * A classic circular particle distribution with wobble.
+ */
+export function RingAnimation({
 	breathState,
 	config,
 	moodColor,
-}: ParticleSystemProps) {
+}: ParticleAnimationProps) {
 	const pointsRef = useRef<THREE.Points>(null);
 	const materialRef = useRef<THREE.ShaderMaterial>(null);
 	const scaleRef = useRef(1);
 	const velocityRef = useRef(0);
 
-	// Generate particle data
 	const particleData = useMemo(() => {
 		const count = config.particleCount;
 		const positions = new Float32Array(count * 3);
@@ -59,20 +50,16 @@ export function ParticleSystem({
 		const opacities = new Float32Array(count);
 		const baseAngles = new Float32Array(count);
 		const radiusMultipliers = new Float32Array(count);
-		const angleOffsets = new Float32Array(count);
 		const phaseOffsets = new Float32Array(count);
 
 		for (let i = 0; i < count; i++) {
-			// Initial position on a circle
 			const angle = (i / count) * Math.PI * 2;
 			baseAngles[i] = angle;
 			radiusMultipliers[i] =
 				config.radiusVarianceMin +
 				Math.random() * (config.radiusVarianceMax - config.radiusVarianceMin);
-			angleOffsets[i] = (Math.random() - 0.5) * config.angleOffsetRange;
 			phaseOffsets[i] = Math.random() * Math.PI * 2;
 
-			// Start at unit circle, will be scaled
 			positions[i * 3] = Math.cos(angle) * radiusMultipliers[i];
 			positions[i * 3 + 1] = Math.sin(angle) * radiusMultipliers[i];
 			positions[i * 3 + 2] = 0;
@@ -91,7 +78,6 @@ export function ParticleSystem({
 			opacities,
 			baseAngles,
 			radiusMultipliers,
-			angleOffsets,
 			phaseOffsets,
 			count,
 		};
@@ -99,49 +85,33 @@ export function ParticleSystem({
 		config.particleCount,
 		config.radiusVarianceMin,
 		config.radiusVarianceMax,
-		config.angleOffsetRange,
 		config.particleMinSize,
 		config.particleMaxSize,
 		config.particleMinOpacity,
 		config.particleMaxOpacity,
 	]);
 
-	// Update color when mood changes
-	useEffect(() => {
-		if (materialRef.current) {
-			materialRef.current.uniforms.color.value.set(
-				moodColor || config.primaryColor,
-			);
-		}
-	}, [moodColor, config.primaryColor]);
-
-	// Animation loop
 	useFrame((state) => {
 		if (!pointsRef.current) return;
 
 		const time = state.clock.elapsedTime * 1000;
-
-		// Calculate target scale with spring physics
 		const targetScale = calculateTargetScale(breathState, config);
 
-		// Manual spring simulation (stiffness and damping)
 		const stiffness = config.mainSpringTension * 0.0001;
 		const damping = config.mainSpringFriction * 0.05;
 		const force = (targetScale - scaleRef.current) * stiffness;
 		velocityRef.current = velocityRef.current * (1 - damping) + force;
 		scaleRef.current += velocityRef.current;
 
-		// Update particle positions
 		const positions = pointsRef.current.geometry.attributes.position
 			.array as Float32Array;
-		const { baseAngles, radiusMultipliers, angleOffsets, phaseOffsets, count } =
-			particleData;
+		const { baseAngles, radiusMultipliers, phaseOffsets, count } = particleData;
 
 		for (let i = 0; i < count; i++) {
 			const wobble =
 				Math.sin(time * config.wobbleSpeed + phaseOffsets[i]) *
 				config.wobbleAmount;
-			const angle = baseAngles[i] + angleOffsets[i] + wobble;
+			const angle = baseAngles[i] + wobble;
 			const radius = scaleRef.current * radiusMultipliers[i];
 
 			positions[i * 3] = Math.cos(angle) * radius;
@@ -174,11 +144,9 @@ export function ParticleSystem({
 			</bufferGeometry>
 			<shaderMaterial
 				ref={materialRef}
-				vertexShader={particleVertexShader}
-				fragmentShader={particleFragmentShader}
-				uniforms={{
-					color: { value: color },
-				}}
+				vertexShader={vertexShader}
+				fragmentShader={fragmentShader}
+				uniforms={{ color: { value: color } }}
 				transparent
 				depthWrite={false}
 				blending={THREE.AdditiveBlending}
