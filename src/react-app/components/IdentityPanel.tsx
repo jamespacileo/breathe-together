@@ -206,7 +206,7 @@ export function JoinButton({ onClick }: JoinButtonProps) {
 				'hover:shadow-[0_0_25px_rgba(34,211,238,0.25)] hover:border-aurora/40',
 			)}
 		>
-			<UserPlus className="h-5 w-5" />
+			<UserPlus className="h-6 w-6" />
 		</motion.button>
 	);
 }

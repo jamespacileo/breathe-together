@@ -146,7 +146,7 @@ export function SettingsPanel({
 					aria-label="Open settings"
 					variant="default"
 				>
-					<Settings className="h-5 w-5" />
+					<Settings className="h-6 w-6" />
 				</IconButton>
 			</motion.div>
 		);

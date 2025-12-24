@@ -53,7 +53,7 @@ export function PatternSelector({
 								: 'bg-transparent border border-transparent text-stellar-muted hover:text-stellar hover:bg-void-light/30',
 						)}
 					>
-						<Icon className="h-5 w-5" />
+						<Icon className="h-6 w-6" />
 					</button>
 				);
 			})}

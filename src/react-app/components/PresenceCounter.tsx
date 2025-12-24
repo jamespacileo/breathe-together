@@ -24,7 +24,7 @@ export function PresenceCounter({ presence, className }: PresenceCounterProps) {
 			aria-live="polite"
 			aria-label={`${presence.count} people breathing together`}
 		>
-			<Users className="h-4 w-4 text-stellar-muted" />
+			<Users className="h-5 w-5 text-stellar-muted" />
 			<motion.span
 				key={presence.count}
 				initial={{ opacity: 0.5, scale: 0.95 }}
