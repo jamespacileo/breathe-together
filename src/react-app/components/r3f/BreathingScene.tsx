@@ -81,13 +81,13 @@ function BreathingSphereSystem({
 	return (
 		<>
 			{/* Background haze layer */}
-			{config.hazeEnabled && (
+			{config.hazeEnabled ? (
 				<HazeLayer
 					breathState={breathState}
 					config={config}
 					userCount={userCount}
 				/>
-			)}
+			) : null}
 
 			{/* Main breathing sphere */}
 			<BreathingSphere
@@ -167,7 +167,7 @@ export function BreathingScene({
 			</Suspense>
 
 			{/* Post-processing bloom effect */}
-			{config.bloomEnabled && (
+			{config.bloomEnabled ? (
 				<EffectComposer>
 					<Bloom
 						luminanceThreshold={config.bloomThreshold}
@@ -176,7 +176,7 @@ export function BreathingScene({
 						radius={config.bloomRadius}
 					/>
 				</EffectComposer>
-			)}
+			) : null}
 		</Canvas>
 	);
 }
