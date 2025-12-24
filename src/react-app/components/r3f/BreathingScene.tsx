@@ -70,8 +70,8 @@ function BreathingSphereSystem({
 			) : null}
 
 			{/* Central halo glow */}
-			<CentralHalo breathState={breathState} baseRadius={0.4} opacity={0.12} />
-			<InnerGlow breathState={breathState} baseRadius={0.25} />
+			<CentralHalo breathState={breathState} baseRadius={0.6} opacity={0.25} />
+			<InnerGlow breathState={breathState} baseRadius={0.35} />
 
 			{/* Main GPGPU breathing sphere with particles */}
 			<GPUBreathingSphere

@@ -306,6 +306,7 @@ export function GPUBreathingSphere({
 		const mat = new THREE.ShaderMaterial({
 			uniforms: {
 				texturePosition: { value: null },
+				textureVelocity: { value: null },
 				uTexture: { value: texture },
 				uTime: { value: 0 },
 				uBreathValue: { value: 0 },
@@ -377,6 +378,8 @@ export function GPUBreathingSphere({
 		// Update render material uniforms
 		mat.uniforms.texturePosition.value =
 			gpuCompute.getCurrentRenderTarget(positionVariable).texture;
+		mat.uniforms.textureVelocity.value =
+			gpuCompute.getCurrentRenderTarget(velocityVariable).texture;
 		mat.uniforms.uTime.value = time;
 		mat.uniforms.uBreathValue.value = breathValue;
 		mat.uniforms.uPhaseType.value = phaseType;

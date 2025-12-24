@@ -6,6 +6,7 @@ import { NOISE_FUNCTIONS } from './noise.glsl';
 
 export const PARTICLE_VERTEX_SHADER = /* glsl */ `
 uniform sampler2D texturePosition;
+uniform sampler2D textureVelocity;
 uniform float uTime;
 uniform float uBreathValue;
 uniform float uPhaseType;
@@ -20,6 +21,8 @@ varying float vAlpha;
 varying float vDist;
 varying float vSize;
 varying vec2 vReference;
+varying float vSparkle;
+varying float vVelocity;
 
 ${NOISE_FUNCTIONS}
 
@@ -27,16 +30,21 @@ void main() {
   vReference = reference;
   vColor = aColor;
 
-  // Sample position from GPGPU texture
+  // Sample position and velocity from GPGPU textures
   vec4 posData = texture2D(texturePosition, reference);
+  vec4 velData = texture2D(textureVelocity, reference);
   vec3 position = posData.xyz;
+  vec3 velocity = velData.xyz;
   float life = posData.w;
+  float speed = length(velocity);
+  vVelocity = speed;
 
   // Skip inactive particles
   if (life < 0.01) {
     gl_Position = vec4(0.0, 0.0, -1000.0, 1.0);
     gl_PointSize = 0.0;
     vAlpha = 0.0;
+    vSparkle = 0.0;
     return;
   }
 
@@ -44,38 +52,41 @@ void main() {
   float seed = reference.x * 100.0 + reference.y * 10.0;
 
   // Multi-frequency twinkle
-  float twinkle1 = sin(uTime * (0.5 + seed * 0.3) + seed * 6.28) * 0.3;
-  float twinkle2 = sin(uTime * (0.8 + seed * 0.2) + seed * 3.14) * 0.15;
-  float twinkle3 = sin(uTime * (1.2 + seed * 0.1) + seed * 1.57) * 0.1;
+  float twinkle1 = sin(uTime * (0.5 + seed * 0.3) + seed * 6.28) * 0.25;
+  float twinkle2 = sin(uTime * (0.8 + seed * 0.2) + seed * 3.14) * 0.12;
+  float twinkle3 = sin(uTime * (1.2 + seed * 0.1) + seed * 1.57) * 0.08;
   float twinkle = 0.55 + twinkle1 + twinkle2 + twinkle3;
 
-  // Breath-synchronized brightness
-  float breathBrightness = 0.7 + uBreathValue * 0.4;
+  // Breath-synchronized brightness - DIMMER when inhaled, brighter when exhaled
+  float breathBrightness = 1.0 - uBreathValue * 0.35;
 
-  // Aurora-like shimmer based on position
-  float aurora = 0.0;
-  float noiseVal = snoise(position * 2.0 + uTime * 0.2);
-  aurora = noiseVal * 0.2 + 0.1;
+  // Subtle sparkle/glitter effect based on movement and time
+  // Fast particles occasionally catch light
+  float sparkleTime = uTime * 8.0 + seed * 100.0;
+  float sparkleNoise = snoise(vec3(seed * 50.0, sparkleTime * 0.3, speed * 10.0));
+  float sparkleThreshold = 0.92 - speed * 0.5; // Moving particles sparkle more
+  vSparkle = smoothstep(sparkleThreshold, 1.0, sparkleNoise) * speed * 3.0;
+  vSparkle = clamp(vSparkle, 0.0, 0.4); // Keep it subtle
 
   // Phase-specific alpha modulation
   float phaseAlpha = 1.0;
   if (uPhaseType > 0.5 && uPhaseType < 1.5) {
-    // Hold-in: brighter, more intense
-    phaseAlpha = 1.0 + sin(uTime * 4.0 + seed * 2.0) * 0.15;
+    // Hold-in: calmer, more subdued
+    phaseAlpha = 0.85 + sin(uTime * 2.0 + seed * 2.0) * 0.08;
   } else if (uPhaseType > 2.5) {
-    // Hold-out: softer, more diffuse
-    phaseAlpha = 0.85 + sin(uTime * 2.0 + seed) * 0.1;
+    // Hold-out: slightly brighter, relaxed
+    phaseAlpha = 0.95 + sin(uTime * 1.5 + seed) * 0.1;
   }
 
   vAlpha = life * twinkle * breathBrightness * phaseAlpha;
   vAlpha = clamp(vAlpha, 0.0, 1.0);
 
-  // Size modulation
-  float sizeMultiplier = 0.8 + twinkle * 0.4;
-  sizeMultiplier *= (0.9 + uBreathValue * 0.2);
+  // Size modulation - slightly smaller when inhaled
+  float sizeMultiplier = 0.85 + twinkle * 0.3;
+  sizeMultiplier *= (1.05 - uBreathValue * 0.15);
 
   // Pulse effect
-  float pulse = sin(uTime * 0.3 + seed * 3.14) * 0.1 + 1.0;
+  float pulse = sin(uTime * 0.3 + seed * 3.14) * 0.08 + 1.0;
   sizeMultiplier *= pulse;
 
   vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
@@ -83,7 +94,7 @@ void main() {
 
   // Size with depth attenuation
   float depthSize = size * sizeMultiplier * (4.0 / -mvPosition.z);
-  gl_PointSize = clamp(depthSize * life, 1.0, 80.0);
+  gl_PointSize = clamp(depthSize * life, 1.0, 70.0);
   vSize = gl_PointSize;
 
   gl_Position = projectionMatrix * mvPosition;
@@ -103,6 +114,8 @@ varying float vAlpha;
 varying float vDist;
 varying float vSize;
 varying vec2 vReference;
+varying float vSparkle;
+varying float vVelocity;
 
 ${NOISE_FUNCTIONS}
 
@@ -175,37 +188,41 @@ void main() {
   // Subtle hue shift during different phases
   float hueShift = 0.0;
   if (uPhaseType < 0.5) {
-    // Inhale: shift toward warm (positive)
-    hueShift = 0.02 * uBreathValue;
+    // Inhale: shift toward cooler (negative) - calming
+    hueShift = -0.015 * uBreathValue;
   } else if (uPhaseType > 1.5 && uPhaseType < 2.5) {
-    // Exhale: shift toward cool (negative)
-    hueShift = -0.02 * (1.0 - uBreathValue);
+    // Exhale: shift toward warm (positive)
+    hueShift = 0.015 * (1.0 - uBreathValue);
   }
   hsl.x = fract(hsl.x + hueShift);
 
-  // Saturation boost during holds
-  if (uPhaseType > 0.5 && uPhaseType < 1.5) {
-    hsl.y = min(1.0, hsl.y * 1.1);
-  }
+  // Reduce saturation when inhaled for calmer look
+  hsl.y = hsl.y * (1.0 - uBreathValue * 0.15);
 
-  // Lightness modulation
-  hsl.z = clamp(hsl.z * (0.9 + uBreathValue * 0.2), 0.0, 1.0);
+  // Lightness - dimmer when inhaled, brighter when exhaled
+  hsl.z = clamp(hsl.z * (1.0 - uBreathValue * 0.2), 0.0, 1.0);
 
   vec3 color = hsl2rgb(hsl);
 
-  // Add core glow
+  // Soft core glow - reduced when inhaled
   vec2 center = gl_PointCoord - vec2(0.5);
   float dist = length(center);
-  float coreGlow = exp(-dist * dist * 8.0) * 0.3;
-  color += vec3(coreGlow) * uBreathValue;
+  float coreGlow = exp(-dist * dist * 10.0) * 0.2 * (1.0 - uBreathValue * 0.5);
+  color += vec3(coreGlow);
 
-  // Aurora effect - color variation based on noise
-  float aurora = snoise(vec3(vReference * 10.0, uTime * 0.1)) * 0.5 + 0.5;
+  // Aurora effect - subtle color variation
+  float aurora = snoise(vec3(vReference * 10.0, uTime * 0.08)) * 0.5 + 0.5;
   vec3 auroraColor = mix(uPrimaryColor, uSecondaryColor, aurora);
-  color = mix(color, auroraColor, 0.15);
+  color = mix(color, auroraColor, 0.1);
 
-  // Final alpha
-  float alpha = tex.a * 1.4 * fade * vAlpha;
+  // Subtle sparkle/glitter effect - tiny bright glints on moving particles
+  // Creates a glittery, almost unnoticeable shimmer
+  float sparkleIntensity = vSparkle * (1.0 - uBreathValue * 0.5);
+  color += vec3(sparkleIntensity * 0.8, sparkleIntensity * 0.9, sparkleIntensity);
+
+  // Final alpha - slightly reduced when inhaled
+  float alphaModulation = 1.0 - uBreathValue * 0.15;
+  float alpha = tex.a * 1.2 * fade * vAlpha * alphaModulation;
 
   gl_FragColor = vec4(color, alpha);
 }
@@ -213,13 +230,17 @@ void main() {
 
 // Halo/glow shader for the central sphere effect
 export const HALO_VERTEX_SHADER = /* glsl */ `
+varying vec3 vWorldPosition;
+varying vec3 vViewPosition;
 varying vec3 vNormal;
-varying vec3 vPosition;
 
 void main() {
   vNormal = normalize(normalMatrix * normal);
-  vPosition = position;
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  vec4 worldPos = modelMatrix * vec4(position, 1.0);
+  vWorldPosition = worldPos.xyz;
+  vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+  vViewPosition = -mvPosition.xyz;
+  gl_Position = projectionMatrix * mvPosition;
 }
 `;
 
@@ -229,22 +250,33 @@ uniform float uBreathValue;
 uniform vec3 uColor;
 uniform float uOpacity;
 
+varying vec3 vWorldPosition;
+varying vec3 vViewPosition;
 varying vec3 vNormal;
-varying vec3 vPosition;
 
 void main() {
-  // Fresnel effect for edge glow
-  vec3 viewDirection = normalize(cameraPosition - vPosition);
-  float fresnel = pow(1.0 - abs(dot(vNormal, viewDirection)), 3.0);
+  // View direction in view space
+  vec3 viewDir = normalize(vViewPosition);
 
-  // Breathing modulation
-  float breathGlow = 0.3 + uBreathValue * 0.7;
+  // Fresnel effect - glow at edges
+  float fresnel = 1.0 - abs(dot(normalize(vNormal), viewDir));
+  fresnel = pow(fresnel, 2.0);
 
-  // Pulsing effect
-  float pulse = sin(uTime * 2.0) * 0.1 + 0.9;
+  // Breathing modulation - brighter when exhaled
+  float breathGlow = 0.6 + (1.0 - uBreathValue) * 0.4;
 
-  float alpha = fresnel * breathGlow * pulse * uOpacity;
+  // Subtle pulsing
+  float pulse = sin(uTime * 1.5) * 0.08 + 0.92;
 
-  gl_FragColor = vec4(uColor, alpha);
+  // Soft radial falloff from center
+  float radialFade = 1.0 - smoothstep(0.0, 1.0, length(vWorldPosition) * 0.8);
+
+  float alpha = fresnel * breathGlow * pulse * uOpacity * radialFade;
+  alpha = clamp(alpha, 0.0, 1.0);
+
+  // Slightly tinted glow
+  vec3 glowColor = uColor * (0.9 + fresnel * 0.1);
+
+  gl_FragColor = vec4(glowColor, alpha);
 }
 `;

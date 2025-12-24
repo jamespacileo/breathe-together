@@ -42,18 +42,18 @@ export function CentralHalo({
 		material.uniforms.uTime.value = time;
 		material.uniforms.uBreathValue.value = breathValue;
 
-		// Scale with breathing
-		const scale = 1 + breathValue * 1.5;
+		// Scale with breathing - larger when exhaled, smaller when inhaled
+		const scale = 1.2 + (1.0 - breathValue) * 0.8;
 		mesh.scale.setScalar(scale);
 
 		// Subtle rotation
-		mesh.rotation.y = time * 0.1;
-		mesh.rotation.x = Math.sin(time * 0.05) * 0.1;
+		mesh.rotation.y = time * 0.05;
+		mesh.rotation.x = Math.sin(time * 0.03) * 0.05;
 	});
 
 	return (
 		<mesh ref={meshRef}>
-			<sphereGeometry args={[baseRadius, 32, 32]} />
+			<sphereGeometry args={[baseRadius, 48, 48]} />
 			<shaderMaterial
 				ref={materialRef}
 				vertexShader={HALO_VERTEX_SHADER}
@@ -65,7 +65,7 @@ export function CentralHalo({
 					uOpacity: { value: opacity },
 				}}
 				transparent
-				side={THREE.BackSide}
+				side={THREE.FrontSide}
 				blending={THREE.AdditiveBlending}
 				depthWrite={false}
 			/>
@@ -75,6 +75,7 @@ export function CentralHalo({
 
 /**
  * Inner glow - a smaller, brighter core
+ * Brighter when exhaled, dimmer when inhaled
  */
 export function InnerGlow({
 	breathState,
@@ -93,22 +94,22 @@ export function InnerGlow({
 
 		const breathValue = getBreathValue(breathStateRef.current);
 
-		// Scale with breathing - smaller range
-		const scale = 0.8 + breathValue * 0.4;
+		// Scale with breathing - larger when exhaled
+		const scale = 0.9 + (1.0 - breathValue) * 0.3;
 		mesh.scale.setScalar(scale);
 
-		// Update material opacity
+		// Update material opacity - brighter when exhaled
 		const material = mesh.material as THREE.MeshBasicMaterial;
-		material.opacity = 0.05 + breathValue * 0.1;
+		material.opacity = 0.06 + (1.0 - breathValue) * 0.08;
 	});
 
 	return (
 		<mesh ref={meshRef}>
 			<sphereGeometry args={[baseRadius, 24, 24]} />
 			<meshBasicMaterial
-				color={new THREE.Color(0.6, 0.85, 1.0)}
+				color={new THREE.Color(0.55, 0.8, 0.95)}
 				transparent
-				opacity={0.08}
+				opacity={0.1}
 				blending={THREE.AdditiveBlending}
 				depthWrite={false}
 			/>
