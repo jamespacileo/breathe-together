@@ -1,3 +1,4 @@
+import { motion } from 'framer-motion';
 import { PATTERNS, type PatternId } from '../lib/patterns';
 import { cn } from '../lib/utils';
 import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
@@ -14,30 +15,37 @@ export function PatternSelector({
 	className,
 }: PatternSelectorProps) {
 	return (
-		<ToggleGroup
-			type="single"
-			value={pattern}
-			onValueChange={(value) => value && onChange(value as PatternId)}
-			className={cn(
-				'bg-white/5 backdrop-blur-sm rounded-2xl sm:rounded-full p-1',
-				'flex-col sm:flex-row',
-				className,
-			)}
+		<motion.div
+			initial={{ opacity: 0, x: 20 }}
+			animate={{ opacity: 1, x: 0 }}
+			transition={{ duration: 0.5, delay: 0.2 }}
 		>
-			{Object.entries(PATTERNS).map(([key, cfg]) => (
-				<ToggleGroupItem
-					key={key}
-					value={key}
-					aria-label={`${cfg.name} breathing pattern`}
-					className={cn(
-						'rounded-xl sm:rounded-full px-3 py-2 sm:py-1.5 text-xs',
-						'min-h-[44px] sm:min-h-0',
-						'data-[state=on]:bg-white/20',
-					)}
-				>
-					{cfg.name}
-				</ToggleGroupItem>
-			))}
-		</ToggleGroup>
+			<ToggleGroup
+				type="single"
+				value={pattern}
+				onValueChange={(value) => value && onChange(value as PatternId)}
+				className={cn(
+					// Cosmic glass container
+					'flex-col sm:flex-row',
+					'bg-gradient-to-r from-void-light/70 via-nebula-deep/15 to-void-light/70',
+					'shadow-[0_0_40px_rgba(107,33,168,0.1)]',
+					className,
+				)}
+			>
+				{Object.entries(PATTERNS).map(([key, cfg]) => (
+					<ToggleGroupItem
+						key={key}
+						value={key}
+						aria-label={`${cfg.name} breathing pattern`}
+						className={cn(
+							'min-h-[44px] sm:min-h-0 px-4 py-2.5 sm:py-2',
+							'font-light tracking-wide',
+						)}
+					>
+						{cfg.name}
+					</ToggleGroupItem>
+				))}
+			</ToggleGroup>
+		</motion.div>
 	);
 }
