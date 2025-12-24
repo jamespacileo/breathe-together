@@ -62,5 +62,19 @@ fi
 
 echo "==> Tests passed"
 
+# Run build (only for push operations to avoid slowdown on commits)
+if [ "$operation" = "push" ]; then
+  echo "==> Running production build..."
+  npm run build 2>&1
+  build_status=$?
+
+  if [ $build_status -ne 0 ]; then
+    echo "==> Build FAILED. Please fix build errors before pushing." >&2
+    exit 2
+  fi
+
+  echo "==> Build passed"
+fi
+
 echo "==> All pre-$operation checks passed!"
 exit 0
