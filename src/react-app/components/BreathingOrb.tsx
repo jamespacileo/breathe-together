@@ -34,15 +34,26 @@ export function BreathingOrb({
 
 			{/* Breathing guide text with cosmic styling */}
 			<div className="absolute bottom-[15%] left-1/2 -translate-x-1/2 text-center pointer-events-none select-none">
-				{/* Phase name with elegant serif typography */}
+				{/* Phase name with elegant serif typography + haptic pulse on transition */}
 				<AnimatePresence mode="wait">
 					<motion.div
 						key={breathState.phaseName}
-						initial={{ opacity: 0, y: 15, scale: 0.95 }}
-						animate={{ opacity: 1, y: 0, scale: 1 }}
+						initial={{ opacity: 0, y: 15, scale: 0.92 }}
+						animate={{
+							opacity: 1,
+							y: 0,
+							scale: [0.92, 1.008, 1], // Haptic-style micro-pulse: overshoot then settle
+						}}
 						exit={{ opacity: 0, y: -10, scale: 0.98 }}
-						transition={{ duration: 0.4, ease: 'easeOut' }}
-						className="font-serif text-3xl sm:text-4xl font-light tracking-[0.15em] uppercase text-stellar mb-4"
+						transition={{
+							duration: 0.5,
+							ease: [0.34, 1.56, 0.64, 1], // Custom spring-like easing with overshoot
+							scale: {
+								times: [0, 0.6, 1], // Pulse peaks at 60% then settles
+								duration: 0.5,
+							},
+						}}
+						className="font-serif text-3xl sm:text-4xl font-extralight tracking-[0.18em] uppercase text-stellar mb-4"
 						style={{
 							textShadow:
 								'0 0 40px rgba(168, 85, 247, 0.4), 0 0 80px rgba(34, 211, 238, 0.2)',

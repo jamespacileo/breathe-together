@@ -74,11 +74,11 @@ const ToggleGroupItem = React.forwardRef<
 					'text-stellar-muted hover:text-stellar data-[state=on]:bg-gradient-to-r data-[state=on]:from-nebula data-[state=on]:via-nebula-glow data-[state=on]:to-aurora data-[state=on]:text-white data-[state=on]:shadow-glow':
 						(variant || context.variant) === 'cosmic',
 				},
-				// Size variants
+				// Size variants (with generous touch targets for mobile)
 				{
-					'h-9 px-4': (size || context.size) === 'default',
-					'h-7 px-3 text-xs': (size || context.size) === 'sm',
-					'h-11 px-5': (size || context.size) === 'lg',
+					'h-10 min-h-[48px] px-4': (size || context.size) === 'default',
+					'h-8 min-h-[44px] px-3 text-xs': (size || context.size) === 'sm',
+					'h-12 min-h-[52px] px-5': (size || context.size) === 'lg',
 				},
 				className,
 			)}

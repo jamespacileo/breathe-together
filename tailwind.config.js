@@ -61,9 +61,9 @@ export default {
 				},
 			},
 			fontFamily: {
-				serif: ['"Cormorant Garamond"', 'Georgia', 'serif'],
+				serif: ['Spectral', 'Georgia', 'serif'],
 				sans: ['Outfit', 'system-ui', 'sans-serif'],
-				display: ['"Cormorant Garamond"', 'Georgia', 'serif'],
+				display: ['Spectral', 'Georgia', 'serif'],
 			},
 			fontSize: {
 				'display-lg': ['4rem', { lineHeight: '1', letterSpacing: '-0.02em', fontWeight: '300' }],
