@@ -19,17 +19,12 @@ void main() {
 
   vec3 pos = position;
 
-  // Subtle parallax effect
-  pos.x += sin(uTime * 0.1 + aPhase) * 0.5;
-  pos.y += cos(uTime * 0.08 + aPhase * 1.3) * 0.5;
-
   vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
 
-  // Size with subtle twinkle
-  float twinkle = 0.7 + sin(uTime * 3.0 + aPhase * 10.0) * 0.3;
-  float breathMod = 1.0 + uBreathPhase * 0.3;
+  // Very subtle twinkle
+  float twinkle = 0.8 + sin(uTime * 2.0 + aPhase * 10.0) * 0.2;
 
-  gl_PointSize = aSize * twinkle * breathMod * (300.0 / -mvPosition.z);
+  gl_PointSize = aSize * twinkle * (200.0 / -mvPosition.z);
   gl_Position = projectionMatrix * mvPosition;
 }
 `;
@@ -44,22 +39,15 @@ void main() {
   vec2 center = gl_PointCoord - 0.5;
   float dist = length(center);
 
-  // Soft star shape
+  // Soft star
   float alpha = 1.0 - smoothstep(0.0, 0.5, dist);
-  alpha *= alpha; // Sharper falloff
+  alpha *= alpha;
 
-  // Star color with slight variation
-  vec3 color = vec3(0.9, 0.95, 1.0);
-  color += vec3(0.1, 0.05, 0.0) * vPhase; // Slight warm tint variation
+  // Dim star color
+  vec3 color = vec3(0.7, 0.75, 0.85);
+  color *= vBrightness * 0.4;
 
-  // Brightness based on attribute
-  color *= vBrightness * (0.8 + uBreathPhase * 0.4);
-
-  // Add glow
-  float glow = exp(-dist * 6.0) * 0.5;
-  alpha += glow;
-
-  alpha *= 0.6;
+  alpha *= 0.3;
 
   if (alpha < 0.01) discard;
 
@@ -72,7 +60,7 @@ interface StarFieldProps {
 	count?: number;
 }
 
-export function StarField({ breathPhase, count = 300 }: StarFieldProps) {
+export function StarField({ breathPhase, count = 200 }: StarFieldProps) {
 	const pointsRef = useRef<THREE.Points>(null);
 	const materialRef = useRef<THREE.ShaderMaterial>(null);
 
@@ -83,8 +71,8 @@ export function StarField({ breathPhase, count = 300 }: StarFieldProps) {
 		const brightnesses = new Float32Array(count);
 
 		for (let i = 0; i < count; i++) {
-			// Distribute stars in a sphere shell far from center
-			const radius = 60 + Math.random() * 80;
+			// Very distant stars
+			const radius = 80 + Math.random() * 60;
 			const theta = Math.random() * Math.PI * 2;
 			const phi = Math.acos(2 * Math.random() - 1);
 
@@ -92,9 +80,9 @@ export function StarField({ breathPhase, count = 300 }: StarFieldProps) {
 			positions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
 			positions[i * 3 + 2] = radius * Math.cos(phi);
 
-			sizes[i] = 0.3 + Math.random() * 0.8;
+			sizes[i] = 0.2 + Math.random() * 0.4;
 			phases[i] = Math.random() * Math.PI * 2;
-			brightnesses[i] = 0.3 + Math.random() * 0.7;
+			brightnesses[i] = 0.2 + Math.random() * 0.5;
 		}
 
 		const starGeometry = new THREE.BufferGeometry();
