@@ -106,7 +106,8 @@ void main() {
   // This means at the start of each phase (blend=0), parameters are closer
   // to neutral values, then smoothly ramp to phase-specific values.
 
-  float baseOrbitSpeed = 0.15 + phase * 0.05;
+  // Reduced base orbit speed for more subtle, meditative rotation
+  float baseOrbitSpeed = 0.06 + phase * 0.02;
 
   // Baseline (transitional) values - neutral middle ground
   float baselineOrbitMult = 0.85;
@@ -124,37 +125,37 @@ void main() {
   float targetSpiral = 0.0;
 
   if (uPhaseType == 0) {
-    // INHALE: Particles spiral inward with faster orbit, gathering energy
-    targetOrbitMult = 1.4;
-    targetDisplacement = 0.15;
-    targetBob = 0.08;
-    targetSpring = 0.08;
-    targetSpiral = 0.3;
+    // INHALE: Gathering energy, slightly faster but still gentle
+    targetOrbitMult = 1.2;
+    targetDisplacement = 0.12;
+    targetBob = 0.06;
+    targetSpring = 0.07;
+    targetSpiral = 0.15;
   } else if (uPhaseType == 1) {
-    // HOLD-IN: Calm settling, minimal motion, gentle pulsing
-    targetOrbitMult = 0.6;
-    targetDisplacement = 0.05;
-    targetBob = 0.03;
+    // HOLD-IN: Calm settling, minimal motion
+    targetOrbitMult = 0.7;
+    targetDisplacement = 0.04;
+    targetBob = 0.02;
     targetSpring = 0.04;
     // Gentle pulse effect
-    float pulse = sin(uTime * 2.0) * 0.02;
+    float pulse = sin(uTime * 2.0) * 0.015;
     radiusModifier = pulse;
   } else if (uPhaseType == 2) {
-    // EXHALE: Particles drift outward gracefully, releasing
+    // EXHALE: Particles drift outward gracefully
     targetOrbitMult = 0.9;
-    targetDisplacement = 0.35;
-    targetBob = 0.15;
+    targetDisplacement = 0.25;
+    targetBob = 0.1;
     targetSpring = 0.05;
-    targetSpiral = -0.2;
+    targetSpiral = 0.1;
   } else {
     // HOLD-OUT: Peaceful floating, dreamy drift
-    targetOrbitMult = 0.5;
-    targetDisplacement = 0.25;
-    targetBob = 0.12;
+    targetOrbitMult = 0.6;
+    targetDisplacement = 0.18;
+    targetBob = 0.08;
     targetSpring = 0.04;
     // Wandering effect
-    float wander = noise(origPos * 0.05 + uTime * 0.1) * 0.3;
-    radiusModifier = wander * 0.05;
+    float wander = noise(origPos * 0.05 + uTime * 0.1) * 0.2;
+    radiusModifier = wander * 0.03;
   }
 
   // Smooth blend from baseline to target values
@@ -188,10 +189,11 @@ void main() {
     -targetPos.x * sinOrbit + targetPos.z * cosOrbit
   );
 
-  // Apply spiral effect (inward during inhale, outward during exhale)
+  // Apply spiral effect - now always in same direction, just varies in intensity
+  // (Removed sign flip between phases which caused jarring direction changes)
   if (abs(spiralStrength) > 0.01) {
-    float spiralAngle = uTime * spiralStrength * (0.5 + phase * 0.5);
-    targetPos.y += sin(spiralAngle + phase * 6.28) * spiralStrength * 0.5;
+    float spiralAngle = uTime * 0.2 * (0.5 + phase * 0.5);
+    targetPos.y += sin(spiralAngle + phase * 6.28) * spiralStrength * 0.3;
   }
 
   // === COHERENT CURL NOISE (organic flow) ===
@@ -206,26 +208,24 @@ void main() {
 
   // === DIAPHRAGMATIC VERTICAL DRIFT ===
   // Subtle downward drift during inhale, upward during exhale
-  float diaphragmStrength = 0.4 * (1.0 - uCrystallization);
-  targetPos.y += uDiaphragmDirection * diaphragmStrength * (0.5 + phase * 0.5);
+  // Apply phase blend to prevent abrupt direction changes
+  float diaphragmStrength = 0.25 * (1.0 - uCrystallization);
+  float smoothDiaphragm = uDiaphragmDirection * blend;
+  targetPos.y += smoothDiaphragm * diaphragmStrength * (0.5 + phase * 0.5);
 
   // Vertical bobbing with phase-specific amplitude
   targetPos.y += sin(uTime * 0.4 + phase * 6.28) * bobAmount;
 
-  // === ANTICIPATION: Gather before transition ===
-  // Particles slightly contract toward center before phase change
+  // === ANTICIPATION: Gentle gather before transition ===
+  // Reduced to minimal effect - just a slight inward pull, no Y offset
   if (uAnticipation > 0.01) {
-    float anticipationPull = uAnticipation * 0.15;
+    float anticipationPull = uAnticipation * 0.08;
     targetPos *= (1.0 - anticipationPull);
-    // Slight upward gathering
-    targetPos.y += uAnticipation * 0.3;
   }
 
-  // === OVERSHOOT: Settle after transition ===
-  // Particles overshoot then return (spring bounce)
+  // === OVERSHOOT: Subtle settle after transition ===
   if (uOvershoot > 0.01) {
-    float overshootAmount = uOvershoot * 0.1;
-    // Slight outward bounce
+    float overshootAmount = uOvershoot * 0.05;
     targetPos *= (1.0 + overshootAmount);
   }
 
