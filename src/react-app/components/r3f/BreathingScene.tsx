@@ -1,12 +1,11 @@
 import { PerformanceMonitor } from '@react-three/drei';
 import { Canvas, useThree } from '@react-three/fiber';
-import { Bloom, EffectComposer } from '@react-three/postprocessing';
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import * as THREE from 'three';
 import type { BreathState } from '../../hooks/useBreathSync';
 import type { PresenceData } from '../../hooks/usePresence';
 import type { VisualizationConfig } from '../../lib/config';
-import { BreathingSphere, ConnectionLines, HazeLayer } from './nebula';
+import { BreathingSphere } from './nebula';
 
 interface BreathingSceneProps {
 	breathState: BreathState;
@@ -15,103 +14,29 @@ interface BreathingSceneProps {
 }
 
 /**
- * Scene setup component that configures fog and background for nebula mode
- * Matches the HTML example exactly
+ * Scene setup component that configures fog and background
  */
-function NebulaSceneSetup({ enabled }: { enabled: boolean }) {
+function SceneSetup() {
 	const { scene } = useThree();
 
 	useEffect(() => {
-		if (enabled) {
-			// Dark background matching HTML example (0x06080c)
-			scene.background = new THREE.Color(0x06080c);
-			// Exponential fog for depth fading
-			scene.fog = new THREE.FogExp2(0x06080c, 0.12);
-		} else {
-			// Clear for non-nebula modes
-			scene.background = null;
-			scene.fog = null;
-		}
+		// Dark background
+		scene.background = new THREE.Color(0x06080c);
+		// Subtle fog for depth
+		scene.fog = new THREE.FogExp2(0x06080c, 0.08);
 
 		return () => {
 			scene.background = null;
 			scene.fog = null;
 		};
-	}, [enabled, scene]);
+	}, [scene]);
 
 	return null;
 }
 
-interface BreathingSphereSystemProps {
-	breathState: BreathState;
-	config: VisualizationConfig;
-	userCount: number;
-}
-
-/**
- * Combined 3D breathing sphere visualization system
- * Includes main particles, haze layer, and connection lines
- */
-function BreathingSphereSystem({
-	breathState,
-	config,
-	userCount,
-}: BreathingSphereSystemProps) {
-	// Create shared particle positions buffer for connection lines
-	const particlePositionsRef = useMemo(() => {
-		const count = Math.max(1, Math.min(userCount, 500));
-		const expandedRadius = config.sphereExpandedRadius ?? 2.2;
-		const positions = new Float32Array(count * 3);
-
-		for (let i = 0; i < count; i++) {
-			const phi = Math.acos(1 - (2 * (i + 0.5)) / Math.max(count, 1));
-			const theta = Math.PI * (1 + Math.sqrt(5)) * i;
-			const baseRadius = expandedRadius * (0.3 + Math.random() * 0.7);
-
-			positions[i * 3] = baseRadius * Math.sin(phi) * Math.cos(theta);
-			positions[i * 3 + 1] = baseRadius * Math.sin(phi) * Math.sin(theta);
-			positions[i * 3 + 2] = baseRadius * Math.cos(phi);
-		}
-
-		return positions;
-	}, [userCount, config.sphereExpandedRadius]);
-
-	const particleCount = Math.max(1, Math.min(userCount, 500));
-
-	return (
-		<>
-			{/* Background haze layer */}
-			{config.hazeEnabled && (
-				<HazeLayer
-					breathState={breathState}
-					config={config}
-					userCount={userCount}
-				/>
-			)}
-
-			{/* Main breathing sphere */}
-			<BreathingSphere
-				breathState={breathState}
-				config={config}
-				userCount={userCount}
-			/>
-
-			{/* Connection lines between nearby particles */}
-			{config.connectionEnabled && userCount > 1 && (
-				<ConnectionLines
-					breathState={breathState}
-					config={config}
-					particlePositions={particlePositionsRef}
-					particleCount={particleCount}
-				/>
-			)}
-		</>
-	);
-}
-
 /**
  * React Three Fiber canvas wrapper for the breathing visualization
- * Renders the 3D breathing sphere with particles representing users
+ * Simple floating particles that compress on inhale and expand on exhale
  */
 export function BreathingScene({
 	breathState,
@@ -120,7 +45,7 @@ export function BreathingScene({
 }: BreathingSceneProps) {
 	const [dpr, setDpr] = useState(1.5);
 
-	// Camera settings for 3D sphere view
+	// Camera settings
 	const cameraSettings = useMemo(
 		() => ({
 			position: [0, 0, 5] as [number, number, number],
@@ -154,29 +79,15 @@ export function BreathingScene({
 				onFallback={() => setDpr(1)}
 			/>
 
-			{/* Scene setup for nebula mode (fog + dark background) */}
-			<NebulaSceneSetup enabled={config.nebulaEnabled ?? false} />
+			<SceneSetup />
 
 			<Suspense fallback={null}>
-				{/* 3D Breathing Sphere visualization */}
-				<BreathingSphereSystem
+				<BreathingSphere
 					breathState={breathState}
 					config={config}
 					userCount={presence.count}
 				/>
 			</Suspense>
-
-			{/* Post-processing bloom effect */}
-			{config.bloomEnabled && (
-				<EffectComposer>
-					<Bloom
-						luminanceThreshold={config.bloomThreshold}
-						luminanceSmoothing={0.9}
-						intensity={config.bloomStrength}
-						radius={config.bloomRadius}
-					/>
-				</EffectComposer>
-			)}
 		</Canvas>
 	);
 }
