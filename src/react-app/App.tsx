@@ -78,10 +78,10 @@ function App() {
 			/>
 
 			{/* Top bar - settings left, presence center, pattern right */}
-			<div className="absolute top-0 left-0 right-0 z-20">
-				<div className="flex items-start justify-between px-3 pt-3 sm:px-5 sm:pt-5">
+			<div className="absolute top-0 left-0 right-0 z-20 pointer-events-none">
+				<div className="flex items-center justify-between px-4 pt-4 sm:px-6 sm:pt-6">
 					{/* Settings/Debug panel - top left */}
-					<div className="relative">
+					<div className="relative pointer-events-auto">
 						{isDevMode ? (
 							<DebugPanel
 								config={config}
@@ -114,15 +114,19 @@ function App() {
 					</div>
 
 					{/* Presence counter - top center */}
-					<PresenceCounter presence={presence} />
+					<div className="absolute left-1/2 -translate-x-1/2">
+						<PresenceCounter presence={presence} />
+					</div>
 
 					{/* Pattern selector - top right */}
-					<PatternSelector pattern={pattern} onChange={setPattern} />
+					<div className="pointer-events-auto">
+						<PatternSelector pattern={pattern} onChange={setPattern} />
+					</div>
 				</div>
 			</div>
 
 			{/* User badge or join button - bottom center */}
-			<div className="absolute bottom-5 sm:bottom-6 left-1/2 -translate-x-1/2 z-10">
+			<div className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 z-10">
 				{user ? (
 					<UserBadge user={user} onClick={() => setShowIdentity(true)} />
 				) : (

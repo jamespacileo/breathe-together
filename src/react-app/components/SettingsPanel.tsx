@@ -149,14 +149,14 @@ export function SettingsPanel({
 			<AnimatePresence>
 				{isOpen && (
 					<motion.div
-						initial={{ opacity: 0, x: -20, scale: 0.95 }}
-						animate={{ opacity: 1, x: 0, scale: 1 }}
-						exit={{ opacity: 0, x: -20, scale: 0.95 }}
-						transition={{ duration: 0.2 }}
+						initial={{ opacity: 0, y: -8, scale: 0.95 }}
+						animate={{ opacity: 1, y: 0, scale: 1 }}
+						exit={{ opacity: 0, y: -8, scale: 0.95 }}
+						transition={{ duration: 0.15 }}
 						className={cn(
-							'absolute top-12 left-0',
-							'w-[calc(100vw-1.5rem)] sm:w-60 max-h-[70vh] overflow-y-auto',
-							'bg-black/85 backdrop-blur-xl border border-white/10 rounded-2xl',
+							'absolute top-11 left-0',
+							'w-[calc(100vw-2rem)] sm:w-56 max-h-[65vh] overflow-y-auto',
+							'bg-black/90 backdrop-blur-xl border border-white/10 rounded-xl',
 							'text-white text-sm shadow-2xl shadow-black/50',
 						)}
 					>

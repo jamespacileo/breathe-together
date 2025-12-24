@@ -42,24 +42,24 @@ export function BreathingOrb({
 			</ErrorBoundary>
 
 			{/* Breathing guide - centered below the orb */}
-			<div className="absolute bottom-[18%] sm:bottom-[15%] left-0 right-0 flex flex-col items-center pointer-events-none select-none px-4">
+			<div className="absolute bottom-[22%] sm:bottom-[18%] left-0 right-0 flex flex-col items-center pointer-events-none select-none">
 				<AnimatePresence mode="wait">
 					<motion.div
 						key={breathState.phaseName}
-						initial={{ opacity: 0, y: 8 }}
-						animate={{ opacity: 0.8, y: 0 }}
-						exit={{ opacity: 0, y: -8 }}
-						transition={{ duration: 0.25, ease: 'easeOut' }}
-						className="text-xl sm:text-2xl font-extralight tracking-[0.25em] uppercase text-white/90 mb-3"
+						initial={{ opacity: 0, y: 6 }}
+						animate={{ opacity: 0.7, y: 0 }}
+						exit={{ opacity: 0, y: -6 }}
+						transition={{ duration: 0.3, ease: 'easeOut' }}
+						className="text-lg sm:text-xl font-extralight tracking-[0.3em] uppercase text-white/80 mb-2"
 					>
 						{breathState.phaseName}
 					</motion.div>
 				</AnimatePresence>
 
 				{/* Progress bar - thin and subtle */}
-				<div className="w-32 sm:w-40 h-px bg-white/15 rounded-full overflow-hidden">
+				<div className="w-24 sm:w-32 h-px bg-white/10 rounded-full overflow-hidden">
 					<motion.div
-						className="h-full bg-white/50 rounded-full"
+						className="h-full bg-white/40 rounded-full"
 						initial={{ width: 0 }}
 						animate={{ width: `${breathState.progress * 100}%` }}
 						transition={{
