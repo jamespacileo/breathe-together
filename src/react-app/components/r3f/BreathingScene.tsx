@@ -6,7 +6,8 @@ import * as THREE from 'three';
 import type { BreathState } from '../../hooks/useBreathSync';
 import type { PresenceData } from '../../hooks/usePresence';
 import type { VisualizationConfig } from '../../lib/config';
-import { BreathingSphere, ConnectionLines, HazeLayer } from './nebula';
+import { CentralHalo, GPUBreathingSphere, InnerGlow } from './gpgpu';
+import { HazeLayer } from './nebula';
 
 interface BreathingSceneProps {
 	breathState: BreathState;
@@ -50,34 +51,13 @@ interface BreathingSphereSystemProps {
 
 /**
  * Combined 3D breathing sphere visualization system
- * Includes main particles, haze layer, and connection lines
+ * Uses GPGPU for particle physics with enhanced shaders
  */
 function BreathingSphereSystem({
 	breathState,
 	config,
 	userCount,
 }: BreathingSphereSystemProps) {
-	// Create shared particle positions buffer for connection lines
-	const particlePositionsRef = useMemo(() => {
-		const count = Math.max(1, Math.min(userCount, 500));
-		const expandedRadius = config.sphereExpandedRadius ?? 2.2;
-		const positions = new Float32Array(count * 3);
-
-		for (let i = 0; i < count; i++) {
-			const phi = Math.acos(1 - (2 * (i + 0.5)) / Math.max(count, 1));
-			const theta = Math.PI * (1 + Math.sqrt(5)) * i;
-			const baseRadius = expandedRadius * (0.3 + Math.random() * 0.7);
-
-			positions[i * 3] = baseRadius * Math.sin(phi) * Math.cos(theta);
-			positions[i * 3 + 1] = baseRadius * Math.sin(phi) * Math.sin(theta);
-			positions[i * 3 + 2] = baseRadius * Math.cos(phi);
-		}
-
-		return positions;
-	}, [userCount, config.sphereExpandedRadius]);
-
-	const particleCount = Math.max(1, Math.min(userCount, 500));
-
 	return (
 		<>
 			{/* Background haze layer */}
@@ -89,22 +69,16 @@ function BreathingSphereSystem({
 				/>
 			) : null}
 
-			{/* Main breathing sphere */}
-			<BreathingSphere
+			{/* Central halo glow */}
+			<CentralHalo breathState={breathState} baseRadius={0.4} opacity={0.12} />
+			<InnerGlow breathState={breathState} baseRadius={0.25} />
+
+			{/* Main GPGPU breathing sphere with particles */}
+			<GPUBreathingSphere
 				breathState={breathState}
 				config={config}
 				userCount={userCount}
 			/>
-
-			{/* Connection lines between nearby particles */}
-			{config.connectionEnabled && userCount > 1 && (
-				<ConnectionLines
-					breathState={breathState}
-					config={config}
-					particlePositions={particlePositionsRef}
-					particleCount={particleCount}
-				/>
-			)}
 		</>
 	);
 }
