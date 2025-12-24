@@ -174,18 +174,11 @@ export function SettingsPanel({
 						Animation
 					</div>
 					<ConfigSlider
-						label="Glow Intensity"
-						value={config.glowIntensity}
-						onChange={(v) => updateConfig('glowIntensity', v)}
+						label="Bloom Intensity"
+						value={config.bloomStrength}
+						onChange={(v) => updateConfig('bloomStrength', v)}
 						min={0}
-						max={1}
-					/>
-					<ConfigSlider
-						label="Motion Trails"
-						value={config.trailFade}
-						onChange={(v) => updateConfig('trailFade', v)}
-						min={0.01}
-						max={1}
+						max={3}
 					/>
 				</section>
 
