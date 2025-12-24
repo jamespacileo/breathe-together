@@ -156,7 +156,8 @@ function SimulationPanel({ controls }: { controls: SimulationControlsProps }) {
 }
 
 /**
- * Main Leva controls hook - manages all visualization config
+ * Main Leva controls hook - manages visualization config
+ * Pruned to essential controls only
  */
 function useVisualizationControls(
 	config: VisualizationConfig,
@@ -185,9 +186,9 @@ function useVisualizationControls(
 		}
 	};
 
-	// 3D Sphere controls
+	// Sphere controls - the most commonly tweaked settings
 	useControls(
-		'3D Sphere',
+		'Sphere',
 		() => ({
 			'Contracted Radius': {
 				value: config.sphereContractedRadius,
@@ -219,141 +220,50 @@ function useVisualizationControls(
 		],
 	);
 
-	// Connections controls
+	// Visual effects - consolidated
 	useControls(
-		'Connections',
+		'Effects',
 		() => ({
-			Enabled: {
+			Connections: {
 				value: config.connectionEnabled,
 				onChange: (v: boolean) => updateConfig('connectionEnabled', v),
 			},
-			'Max Distance': {
-				value: config.connectionDistance,
-				min: 0.1,
-				max: 1,
-				step: 0.01,
-				onChange: (v: number) => updateConfig('connectionDistance', v),
-			},
-			Opacity: {
+			'Connection Opacity': {
 				value: config.connectionOpacity,
 				min: 0,
 				max: 0.5,
 				step: 0.01,
 				onChange: (v: number) => updateConfig('connectionOpacity', v),
 			},
-		}),
-		{ collapsed: true },
-		[
-			config.connectionEnabled,
-			config.connectionDistance,
-			config.connectionOpacity,
-		],
-	);
-
-	// Haze controls
-	useControls(
-		'Haze',
-		() => ({
-			Enabled: {
+			Haze: {
 				value: config.hazeEnabled,
 				onChange: (v: boolean) => updateConfig('hazeEnabled', v),
 			},
-			Opacity: {
-				value: config.hazeOpacity,
-				min: 0,
-				max: 0.3,
-				step: 0.01,
-				onChange: (v: number) => updateConfig('hazeOpacity', v),
-			},
-		}),
-		{ collapsed: true },
-		[config.hazeEnabled, config.hazeOpacity],
-	);
-
-	// Bloom controls
-	useControls(
-		'Bloom',
-		() => ({
-			Enabled: {
+			Bloom: {
 				value: config.bloomEnabled,
 				onChange: (v: boolean) => updateConfig('bloomEnabled', v),
 			},
-			Strength: {
+			'Bloom Strength': {
 				value: config.bloomStrength,
 				min: 0,
 				max: 3,
 				step: 0.01,
 				onChange: (v: number) => updateConfig('bloomStrength', v),
 			},
-			Threshold: {
-				value: config.bloomThreshold,
-				min: 0,
-				max: 1,
-				step: 0.01,
-				onChange: (v: number) => updateConfig('bloomThreshold', v),
-			},
-			Radius: {
-				value: config.bloomRadius,
-				min: 0,
-				max: 1,
-				step: 0.01,
-				onChange: (v: number) => updateConfig('bloomRadius', v),
-			},
 		}),
 		{ collapsed: true },
 		[
+			config.connectionEnabled,
+			config.connectionOpacity,
+			config.hazeEnabled,
 			config.bloomEnabled,
 			config.bloomStrength,
-			config.bloomThreshold,
-			config.bloomRadius,
 		],
 	);
 
-	// Breathing Animation controls
+	// Spring Physics - essential for animation feel
 	useControls(
-		'Breathing',
-		() => ({
-			'Base Radius': {
-				value: config.baseRadius,
-				min: 0.1,
-				max: 0.45,
-				step: 0.01,
-				onChange: (v: number) => updateConfig('baseRadius', v),
-			},
-			'Breathe In Scale': {
-				value: config.breatheInScale,
-				min: 0.3,
-				max: 1,
-				step: 0.01,
-				onChange: (v: number) => updateConfig('breatheInScale', v),
-			},
-			'Breathe Out Scale': {
-				value: config.breatheOutScale,
-				min: 1,
-				max: 2,
-				step: 0.01,
-				onChange: (v: number) => updateConfig('breatheOutScale', v),
-			},
-			'Hold Oscillation': {
-				value: config.holdOscillation,
-				min: 0,
-				max: 0.1,
-				step: 0.001,
-				onChange: (v: number) => updateConfig('holdOscillation', v),
-			},
-		}),
-		{ collapsed: true },
-		[
-			config.baseRadius,
-			config.breatheInScale,
-			config.breatheOutScale,
-			config.holdOscillation,
-		],
-	);
-
-	// Spring Physics controls
-	useControls(
-		'Spring Physics',
+		'Physics',
 		() => ({
 			Tension: {
 				value: config.mainSpringTension,
@@ -374,29 +284,8 @@ function useVisualizationControls(
 		[config.mainSpringTension, config.mainSpringFriction],
 	);
 
-	// Colors controls
-	useControls(
-		'Colors',
-		() => ({
-			Primary: {
-				value: config.primaryColor,
-				onChange: (v: string) => updateConfig('primaryColor', v),
-			},
-			Background: {
-				value: config.backgroundColor,
-				onChange: (v: string) => updateConfig('backgroundColor', v),
-			},
-			'Background Mid': {
-				value: config.backgroundColorMid,
-				onChange: (v: string) => updateConfig('backgroundColorMid', v),
-			},
-		}),
-		{ collapsed: true },
-		[config.primaryColor, config.backgroundColor, config.backgroundColorMid],
-	);
-
-	// Export controls
-	useControls('Export', {
+	// Actions
+	useControls('Actions', {
 		'Copy Config': button(() => {
 			navigator.clipboard.writeText(JSON.stringify(config, null, 2));
 		}),
