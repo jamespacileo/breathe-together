@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
-import type { BreathState } from '../hooks/useBreathSync';
-import type { VisualizationConfig } from '../lib/config';
+import type { BreathState } from '../../hooks/useBreathSync';
+import type { VisualizationConfig } from '../../lib/visualConfig';
 
 interface ParticleBreathingProps {
 	breathState: BreathState;

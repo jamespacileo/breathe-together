@@ -1,4 +1,6 @@
 // 3D Breathing Sphere components (matches HTML example)
-export { BreathingSphere } from './BreathingSphere';
-export { ConnectionLines } from './ConnectionLines';
-export { HazeLayer } from './HazeLayer';
+// New shorter names
+
+export { Haze, Haze as HazeLayer } from './Haze';
+export { Lines, Lines as ConnectionLines } from './Lines';
+export { Sphere, Sphere as BreathingSphere } from './Sphere';

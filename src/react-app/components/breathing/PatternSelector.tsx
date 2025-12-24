@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
-import { PATTERNS, type PatternId } from '../lib/patterns';
-import { cn } from '../lib/utils';
-import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
+import { PATTERNS, type PatternId } from '../../lib/breathPatterns';
+import { cn } from '../../lib/utils';
+import { ToggleGroup, ToggleGroupItem } from '../ui/toggle-group';
 
 interface PatternSelectorProps {
 	pattern: PatternId;

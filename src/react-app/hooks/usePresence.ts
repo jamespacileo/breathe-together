@@ -1,8 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { PopulationSnapshot } from '../lib/simulation';
-import type { MoodId } from '../lib/simulationConfig';
-import type { SimulatedUser } from '../lib/userGenerator';
+import type {
+	MoodId,
+	PopulationSnapshot,
+	SimulatedUser,
+} from '../lib/simulation';
 
 export interface PresenceData {
 	count: number;

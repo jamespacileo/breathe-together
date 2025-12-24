@@ -2,22 +2,22 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import type { BreathState } from '../../../hooks/useBreathSync';
-import { getBreathValue } from '../../../lib/breathUtils';
-import type { VisualizationConfig } from '../../../lib/config';
+import { getBreathValue } from '../../../lib/breathPatterns';
+import type { VisualizationConfig } from '../../../lib/visualConfig';
 
-interface ConnectionLinesProps {
+interface LinesProps {
 	breathState: BreathState;
 	config: VisualizationConfig;
 	particlePositions: Float32Array;
 	particleCount: number;
 }
 
-export function ConnectionLines({
+export function Lines({
 	breathState,
 	config,
 	particlePositions,
 	particleCount,
-}: ConnectionLinesProps) {
+}: LinesProps) {
 	const lineSegmentsRef = useRef<THREE.LineSegments>(null);
 	const groupRef = useRef<THREE.Group>(null);
 	const startTimeRef = useRef(Date.now());
@@ -166,3 +166,6 @@ export function ConnectionLines({
 		</group>
 	);
 }
+
+// Also export with old name for backwards compatibility
+export { Lines as ConnectionLines };

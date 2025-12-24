@@ -1,25 +1,7 @@
 import PoissonProcess from 'poisson-process';
-import type { MoodId, SimulationConfig } from './simulationConfig';
-import {
-	generateUser,
-	type SimulatedUser,
-	shouldDepart,
-} from './userGenerator';
-
-/**
- * Snapshot of current population state
- */
-export interface PopulationSnapshot {
-	count: number;
-	users: SimulatedUser[];
-	moods: Record<MoodId, number>;
-	timestamp: number;
-}
-
-/**
- * Callback type for population updates
- */
-export type PopulationUpdateCallback = (snapshot: PopulationSnapshot) => void;
+import type { MoodId, SimulationConfig } from './config';
+import type { PopulationSnapshot, PopulationUpdateCallback } from './types';
+import { generateUser, shouldDepart } from './users';
 
 /**
  * Simulation Engine
@@ -30,7 +12,7 @@ export type PopulationUpdateCallback = (snapshot: PopulationSnapshot) => void;
  * - At equilibrium, population = arrival_rate × mean_stay_duration
  */
 export class SimulationEngine {
-	private users: Map<string, SimulatedUser> = new Map();
+	private users: Map<string, ReturnType<typeof generateUser>> = new Map();
 	private config: SimulationConfig;
 	private arrivalProcess: ReturnType<typeof PoissonProcess.create> | null =
 		null;

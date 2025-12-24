@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_CONFIG } from '../lib/config';
+import { DEFAULT_CONFIG } from '../lib/visualConfig';
 import {
 	calculateTargetScale,
 	toFramerSpringConfig,

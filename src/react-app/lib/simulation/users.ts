@@ -1,23 +1,10 @@
 import {
-	type AvatarId,
 	type MoodDistribution,
 	type MoodId,
 	selectMoodByDistribution,
 	selectRandomAvatar,
-} from './simulationConfig';
-
-/**
- * Simulated user identity
- */
-export interface SimulatedUser {
-	id: string;
-	name: string;
-	avatar: AvatarId;
-	mood: MoodId;
-	moodDetail?: string;
-	joinedAt: number;
-	departureTime: number;
-}
+} from './config';
+import type { SimulatedUser } from './types';
 
 /**
  * Pool of anonymous but warm names
