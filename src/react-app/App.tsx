@@ -6,6 +6,7 @@ import {
 	JoinButton,
 	UserBadge,
 } from './components/IdentityPanel';
+import { AppLayout, BottomBar, TopBar } from './components/layout';
 import { PatternSelector } from './components/PatternSelector';
 import { PresenceCounter } from './components/PresenceCounter';
 import { SettingsPanel } from './components/SettingsPanel';
@@ -84,79 +85,73 @@ function App() {
 		setUser(newUser);
 	};
 
+	// Render the settings or debug panel based on dev mode
+	const settingsPanel = isDevMode ? (
+		<DebugPanel
+			config={config}
+			setConfig={setConfig}
+			breathState={breathState}
+			presence={presence}
+			isOpen={showDebug}
+			setIsOpen={setShowDebug}
+			simulationControls={{
+				simulationConfig,
+				updateSimulationConfig: (updates) => {
+					updateSimulationConfig(updates);
+					updateSimConfig(updates);
+				},
+				isSimulationRunning: isRunning,
+				onStart: start,
+				onStop: stop,
+				onReset: reset,
+			}}
+		/>
+	) : (
+		<SettingsPanel
+			config={config}
+			setConfig={setConfig}
+			isOpen={showDebug}
+			setIsOpen={setShowDebug}
+			onEnableDevMode={() => setIsDevMode(true)}
+		/>
+	);
+
+	// User action button (badge or join)
+	const userAction = user ? (
+		<UserBadge user={user} onClick={() => setShowIdentity(true)} />
+	) : (
+		<JoinButton onClick={() => setShowIdentity(true)} />
+	);
+
+	// Identity modal overlay
+	const identityModal = showIdentity ? (
+		<IdentityPanel
+			user={user || { name: '', avatar: '', mood: '', moodDetail: '' }}
+			onUserChange={handleUserChange}
+			onClose={() => setShowIdentity(false)}
+		/>
+	) : null;
+
 	return (
-		<div className="fixed inset-0 overflow-hidden bg-void">
-			{/* Cosmic background layers */}
-			<CosmicBackground />
-
-			{/* Main breathing visualization */}
-			<BreathingOrb
-				breathState={breathState}
-				presence={presence}
-				config={config}
-			/>
-
-			{/* Settings/Debug panel - top left */}
-			<div className="absolute top-4 left-4 sm:top-5 sm:left-5 z-50">
-				{isDevMode ? (
-					<DebugPanel
-						config={config}
-						setConfig={setConfig}
-						breathState={breathState}
-						presence={presence}
-						isOpen={showDebug}
-						setIsOpen={setShowDebug}
-						simulationControls={{
-							simulationConfig,
-							updateSimulationConfig: (updates) => {
-								updateSimulationConfig(updates);
-								updateSimConfig(updates);
-							},
-							isSimulationRunning: isRunning,
-							onStart: start,
-							onStop: stop,
-							onReset: reset,
-						}}
-					/>
-				) : (
-					<SettingsPanel
-						config={config}
-						setConfig={setConfig}
-						isOpen={showDebug}
-						setIsOpen={setShowDebug}
-						onEnableDevMode={() => setIsDevMode(true)}
-					/>
-				)}
-			</div>
-
-			{/* Presence counter - top center */}
-			<div className="absolute top-5 sm:top-8 left-1/2 -translate-x-1/2 z-10">
-				<PresenceCounter presence={presence} />
-			</div>
-
-			{/* Pattern selector - top right */}
-			<div className="absolute top-4 right-4 sm:top-5 sm:right-5 z-10">
-				<PatternSelector pattern={pattern} onChange={setPattern} />
-			</div>
-
-			{/* User badge or join button - bottom center */}
-			<div className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 z-10">
-				{user ? (
-					<UserBadge user={user} onClick={() => setShowIdentity(true)} />
-				) : (
-					<JoinButton onClick={() => setShowIdentity(true)} />
-				)}
-			</div>
-
-			{/* Identity panel modal */}
-			{showIdentity ? (
-				<IdentityPanel
-					user={user || { name: '', avatar: '', mood: '', moodDetail: '' }}
-					onUserChange={handleUserChange}
-					onClose={() => setShowIdentity(false)}
+		<AppLayout
+			background={<CosmicBackground />}
+			content={
+				<BreathingOrb
+					breathState={breathState}
+					presence={presence}
+					config={config}
 				/>
-			) : null}
-		</div>
+			}
+			topBar={
+				<TopBar
+					left={settingsPanel}
+					center={<PresenceCounter presence={presence} />}
+					right={<PatternSelector pattern={pattern} onChange={setPattern} />}
+				/>
+			}
+			bottomBar={<BottomBar center={userAction} />}
+			overlay={identityModal}
+		/>
 	);
 }
 

@@ -140,18 +140,10 @@ export function IdentityPanel({
 				</div>
 
 				<DialogFooter className="gap-3 flex-col-reverse sm:flex-row pt-4">
-					<Button
-						variant="ghost"
-						onClick={onClose}
-						className="flex-1 min-h-[48px] sm:min-h-0"
-					>
+					<Button variant="ghost" onClick={onClose} className="flex-1">
 						Skip
 					</Button>
-					<Button
-						variant="cosmic"
-						onClick={handleSave}
-						className="flex-1 min-h-[48px] sm:min-h-0"
-					>
+					<Button variant="primary" onClick={handleSave} className="flex-1">
 						Join
 					</Button>
 				</DialogFooter>
@@ -221,9 +213,9 @@ export function JoinButton({ onClick }: JoinButtonProps) {
 		>
 			<Button
 				onClick={onClick}
-				variant="default"
+				variant="primary"
 				size="lg"
-				className="px-8 font-serif text-base tracking-wide"
+				className="px-8 font-serif tracking-wide"
 			>
 				Join the circle
 			</Button>
