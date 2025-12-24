@@ -3,7 +3,7 @@ import type { MoodId } from './simulationConfig';
 
 /**
  * Color palettes and mood configurations
- * Using Chroma.js for advanced color manipulation
+ * PlayStation + Apple inspired design system
  */
 
 export interface MoodConfig {
@@ -18,39 +18,39 @@ export const MOODS: MoodConfig[] = [
 		id: 'moment',
 		label: 'Taking a moment',
 		hasDetail: false,
-		color: '#7EB5C1',
+		color: '#00D4FF',
 	},
 	{
 		id: 'anxious',
 		label: 'Anxious about...',
 		hasDetail: true,
-		color: '#9B7E9F',
+		color: '#B088C0',
 	},
 	{
 		id: 'processing',
 		label: 'Processing...',
 		hasDetail: true,
-		color: '#7E8E9F',
+		color: '#88A0B8',
 	},
 	{
 		id: 'preparing',
 		label: 'Preparing for...',
 		hasDetail: true,
-		color: '#8E9B7E',
+		color: '#88B088',
 	},
 	{
 		id: 'grateful',
 		label: 'Grateful for...',
 		hasDetail: true,
-		color: '#9FC17E',
+		color: '#A0C888',
 	},
 	{
 		id: 'celebrating',
 		label: 'Celebrating...',
 		hasDetail: true,
-		color: '#C1A87E',
+		color: '#D4B888',
 	},
-	{ id: 'here', label: 'Just here', hasDetail: false, color: '#8EAAB4' },
+	{ id: 'here', label: 'Just here', hasDetail: false, color: '#88B8C8' },
 ];
 
 export interface AvatarConfig {
@@ -59,18 +59,19 @@ export interface AvatarConfig {
 }
 
 export const AVATARS: AvatarConfig[] = [
-	{ id: 'teal', colors: ['#7EB5C1', '#5A9BAA'] },
-	{ id: 'lavender', colors: ['#C17EB5', '#AA5A9B'] },
-	{ id: 'amber', colors: ['#C1A87E', '#AA8A5A'] },
-	{ id: 'sage', colors: ['#7EC17E', '#5AAA5A'] },
-	{ id: 'coral', colors: ['#C17E7E', '#AA5A5A'] },
-	{ id: 'indigo', colors: ['#7E7EC1', '#5A5AAA'] },
+	{ id: 'teal', colors: ['#00D4FF', '#0099CC'] },
+	{ id: 'lavender', colors: ['#C088D4', '#9966AA'] },
+	{ id: 'amber', colors: ['#FFB866', '#CC8833'] },
+	{ id: 'sage', colors: ['#88CC88', '#66AA66'] },
+	{ id: 'coral', colors: ['#FF8888', '#CC6666'] },
+	{ id: 'indigo', colors: ['#8888FF', '#6666CC'] },
 ];
 
 export const BASE_COLORS = {
-	primary: '#7EB5C1',
-	background: '#0f1723',
-	backgroundMid: '#1a2634',
+	primary: '#00D4FF',
+	primarySoft: '#7EB5C1',
+	background: '#060a10',
+	backgroundMid: '#0d1219',
 };
 
 /**
@@ -81,7 +82,7 @@ export function hexToRgb(hex: string): { r: number; g: number; b: number } {
 		const [r, g, b] = chroma(hex).gl();
 		return { r, g, b };
 	} catch {
-		return { r: 0.5, g: 0.7, b: 0.76 };
+		return { r: 0, g: 0.83, b: 1 };
 	}
 }
 
@@ -92,7 +93,7 @@ export function hexToRgba(hex: string, alpha: number): string {
 	try {
 		return chroma(hex).alpha(alpha).css();
 	} catch {
-		return `rgba(128, 179, 194, ${alpha})`;
+		return `rgba(0, 212, 255, ${alpha})`;
 	}
 }
 

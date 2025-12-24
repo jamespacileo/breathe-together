@@ -32,7 +32,8 @@ describe('hexToRgb', () => {
 
 	it('should return fallback for invalid hex', () => {
 		const result = hexToRgb('invalid');
-		expect(result).toEqual({ r: 0.5, g: 0.7, b: 0.76 });
+		// Fallback is now cyan (#00D4FF)
+		expect(result).toEqual({ r: 0, g: 0.83, b: 1 });
 	});
 });
 
@@ -50,7 +51,8 @@ describe('hexToRgba', () => {
 
 	it('should return fallback for invalid input', () => {
 		const result = hexToRgba('invalid', 0.5);
-		expect(result).toBe('rgba(128, 179, 194, 0.5)');
+		// Fallback is now cyan (#00D4FF)
+		expect(result).toBe('rgba(0, 212, 255, 0.5)');
 	});
 });
 
@@ -58,8 +60,9 @@ describe('getAvatarGradient', () => {
 	it('should return gradient for valid avatar ID', () => {
 		const result = getAvatarGradient('teal');
 		expect(result).toContain('linear-gradient');
-		expect(result).toContain('#7EB5C1');
-		expect(result).toContain('#5A9BAA');
+		// Updated teal avatar colors
+		expect(result).toContain('#00D4FF');
+		expect(result).toContain('#0099CC');
 	});
 
 	it('should return default gradient for invalid avatar ID', () => {
@@ -72,7 +75,8 @@ describe('getAvatarGradient', () => {
 describe('getMoodColor', () => {
 	it('should return correct color for mood ID', () => {
 		const result = getMoodColor('moment');
-		expect(result).toBe('#7EB5C1');
+		// Updated to cyan primary color
+		expect(result).toBe('#00D4FF');
 	});
 
 	it('should return base color for undefined mood', () => {

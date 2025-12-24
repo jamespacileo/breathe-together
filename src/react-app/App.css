@@ -15,39 +15,39 @@ body,
 
 body {
 	font-family:
-		-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
-		Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+		-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto,
+		"Helvetica Neue", sans-serif;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
-	background: #0f1723;
+	background: #060a10;
 	color: white;
 }
 
-/* Custom scrollbar for debug panel */
+/* Premium scrollbar */
 ::-webkit-scrollbar {
-	width: 6px;
+	width: 4px;
 }
 
 ::-webkit-scrollbar-track {
-	background: rgba(255, 255, 255, 0.05);
+	background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-	background: rgba(255, 255, 255, 0.2);
-	border-radius: 3px;
+	background: rgba(255, 255, 255, 0.15);
+	border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-	background: rgba(255, 255, 255, 0.3);
+	background: rgba(255, 255, 255, 0.25);
 }
 
-/* Custom range slider styling */
+/* PlayStation-inspired range slider */
 input[type="range"] {
 	-webkit-appearance: none;
 	appearance: none;
 	width: 100%;
-	height: 4px;
-	background: rgba(255, 255, 255, 0.2);
+	height: 3px;
+	background: rgba(255, 255, 255, 0.12);
 	border-radius: 2px;
 	outline: none;
 }
@@ -55,30 +55,113 @@ input[type="range"] {
 input[type="range"]::-webkit-slider-thumb {
 	-webkit-appearance: none;
 	appearance: none;
-	width: 12px;
-	height: 12px;
+	width: 14px;
+	height: 14px;
 	border-radius: 50%;
 	background: white;
 	cursor: pointer;
+	box-shadow: 0 0 10px rgba(0, 212, 255, 0.4);
+	transition:
+		box-shadow 0.2s ease,
+		transform 0.15s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+	transform: scale(1.1);
+	box-shadow: 0 0 15px rgba(0, 212, 255, 0.6);
 }
 
 input[type="range"]::-moz-range-thumb {
-	width: 12px;
-	height: 12px;
+	width: 14px;
+	height: 14px;
 	border-radius: 50%;
 	background: white;
 	cursor: pointer;
 	border: none;
+	box-shadow: 0 0 10px rgba(0, 212, 255, 0.4);
 }
 
-/* Focus styles */
+/* Refined focus styles */
 button:focus-visible,
 input:focus-visible {
-	outline: 2px solid rgba(255, 255, 255, 0.5);
+	outline: 2px solid rgba(0, 212, 255, 0.5);
 	outline-offset: 2px;
 }
 
 /* Selection color */
 ::selection {
-	background: rgba(126, 181, 193, 0.3);
+	background: rgba(0, 212, 255, 0.25);
+}
+
+/* Glass panel base styles */
+.glass-panel {
+	background: rgba(0, 0, 0, 0.65);
+	backdrop-filter: blur(20px);
+	-webkit-backdrop-filter: blur(20px);
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	box-shadow:
+		0 8px 32px rgba(0, 0, 0, 0.4),
+		inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* PlayStation glow button */
+.glow-button {
+	position: relative;
+	background: rgba(255, 255, 255, 0.08);
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glow-button::before {
+	content: "";
+	position: absolute;
+	inset: -1px;
+	border-radius: inherit;
+	background: linear-gradient(135deg, rgba(0, 212, 255, 0.15), transparent 50%);
+	opacity: 0;
+	transition: opacity 0.25s ease;
+	pointer-events: none;
+}
+
+.glow-button:hover {
+	background: rgba(255, 255, 255, 0.12);
+	border-color: rgba(0, 212, 255, 0.3);
+	box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+}
+
+.glow-button:hover::before {
+	opacity: 1;
+}
+
+.glow-button:active {
+	transform: scale(0.98);
+}
+
+/* Primary CTA button with glow */
+.cta-button {
+	background: linear-gradient(
+		135deg,
+		rgba(0, 212, 255, 0.2),
+		rgba(0, 180, 220, 0.1)
+	);
+	border: 1px solid rgba(0, 212, 255, 0.3);
+	box-shadow:
+		0 0 20px rgba(0, 212, 255, 0.15),
+		inset 0 1px 0 rgba(255, 255, 255, 0.1);
+	transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cta-button:hover {
+	background: linear-gradient(
+		135deg,
+		rgba(0, 212, 255, 0.3),
+		rgba(0, 180, 220, 0.2)
+	);
+	border-color: rgba(0, 212, 255, 0.5);
+	box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+	transform: translateY(-1px);
+}
+
+.cta-button:active {
+	transform: translateY(0) scale(0.98);
 }

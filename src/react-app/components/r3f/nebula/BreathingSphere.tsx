@@ -305,7 +305,7 @@ export function BreathingSphere({
 
 	// Main animation loop - JS physics + GPU buffer updates
 	useFrame((state) => {
-		if (!materialRef.current || !geometryRef.current) return;
+		if (!(materialRef.current && geometryRef.current)) return;
 
 		const elapsed = state.clock.elapsedTime;
 		const breathValue = getBreathValue(breathStateRef.current);
