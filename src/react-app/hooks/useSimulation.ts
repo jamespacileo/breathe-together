@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { EMPTY_MOODS } from '../../shared/constants';
 import {
 	getSimulationEngine,
 	type PopulationSnapshot,
@@ -36,15 +37,7 @@ export interface UseSimulationResult {
 const EMPTY_SNAPSHOT: PopulationSnapshot = {
 	count: 0,
 	users: [],
-	moods: {
-		moment: 0,
-		anxious: 0,
-		processing: 0,
-		preparing: 0,
-		grateful: 0,
-		celebrating: 0,
-		here: 0,
-	},
+	moods: { ...EMPTY_MOODS },
 	timestamp: Date.now(),
 };
 
@@ -102,11 +95,12 @@ export function useSimulation(
 	}, []);
 
 	// Sync running state with engine whenever snapshot updates
-	// The snapshot dependency is intentional - it triggers a re-sync when the engine publishes updates
+	// Only update state if running status actually changed (avoids unnecessary re-renders)
 	// biome-ignore lint/correctness/useExhaustiveDependencies: snapshot triggers re-sync intentionally
 	useEffect(() => {
 		if (engineRef.current) {
-			setIsRunning(engineRef.current.running);
+			const engineRunning = engineRef.current.running;
+			setIsRunning((prev) => (prev !== engineRunning ? engineRunning : prev));
 		}
 	}, [snapshot]);
 
@@ -149,26 +143,6 @@ export function useSimulation(
 		updateConfig,
 		config: configRef.current,
 	};
-}
-
-/**
- * Hook to get just the population count (lighter weight)
- */
-export function useSimulationCount(
-	initialConfig: Partial<SimulationConfig> = {},
-): number {
-	const { snapshot } = useSimulation(initialConfig);
-	return snapshot.count;
-}
-
-/**
- * Hook to get mood distribution (for visualization)
- */
-export function useSimulationMoods(
-	initialConfig: Partial<SimulationConfig> = {},
-): PopulationSnapshot['moods'] {
-	const { snapshot } = useSimulation(initialConfig);
-	return snapshot.moods;
 }
 
 /**

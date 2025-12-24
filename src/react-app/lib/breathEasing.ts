@@ -7,7 +7,7 @@
  * - Hold: Very subtle settling oscillation
  */
 
-export type PhaseType = 'in' | 'hold-in' | 'out' | 'hold-out';
+import type { PhaseType } from './patterns';
 
 /**
  * Easing function for inhale phase

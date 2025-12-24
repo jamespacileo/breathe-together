@@ -1,6 +1,7 @@
 // Breathe Together API - Cloudflare Worker
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { VALID_MOODS } from '../shared/constants';
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -31,17 +32,6 @@ interface PresenceEntry {
 	timestamp: number;
 }
 
-// Valid mood IDs
-const VALID_MOODS = new Set([
-	'moment',
-	'anxious',
-	'processing',
-	'preparing',
-	'grateful',
-	'celebrating',
-	'here',
-]);
-
 // Session ID validation: alphanumeric, dashes, underscores, 8-64 chars
 const SESSION_ID_REGEX = /^[a-zA-Z0-9_-]{8,64}$/;
 
@@ -53,6 +43,11 @@ function isValidMood(mood: unknown): mood is string | undefined {
 	return (
 		mood === undefined || (typeof mood === 'string' && VALID_MOODS.has(mood))
 	);
+}
+
+// Validate that parsed data is an array of numbers
+function isNumberArray(data: unknown): data is number[] {
+	return Array.isArray(data) && data.every((item) => typeof item === 'number');
 }
 
 // Simple rate limiting using KV
@@ -72,9 +67,12 @@ async function checkRateLimit(
 
 	if (existing) {
 		try {
-			timestamps = JSON.parse(existing) as number[];
-			// Filter to only timestamps within the window
-			timestamps = timestamps.filter((t) => t > windowStart);
+			const parsed: unknown = JSON.parse(existing);
+			// Validate that parsed data is actually an array of numbers
+			if (isNumberArray(parsed)) {
+				// Filter to only timestamps within the window
+				timestamps = parsed.filter((t) => t > windowStart);
+			}
 		} catch {
 			timestamps = [];
 		}

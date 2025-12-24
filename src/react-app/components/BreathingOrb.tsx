@@ -1,13 +1,11 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import type { BreathState } from '../hooks/useBreathSync';
-import type { PresenceData } from '../hooks/usePresence';
 import type { VisualizationConfig } from '../lib/config';
 import { BreathingFallback, ErrorBoundary } from './ErrorBoundary';
 import { GPGPUScene } from './GPGPUParticles';
 
 interface BreathingOrbProps {
 	breathState: BreathState;
-	presence: PresenceData;
 	config: VisualizationConfig;
 }
 
@@ -15,11 +13,7 @@ interface BreathingOrbProps {
  * Main breathing visualization component
  * Uses Three.js for GPU-accelerated particle rendering
  */
-export function BreathingOrb({
-	breathState,
-	presence: _presence,
-	config,
-}: BreathingOrbProps) {
+export function BreathingOrb({ breathState, config }: BreathingOrbProps) {
 	return (
 		<div className="absolute inset-0 overflow-hidden">
 			{/* Three.js GPGPU particle scene with error boundary for GPU failures */}

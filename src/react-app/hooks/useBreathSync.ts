@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
 	getCurrentPhase,
 	PATTERNS,
@@ -17,6 +17,11 @@ export interface BreathState {
 /**
  * Hook that provides UTC-synchronized breathing state
  * All users worldwide see the same breath phase at the same moment
+ *
+ * Uses requestAnimationFrame instead of setInterval for:
+ * - Frame-synchronized updates (no jitter on high-refresh displays)
+ * - Automatic throttling when tab is inactive
+ * - Better performance (browser optimizes rAF callbacks)
  */
 export function useBreathSync(patternId: PatternId = 'box'): BreathState {
 	const [breathState, setBreathState] = useState<BreathState>(() => {
@@ -32,6 +37,8 @@ export function useBreathSync(patternId: PatternId = 'box'): BreathState {
 		};
 	});
 
+	const rafRef = useRef<number>(0);
+
 	useEffect(() => {
 		const pattern = PATTERNS[patternId];
 
@@ -45,13 +52,13 @@ export function useBreathSync(patternId: PatternId = 'box'): BreathState {
 				cycleProgress,
 				phaseIndex,
 			});
+			rafRef.current = requestAnimationFrame(updateBreath);
 		};
 
-		// Update at 60fps for smooth animations
-		const interval = setInterval(updateBreath, 16);
-		updateBreath();
+		// Start the animation loop
+		rafRef.current = requestAnimationFrame(updateBreath);
 
-		return () => clearInterval(interval);
+		return () => cancelAnimationFrame(rafRef.current);
 	}, [patternId]);
 
 	return breathState;

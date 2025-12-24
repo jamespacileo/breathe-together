@@ -1,7 +1,7 @@
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
-import { AVATARS, getAvatarGradient, MOODS } from '../lib/colors';
-import type { MoodId } from '../lib/simulationConfig';
+import { getMoodGradient, MOOD_COLORS } from '../lib/colors';
+import type { PatternId } from '../lib/patterns';
 import { cn } from '../lib/utils';
 import type { UserIdentity } from '../stores/appStore';
 import { Button } from './ui/button';
@@ -12,149 +12,227 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from './ui/dialog';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
 
-interface IdentityPanelProps {
+type WizardStep = 'pattern' | 'identity';
+
+interface PatternCardProps {
+	name: string;
+	description: string;
+	selected: boolean;
+	onClick: () => void;
+}
+
+function PatternCard({
+	name,
+	description,
+	selected,
+	onClick,
+}: PatternCardProps) {
+	return (
+		<motion.button
+			type="button"
+			onClick={onClick}
+			whileHover={{ scale: 1.02 }}
+			whileTap={{ scale: 0.98 }}
+			className={cn(
+				'flex flex-col items-center justify-center gap-2 p-6 rounded-xl',
+				'border transition-all duration-300 min-h-[120px]',
+				'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aurora/50',
+				selected
+					? 'border-aurora/50 bg-gradient-to-br from-nebula/25 to-aurora/15 text-stellar shadow-glow-sm'
+					: 'border-stellar-faint bg-stellar-ghost text-stellar-muted hover:text-stellar hover:border-stellar-dim hover:bg-stellar-faint',
+			)}
+		>
+			<span className="font-serif text-xl font-light tracking-wide">
+				{name}
+			</span>
+			<span className="text-xs text-stellar-muted font-light">
+				{description}
+			</span>
+		</motion.button>
+	);
+}
+
+interface PatternStepProps {
+	selected: PatternId;
+	onSelect: (pattern: PatternId) => void;
+}
+
+function PatternStep({ selected, onSelect }: PatternStepProps) {
+	return (
+		<motion.div
+			key="pattern"
+			initial={{ opacity: 0, x: -20 }}
+			animate={{ opacity: 1, x: 0 }}
+			exit={{ opacity: 0, x: 20 }}
+			transition={{ duration: 0.3 }}
+			className="flex flex-col gap-6"
+		>
+			<p className="text-center text-stellar-muted font-light">
+				Choose your rhythm
+			</p>
+
+			<div className="grid grid-cols-2 gap-4">
+				<PatternCard
+					name="Box"
+					description="Balanced. 4-4-4-4 seconds."
+					selected={selected === 'box'}
+					onClick={() => onSelect('box')}
+				/>
+				<PatternCard
+					name="Relax"
+					description="Calming. 4-7-8 seconds."
+					selected={selected === 'relaxation'}
+					onClick={() => onSelect('relaxation')}
+				/>
+			</div>
+		</motion.div>
+	);
+}
+
+interface IdentityStepProps {
+	mood: string;
+	setMood: (mood: string) => void;
+	onSkip: () => void;
+	onJoin: () => void;
+}
+
+function IdentityStep({ mood, setMood, onSkip, onJoin }: IdentityStepProps) {
+	return (
+		<motion.div
+			key="identity"
+			initial={{ opacity: 0, x: 20 }}
+			animate={{ opacity: 1, x: 0 }}
+			exit={{ opacity: 0, x: -20 }}
+			transition={{ duration: 0.3 }}
+			className="flex flex-col gap-6"
+		>
+			<p className="text-center text-stellar-muted font-light">
+				How are you feeling?
+			</p>
+
+			{/* Mood picker - 3 column grid */}
+			<div className="grid grid-cols-3 gap-3">
+				{MOOD_COLORS.map((m, index) => (
+					<motion.button
+						key={m.id}
+						type="button"
+						onClick={() => setMood(m.id)}
+						aria-label={`Select mood: ${m.label}`}
+						aria-pressed={mood === m.id}
+						initial={{ opacity: 0, scale: 0.9 }}
+						animate={{ opacity: 1, scale: 1 }}
+						transition={{ delay: index * 0.04, duration: 0.3 }}
+						className={cn(
+							'flex flex-col items-center gap-2 p-3 rounded-lg',
+							'border transition-all duration-300',
+							'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aurora/50',
+							mood === m.id
+								? 'border-aurora/50 bg-nebula/10'
+								: 'border-transparent hover:bg-stellar-ghost',
+						)}
+					>
+						<div
+							className={cn(
+								'w-10 h-10 rounded-full transition-all duration-300',
+								mood === m.id && 'ring-2 ring-aurora shadow-glow-sm',
+							)}
+							style={{
+								background: getMoodGradient(m.id),
+								boxShadow:
+									mood === m.id ? `0 0 20px ${m.colors[0]}50` : undefined,
+							}}
+						/>
+						<span className="text-xs text-stellar-muted font-light">
+							{m.label}
+						</span>
+					</motion.button>
+				))}
+			</div>
+
+			<DialogFooter className="gap-3 flex-col-reverse sm:flex-row pt-2">
+				<Button
+					variant="ghost"
+					onClick={onSkip}
+					className="flex-1 min-h-[48px] sm:min-h-0"
+				>
+					Just breathe
+				</Button>
+				<Button
+					variant="cosmic"
+					onClick={onJoin}
+					className="flex-1 min-h-[48px] sm:min-h-0"
+				>
+					Join the circle
+				</Button>
+			</DialogFooter>
+		</motion.div>
+	);
+}
+
+interface JoinWizardProps {
 	user: UserIdentity;
+	pattern: PatternId;
 	onUserChange: (user: UserIdentity) => void;
+	onPatternChange: (pattern: PatternId) => void;
 	onClose: () => void;
 }
 
-export function IdentityPanel({
+export function JoinWizard({
 	user,
+	pattern,
 	onUserChange,
+	onPatternChange,
 	onClose,
-}: IdentityPanelProps) {
-	const [name, setName] = useState(user.name || '');
-	const [avatar, setAvatar] = useState(user.avatar || AVATARS[0].id);
-	const [mood, setMood] = useState<MoodId | ''>(user.mood || '');
-	const [moodDetail, setMoodDetail] = useState(user.moodDetail || '');
+}: JoinWizardProps) {
+	const [step, setStep] = useState<WizardStep>('pattern');
+	const [selectedPattern, setSelectedPattern] = useState<PatternId>(pattern);
+	const [mood, setMood] = useState(user.avatar || MOOD_COLORS[0].id);
 
-	const selectedMood = MOODS.find((m) => m.id === mood);
+	const handlePatternSelect = (p: PatternId) => {
+		setSelectedPattern(p);
+		// Auto-advance to next step
+		setStep('identity');
+	};
 
-	const handleSave = () => {
+	const handleSkip = () => {
+		onPatternChange(selectedPattern);
+		onClose();
+	};
+
+	const handleJoin = () => {
+		onPatternChange(selectedPattern);
 		onUserChange({
-			name: name || 'Someone',
-			avatar,
-			mood,
-			moodDetail,
+			name: '',
+			avatar: mood,
+			mood: '',
+			moodDetail: '',
 		});
 		onClose();
 	};
 
 	return (
 		<Dialog open onOpenChange={(open) => !open && onClose()}>
-			<DialogContent className="max-w-sm mx-4 sm:mx-auto max-h-[90vh] overflow-y-auto">
+			<DialogContent className="max-w-sm mx-4 sm:mx-auto">
 				<DialogHeader>
-					<DialogTitle className="text-center">Join the circle</DialogTitle>
+					<DialogTitle className="text-center">Breathe Together</DialogTitle>
 				</DialogHeader>
 
-				<div className="space-y-6">
-					{/* Name input */}
-					<div className="space-y-3">
-						<Label htmlFor="name">Your name</Label>
-						<Input
-							id="name"
-							type="text"
-							value={name}
-							onChange={(e) => setName(e.target.value)}
-							placeholder="Someone"
-							className="min-h-[48px] sm:min-h-0"
+				<AnimatePresence mode="wait">
+					{step === 'pattern' ? (
+						<PatternStep
+							selected={selectedPattern}
+							onSelect={handlePatternSelect}
 						/>
-					</div>
-
-					{/* Avatar picker */}
-					<div className="space-y-3">
-						<Label>Avatar</Label>
-						<div className="flex gap-3 justify-center">
-							{AVATARS.map((a, index) => (
-								<motion.button
-									key={a.id}
-									type="button"
-									onClick={() => setAvatar(a.id)}
-									aria-label={`Select avatar ${a.id}`}
-									aria-pressed={avatar === a.id}
-									initial={{ opacity: 0, scale: 0.8 }}
-									animate={{ opacity: 1, scale: 1 }}
-									transition={{ delay: index * 0.05, duration: 0.3 }}
-									className={cn(
-										'w-12 h-12 sm:w-11 sm:h-11 rounded-full transition-all duration-300',
-										'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aurora/50',
-										avatar === a.id
-											? 'scale-110 ring-2 ring-aurora shadow-glow-aurora'
-											: 'hover:scale-105 opacity-70 hover:opacity-100',
-									)}
-									style={{
-										background: getAvatarGradient(a.id),
-										boxShadow:
-											avatar === a.id ? `0 0 25px ${a.colors[0]}60` : undefined,
-									}}
-								/>
-							))}
-						</div>
-					</div>
-
-					{/* Mood selector */}
-					<div className="space-y-3">
-						<Label>What's on your mind?</Label>
-						<div className="grid grid-cols-2 gap-2">
-							{MOODS.map((m, index) => (
-								<motion.button
-									key={m.id}
-									type="button"
-									onClick={() => setMood(m.id)}
-									aria-pressed={mood === m.id}
-									initial={{ opacity: 0, y: 10 }}
-									animate={{ opacity: 1, y: 0 }}
-									transition={{ delay: 0.1 + index * 0.03, duration: 0.3 }}
-									className={cn(
-										'p-3 sm:p-2.5 text-left text-sm font-light rounded-xl border transition-all duration-300 min-h-[48px]',
-										mood === m.id
-											? 'border-aurora/40 bg-gradient-to-r from-nebula/20 to-aurora/15 text-stellar shadow-glow-sm'
-											: 'border-stellar-faint bg-stellar-ghost text-stellar-muted hover:text-stellar hover:bg-stellar-faint hover:border-stellar-dim',
-									)}
-								>
-									{m.label}
-								</motion.button>
-							))}
-						</div>
-
-						{/* Mood detail input */}
-						{selectedMood?.hasDetail ? (
-							<motion.div
-								initial={{ opacity: 0, height: 0 }}
-								animate={{ opacity: 1, height: 'auto' }}
-								exit={{ opacity: 0, height: 0 }}
-							>
-								<Input
-									type="text"
-									value={moodDetail}
-									onChange={(e) => setMoodDetail(e.target.value)}
-									placeholder="Add detail (optional)"
-									className="mt-2 min-h-[48px] sm:min-h-0"
-								/>
-							</motion.div>
-						) : null}
-					</div>
-				</div>
-
-				<DialogFooter className="gap-3 flex-col-reverse sm:flex-row pt-4">
-					<Button
-						variant="ghost"
-						onClick={onClose}
-						className="flex-1 min-h-[48px] sm:min-h-0"
-					>
-						Skip
-					</Button>
-					<Button
-						variant="cosmic"
-						onClick={handleSave}
-						className="flex-1 min-h-[48px] sm:min-h-0"
-					>
-						Join
-					</Button>
-				</DialogFooter>
+					) : (
+						<IdentityStep
+							mood={mood}
+							setMood={setMood}
+							onSkip={handleSkip}
+							onJoin={handleJoin}
+						/>
+					)}
+				</AnimatePresence>
 			</DialogContent>
 		</Dialog>
 	);
@@ -166,7 +244,7 @@ interface UserBadgeProps {
 }
 
 export function UserBadge({ user, onClick }: UserBadgeProps) {
-	const mood = MOODS.find((m) => m.id === user.mood);
+	const moodLabel = MOOD_COLORS.find((m) => m.id === user.avatar)?.label;
 
 	return (
 		<motion.button
@@ -179,8 +257,8 @@ export function UserBadge({ user, onClick }: UserBadgeProps) {
 				'flex items-center gap-3 px-4 py-2.5',
 				'bg-gradient-to-r from-void-light/80 via-nebula-deep/20 to-void-light/80',
 				'backdrop-blur-md',
-				'border border-stellar-faint hover:border-nebula-glow/40',
-				'rounded-full text-stellar',
+				'border border-stellar-faint/50 hover:border-nebula-glow/40',
+				'rounded-xl text-stellar',
 				'cursor-pointer',
 				'transition-all duration-300',
 				'hover:shadow-glow-sm',
@@ -191,19 +269,15 @@ export function UserBadge({ user, onClick }: UserBadgeProps) {
 			<div
 				className="w-9 h-9 rounded-full shrink-0 shadow-glow-sm"
 				style={{
-					background: getAvatarGradient(user.avatar),
+					background: getMoodGradient(user.avatar),
 					boxShadow: '0 0 15px rgba(168, 85, 247, 0.3)',
 				}}
 			/>
-			<div className="text-left">
-				<div className="font-light text-sm tracking-wide">{user.name}</div>
-				{mood ? (
-					<div className="text-xs text-stellar-muted truncate max-w-[120px] sm:max-w-none">
-						{mood.label}
-						{user.moodDetail ? ` ${user.moodDetail}` : ''}
-					</div>
-				) : null}
-			</div>
+			{moodLabel ? (
+				<span className="font-light text-sm tracking-wide text-stellar-muted">
+					{moodLabel}
+				</span>
+			) : null}
 		</motion.button>
 	);
 }

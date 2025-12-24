@@ -4,13 +4,39 @@ import type { PatternId } from '../lib/patterns';
 import { useBreathSync } from './useBreathSync';
 
 describe('useBreathSync', () => {
+	let rafId = 0;
+	let rafCallbacks: Map<number, FrameRequestCallback> = new Map();
+
 	beforeEach(() => {
 		vi.useFakeTimers();
+		rafId = 0;
+		rafCallbacks = new Map();
+
+		// Mock requestAnimationFrame to work with fake timers
+		vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
+			const id = ++rafId;
+			rafCallbacks.set(id, cb);
+			return id;
+		});
+
+		vi.stubGlobal('cancelAnimationFrame', (id: number) => {
+			rafCallbacks.delete(id);
+		});
 	});
 
 	afterEach(() => {
 		vi.useRealTimers();
+		vi.unstubAllGlobals();
 	});
+
+	// Helper to run pending animation frames
+	const runAnimationFrame = () => {
+		const callbacks = Array.from(rafCallbacks.entries());
+		rafCallbacks.clear();
+		for (const [, callback] of callbacks) {
+			callback(performance.now());
+		}
+	};
 
 	it('should return initial breath state', () => {
 		vi.setSystemTime(0);
@@ -37,7 +63,7 @@ describe('useBreathSync', () => {
 		// Advance to second phase (4 seconds = hold-in)
 		await act(async () => {
 			vi.setSystemTime(4500); // 4.5 seconds
-			vi.advanceTimersByTime(16); // trigger interval update
+			runAnimationFrame(); // trigger rAF update
 		});
 
 		expect(result.current.phase).toBe('hold-in');
@@ -52,7 +78,7 @@ describe('useBreathSync', () => {
 		// Advance past one full cycle (16 seconds for box pattern)
 		await act(async () => {
 			vi.setSystemTime(17000); // 17 seconds
-			vi.advanceTimersByTime(16);
+			runAnimationFrame();
 		});
 
 		// Should be back to first phase
@@ -87,23 +113,23 @@ describe('useBreathSync', () => {
 		// At 2 seconds (middle of first phase)
 		await act(async () => {
 			vi.setSystemTime(2000);
-			vi.advanceTimersByTime(16);
+			runAnimationFrame();
 		});
 
 		expect(result.current.progress).toBeCloseTo(0.5, 1);
 		expect(result.current.cycleProgress).toBeCloseTo(0.125, 1); // 2/16
 	});
 
-	it('should clean up interval on unmount', () => {
+	it('should clean up animation frame on unmount', () => {
 		vi.setSystemTime(0);
-		const clearIntervalSpy = vi.spyOn(global, 'clearInterval');
+		const cancelAnimationFrameSpy = vi.spyOn(global, 'cancelAnimationFrame');
 
 		const { unmount } = renderHook(() => useBreathSync('box'));
 
 		unmount();
 
-		expect(clearIntervalSpy).toHaveBeenCalled();
-		clearIntervalSpy.mockRestore();
+		expect(cancelAnimationFrameSpy).toHaveBeenCalled();
+		cancelAnimationFrameSpy.mockRestore();
 	});
 
 	it('should use default pattern when not specified', () => {

@@ -37,21 +37,21 @@ A collaborative breathing app where all users worldwide are synchronized via UTC
 - `components/BreathingOrb.tsx` - Main orchestrator combining all visual layers
 - `components/ParticleField.tsx` - WebGL particle system (200+ particles with spring physics)
 - `components/GlowOverlay.tsx` - 2D canvas radial gradient effects
-- `components/DebugPanel.tsx` - Live parameter tuning UI
 
 ### Custom Hooks
 - `hooks/useBreathSync.ts` - UTC-synchronized breathing state (phase, progress, cycle position)
 - `hooks/usePresence.ts` - Global presence tracking with heartbeat polling
+- `hooks/useLevaControls.ts` - Dev-mode parameter tuning via Leva GUI (Cmd+Shift+D to toggle)
 
 ### Configuration System
-- `lib/config.ts` - 50+ visualization parameters (VisualizationConfig type)
+- `lib/config.ts` - 22 visualization parameters (VisualizationConfig type)
 - `lib/spring.ts` - Damped harmonic oscillator physics (tension, friction)
 - `lib/patterns.ts` - Breathing patterns (Box 4-4-4-4, 4-7-8 Relaxation)
 - `lib/colors.ts` - Color palettes and mood configurations
 
 ### Rendering Patterns
 - WebGL POINTS for particle rendering with custom shaders
-- Trail effect via partial buffer clear (trailFade parameter)
+- Trail effect via partial buffer clear
 - Separate 2D canvas layer for radial gradients (WebGL limitation)
 - 60fps animation loops via requestAnimationFrame
 

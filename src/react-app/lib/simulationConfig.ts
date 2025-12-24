@@ -1,31 +1,13 @@
 import { z } from 'zod';
+import {
+	AVATAR_IDS,
+	type AvatarId,
+	MOOD_IDS,
+	type MoodId,
+} from '../../shared/constants';
 
-/**
- * Mood IDs matching the MOODS array in colors.ts
- */
-export const MOOD_IDS = [
-	'moment',
-	'anxious',
-	'processing',
-	'preparing',
-	'grateful',
-	'celebrating',
-	'here',
-] as const;
-export type MoodId = (typeof MOOD_IDS)[number];
-
-/**
- * Avatar IDs matching the AVATARS array in colors.ts
- */
-export const AVATAR_IDS = [
-	'teal',
-	'lavender',
-	'amber',
-	'sage',
-	'coral',
-	'indigo',
-] as const;
-export type AvatarId = (typeof AVATAR_IDS)[number];
+// Re-export for backward compatibility
+export { AVATAR_IDS, type AvatarId, MOOD_IDS, type MoodId };
 
 /**
  * Mood distribution schema - weights for each mood type

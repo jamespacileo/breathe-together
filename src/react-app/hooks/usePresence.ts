@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { EMPTY_MOODS, type MoodId } from '../../shared/constants';
 import type { PopulationSnapshot } from '../lib/simulation';
-import type { MoodId } from '../lib/simulationConfig';
 import type { SimulatedUser } from '../lib/userGenerator';
 
 export interface PresenceData {
@@ -28,27 +28,9 @@ async function fetchPresence(): Promise<PresenceData> {
 	// Ensure moods object exists
 	return {
 		count: data.count ?? 0,
-		moods: data.moods ?? {
-			moment: 0,
-			anxious: 0,
-			processing: 0,
-			preparing: 0,
-			grateful: 0,
-			celebrating: 0,
-			here: 0,
-		},
+		moods: data.moods ?? { ...EMPTY_MOODS },
 	};
 }
-
-const EMPTY_MOODS: Record<MoodId, number> = {
-	moment: 0,
-	anxious: 0,
-	processing: 0,
-	preparing: 0,
-	grateful: 0,
-	celebrating: 0,
-	here: 0,
-};
 
 /**
  * Hook for tracking global presence
@@ -123,8 +105,10 @@ export function useHeartbeat(
 ): HeartbeatState {
 	const queryClient = useQueryClient();
 	const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	// Track failure count in ref for scheduling (avoids race conditions)
+	const failureCountRef = useRef(0);
 
-	// Use state instead of refs so changes trigger re-renders
+	// Use state for UI updates
 	const [heartbeatState, setHeartbeatState] = useState<HeartbeatState>({
 		isError: false,
 		consecutiveFailures: 0,
@@ -138,21 +122,25 @@ export function useHeartbeat(
 	}, []);
 
 	const { mutate } = useMutation({
-		mutationFn: (params: { sid: string; m?: string }) =>
-			sendHeartbeat(params.sid, params.m),
+		mutationFn: (params: { sessionId: string; mood?: string }) =>
+			sendHeartbeat(params.sessionId, params.mood),
 		onSuccess: () => {
-			// Reset failure count on success and update state
+			// Reset failure count on success
+			failureCountRef.current = 0;
 			setHeartbeatState({ isError: false, consecutiveFailures: 0 });
 			// Invalidate presence data after successful heartbeat
 			queryClient.invalidateQueries({ queryKey: ['presence'] });
 		},
 		onError: (error) => {
-			setHeartbeatState((prev) => ({
+			// Increment failure count
+			failureCountRef.current += 1;
+			const failures = failureCountRef.current;
+			setHeartbeatState({
 				isError: true,
-				consecutiveFailures: prev.consecutiveFailures + 1,
-			}));
+				consecutiveFailures: failures,
+			});
 			console.warn(
-				'Heartbeat failed:',
+				`Heartbeat failed (attempt ${failures}):`,
 				error instanceof Error ? error.message : 'Unknown error',
 			);
 		},
@@ -168,23 +156,19 @@ export function useHeartbeat(
 		const currentMood = mood;
 
 		// Schedule next heartbeat with adaptive interval
-		const scheduleNextHeartbeat = (failures: number) => {
+		const scheduleNextHeartbeat = () => {
 			if (timeoutRef.current) {
 				clearTimeout(timeoutRef.current);
 			}
 
-			const interval = getInterval(failures);
+			const interval = getInterval(failureCountRef.current);
 			timeoutRef.current = setTimeout(() => {
 				mutate(
-					{ sid: currentSessionId, m: currentMood },
+					{ sessionId: currentSessionId, mood: currentMood },
 					{
 						onSettled: () => {
 							// Schedule next heartbeat after this one completes
-							// Read current failure count from state
-							setHeartbeatState((current) => {
-								scheduleNextHeartbeat(current.consecutiveFailures);
-								return current;
-							});
+							scheduleNextHeartbeat();
 						},
 					},
 				);
@@ -193,14 +177,11 @@ export function useHeartbeat(
 
 		// Send initial heartbeat immediately
 		mutate(
-			{ sid: currentSessionId, m: currentMood },
+			{ sessionId: currentSessionId, mood: currentMood },
 			{
 				onSettled: () => {
 					// Schedule next heartbeat after initial completes
-					setHeartbeatState((current) => {
-						scheduleNextHeartbeat(current.consecutiveFailures);
-						return current;
-					});
+					scheduleNextHeartbeat();
 				},
 			},
 		);

@@ -120,6 +120,7 @@ function useViewOffset(): { x: number; y: number } {
 	const [offset, setOffset] = useState({ x: 0, y: 0 });
 	const targetRef = useRef({ x: 0, y: 0 });
 	const currentRef = useRef({ x: 0, y: 0 });
+	const animFrameRef = useRef(0);
 
 	useEffect(() => {
 		// Mouse movement
@@ -145,17 +146,17 @@ function useViewOffset(): { x: number; y: number } {
 			currentRef.current.y +=
 				(targetRef.current.y - currentRef.current.y) * 0.05;
 			setOffset({ ...currentRef.current });
-			requestAnimationFrame(animate);
+			animFrameRef.current = requestAnimationFrame(animate);
 		};
 
 		window.addEventListener('mousemove', handleMouseMove);
 		window.addEventListener('deviceorientation', handleOrientation);
-		const animId = requestAnimationFrame(animate);
+		animFrameRef.current = requestAnimationFrame(animate);
 
 		return () => {
 			window.removeEventListener('mousemove', handleMouseMove);
 			window.removeEventListener('deviceorientation', handleOrientation);
-			cancelAnimationFrame(animId);
+			cancelAnimationFrame(animFrameRef.current);
 		};
 	}, []);
 

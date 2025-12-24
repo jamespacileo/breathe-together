@@ -16,7 +16,7 @@ const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
 				className={cn(
 					// Base styles
 					'inline-flex items-center justify-center rounded-full',
-					'transition-all duration-300 ease-out',
+					'transition-all duration-300 ease-out touch-manipulation',
 					'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aurora/50',
 					'disabled:pointer-events-none disabled:opacity-40',
 					// Variants
@@ -35,7 +35,7 @@ const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
 					{
 						'h-9 w-9 min-h-[44px] min-w-[44px]': size === 'sm',
 						'h-11 w-11 min-h-[44px] min-w-[44px]': size === 'md',
-						'h-14 w-14': size === 'lg',
+						'h-14 w-14 min-h-[44px] min-w-[44px]': size === 'lg',
 					},
 					className,
 				)}

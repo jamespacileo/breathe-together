@@ -77,10 +77,12 @@ export function getCurrentPhase(pattern: Pattern): {
 
 	const phaseProgress = (cyclePosition - elapsed) / currentPhase.duration;
 
+	const cycleProgress = cyclePosition / pattern.totalDuration;
+
 	return {
 		phase: currentPhase,
 		phaseIndex,
 		progress: Math.min(1, Math.max(0, phaseProgress)),
-		cycleProgress: cyclePosition / pattern.totalDuration,
+		cycleProgress: Math.min(1, Math.max(0, cycleProgress)),
 	};
 }

@@ -95,25 +95,3 @@ export function useBreathingSpring(
 
 	return scale;
 }
-
-/**
- * Convert our Spring class parameters to Framer Motion spring config
- *
- * Our Spring class:
- * - tension: spring stiffness (higher = faster)
- * - friction: damping (higher = less bouncy)
- *
- * Framer Motion:
- * - stiffness: spring constant (same as tension)
- * - damping: resistance (same as friction)
- */
-export function toFramerSpringConfig(
-	tension: number,
-	friction: number,
-): BreathingSpringConfig {
-	return {
-		stiffness: tension,
-		damping: friction,
-		restDelta: 0.001,
-	};
-}

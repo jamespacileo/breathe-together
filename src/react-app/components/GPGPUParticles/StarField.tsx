@@ -1,59 +1,7 @@
 import { useFrame } from '@react-three/fiber';
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
-
-const starVertexShader = `
-uniform float uTime;
-uniform float uBreathPhase;
-
-attribute float aSize;
-attribute float aPhase;
-attribute float aBrightness;
-
-varying float vBrightness;
-varying float vPhase;
-
-void main() {
-  vBrightness = aBrightness;
-  vPhase = aPhase;
-
-  vec3 pos = position;
-
-  vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-
-  // Very subtle twinkle
-  float twinkle = 0.8 + sin(uTime * 2.0 + aPhase * 10.0) * 0.2;
-
-  gl_PointSize = aSize * twinkle * (200.0 / -mvPosition.z);
-  gl_Position = projectionMatrix * mvPosition;
-}
-`;
-
-const starFragmentShader = `
-varying float vBrightness;
-varying float vPhase;
-
-uniform float uBreathPhase;
-
-void main() {
-  vec2 center = gl_PointCoord - 0.5;
-  float dist = length(center);
-
-  // Soft star
-  float alpha = 1.0 - smoothstep(0.0, 0.5, dist);
-  alpha *= alpha;
-
-  // Dim star color
-  vec3 color = vec3(0.7, 0.75, 0.85);
-  color *= vBrightness * 0.4;
-
-  alpha *= 0.3;
-
-  if (alpha < 0.01) discard;
-
-  gl_FragColor = vec4(color, alpha);
-}
-`;
+import { starFragmentShader, starVertexShader } from '../../shaders';
 
 interface StarFieldProps {
 	breathPhase: number;
@@ -63,6 +11,10 @@ interface StarFieldProps {
 export function StarField({ breathPhase, count = 200 }: StarFieldProps) {
 	const pointsRef = useRef<THREE.Points>(null);
 	const materialRef = useRef<THREE.ShaderMaterial>(null);
+
+	// Ref for props used inside useFrame (avoids stale closure capture)
+	const breathPhaseRef = useRef(breathPhase);
+	breathPhaseRef.current = breathPhase;
 
 	const { geometry, uniforms } = useMemo(() => {
 		const positions = new Float32Array(count * 3);
@@ -99,16 +51,24 @@ export function StarField({ breathPhase, count = 200 }: StarFieldProps) {
 
 		const starUniforms = {
 			uTime: { value: 0 },
-			uBreathPhase: { value: breathPhase },
+			uBreathPhase: { value: 0 },
 		};
 
 		return { geometry: starGeometry, uniforms: starUniforms };
-	}, [count, breathPhase]);
+		// Note: breathPhase is NOT a dependency - updated every frame via useFrame
+	}, [count]);
+
+	// Cleanup geometry on unmount
+	useEffect(() => {
+		return () => {
+			geometry.dispose();
+		};
+	}, [geometry]);
 
 	useFrame((state) => {
 		if (materialRef.current) {
 			materialRef.current.uniforms.uTime.value = state.clock.elapsedTime;
-			materialRef.current.uniforms.uBreathPhase.value = breathPhase;
+			materialRef.current.uniforms.uBreathPhase.value = breathPhaseRef.current;
 		}
 	});
 

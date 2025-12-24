@@ -183,7 +183,7 @@ function generateMoodDetail(mood: MoodId): string | undefined {
  * Sample from exponential distribution
  * Used for departure times in M/M/∞ queue model
  */
-export function sampleExponential(mean: number): number {
+function sampleExponential(mean: number): number {
 	return -mean * Math.log(Math.random());
 }
 
@@ -211,36 +211,6 @@ export function generateUser(
 		joinedAt: now,
 		departureTime: now + stayDuration,
 	};
-}
-
-/**
- * Format user for display (e.g., "River - Grateful for this moment")
- */
-export function formatUserDisplay(user: SimulatedUser): string {
-	const moodLabels: Record<MoodId, string> = {
-		moment: 'Taking a moment',
-		anxious: 'Anxious about',
-		processing: 'Processing',
-		preparing: 'Preparing for',
-		grateful: 'Grateful for',
-		celebrating: 'Celebrating',
-		here: 'Just here',
-	};
-
-	const label = moodLabels[user.mood];
-
-	if (user.moodDetail) {
-		return `${user.name} - ${label} ${user.moodDetail}`;
-	}
-
-	return `${user.name} - ${label}`;
-}
-
-/**
- * Calculate time remaining for a user (in ms)
- */
-export function getTimeRemaining(user: SimulatedUser): number {
-	return Math.max(0, user.departureTime - Date.now());
 }
 
 /**

@@ -1,14 +1,7 @@
-import { useEffect, useState } from 'react';
 import { BreathingOrb } from './components/BreathingOrb';
-import { DebugPanel } from './components/DebugPanel';
-import {
-	IdentityPanel,
-	JoinButton,
-	UserBadge,
-} from './components/IdentityPanel';
-import { PatternSelector } from './components/PatternSelector';
+import { JoinButton, JoinWizard, UserBadge } from './components/IdentityPanel';
+import { LevaControls } from './components/LevaControls';
 import { PresenceCounter } from './components/PresenceCounter';
-import { SettingsPanel } from './components/SettingsPanel';
 import { useBreathSync } from './hooks/useBreathSync';
 import { usePresence } from './hooks/usePresence';
 import { useSimulation } from './hooks/useSimulation';
@@ -32,20 +25,6 @@ function CosmicBackground() {
 }
 
 function App() {
-	// Dev mode toggle (Cmd/Ctrl + Shift + D)
-	const [isDevMode, setIsDevMode] = useState(false);
-
-	useEffect(() => {
-		const handler = (e: KeyboardEvent) => {
-			if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'D') {
-				e.preventDefault();
-				setIsDevMode((prev) => !prev);
-			}
-		};
-		window.addEventListener('keydown', handler);
-		return () => window.removeEventListener('keydown', handler);
-	}, []);
-
 	// Zustand store
 	const {
 		user,
@@ -54,8 +33,6 @@ function App() {
 		setConfig,
 		pattern,
 		setPattern,
-		showDebug,
-		setShowDebug,
 		showIdentity,
 		setShowIdentity,
 		simulationConfig,
@@ -85,58 +62,35 @@ function App() {
 	};
 
 	return (
-		<div className="fixed inset-0 overflow-hidden bg-void">
+		<div className="fixed inset-0 h-dvh overflow-hidden bg-void">
+			{/* Leva settings panel - always visible in top right */}
+			<LevaControls
+				config={config}
+				setConfig={setConfig}
+				breathState={breathState}
+				presence={presence}
+				simulationControls={{
+					simulationConfig,
+					updateSimulationConfig: (updates) => {
+						updateSimulationConfig(updates);
+						updateSimConfig(updates);
+					},
+					isSimulationRunning: isRunning,
+					onStart: start,
+					onStop: stop,
+					onReset: reset,
+				}}
+			/>
+
 			{/* Cosmic background layers */}
 			<CosmicBackground />
 
 			{/* Main breathing visualization */}
-			<BreathingOrb
-				breathState={breathState}
-				presence={presence}
-				config={config}
-			/>
-
-			{/* Settings/Debug panel - top left */}
-			<div className="absolute top-4 left-4 sm:top-5 sm:left-5 z-50">
-				{isDevMode ? (
-					<DebugPanel
-						config={config}
-						setConfig={setConfig}
-						breathState={breathState}
-						presence={presence}
-						isOpen={showDebug}
-						setIsOpen={setShowDebug}
-						simulationControls={{
-							simulationConfig,
-							updateSimulationConfig: (updates) => {
-								updateSimulationConfig(updates);
-								updateSimConfig(updates);
-							},
-							isSimulationRunning: isRunning,
-							onStart: start,
-							onStop: stop,
-							onReset: reset,
-						}}
-					/>
-				) : (
-					<SettingsPanel
-						config={config}
-						setConfig={setConfig}
-						isOpen={showDebug}
-						setIsOpen={setShowDebug}
-						onEnableDevMode={() => setIsDevMode(true)}
-					/>
-				)}
-			</div>
+			<BreathingOrb breathState={breathState} config={config} />
 
 			{/* Presence counter - top center */}
 			<div className="absolute top-5 sm:top-8 left-1/2 -translate-x-1/2 z-10">
 				<PresenceCounter presence={presence} />
-			</div>
-
-			{/* Pattern selector - top right */}
-			<div className="absolute top-4 right-4 sm:top-5 sm:right-5 z-10">
-				<PatternSelector pattern={pattern} onChange={setPattern} />
 			</div>
 
 			{/* User badge or join button - bottom center */}
@@ -148,11 +102,13 @@ function App() {
 				)}
 			</div>
 
-			{/* Identity panel modal */}
+			{/* Join wizard modal */}
 			{showIdentity ? (
-				<IdentityPanel
+				<JoinWizard
 					user={user || { name: '', avatar: '', mood: '', moodDetail: '' }}
+					pattern={pattern}
 					onUserChange={handleUserChange}
+					onPatternChange={setPattern}
 					onClose={() => setShowIdentity(false)}
 				/>
 			) : null}

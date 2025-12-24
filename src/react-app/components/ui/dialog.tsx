@@ -41,14 +41,14 @@ const DialogContent = React.forwardRef<
 			ref={ref}
 			className={cn(
 				// Positioning
-				'fixed left-[50%] top-[50%] z-50 grid w-full max-w-md translate-x-[-50%] translate-y-[-50%] gap-5 p-8',
+				'fixed left-[50%] top-[50%] z-50 grid w-full max-w-md translate-x-[-50%] translate-y-[-50%] gap-6 p-10',
 				// Cosmic glass morphism
 				'bg-gradient-to-br from-void-light/90 via-nebula-deep/20 to-void-light/90',
 				'backdrop-blur-xl',
-				'border border-nebula-glow/20',
-				'rounded-2xl',
+				'border border-stellar-faint/30',
+				'rounded-xl',
 				// Cosmic shadows
-				'shadow-[0_0_80px_rgba(107,33,168,0.15),0_25px_60px_rgba(0,0,0,0.5)]',
+				'shadow-[0_0_80px_rgba(107,33,168,0.1),0_25px_60px_rgba(0,0,0,0.4)]',
 				// Animations
 				'duration-300',
 				'data-[state=open]:animate-in data-[state=closed]:animate-out',
@@ -98,7 +98,7 @@ const DialogHeader = ({
 	...props
 }: React.HTMLAttributes<HTMLDivElement>) => (
 	<div
-		className={cn('flex flex-col space-y-2 text-center', className)}
+		className={cn('flex flex-col gap-2 text-center', className)}
 		{...props}
 	/>
 );
