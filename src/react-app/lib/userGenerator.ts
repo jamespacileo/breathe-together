@@ -214,36 +214,6 @@ export function generateUser(
 }
 
 /**
- * Format user for display (e.g., "River - Grateful for this moment")
- */
-export function formatUserDisplay(user: SimulatedUser): string {
-	const moodLabels: Record<MoodId, string> = {
-		moment: 'Taking a moment',
-		anxious: 'Anxious about',
-		processing: 'Processing',
-		preparing: 'Preparing for',
-		grateful: 'Grateful for',
-		celebrating: 'Celebrating',
-		here: 'Just here',
-	};
-
-	const label = moodLabels[user.mood];
-
-	if (user.moodDetail) {
-		return `${user.name} - ${label} ${user.moodDetail}`;
-	}
-
-	return `${user.name} - ${label}`;
-}
-
-/**
- * Calculate time remaining for a user (in ms)
- */
-export function getTimeRemaining(user: SimulatedUser): number {
-	return Math.max(0, user.departureTime - Date.now());
-}
-
-/**
  * Check if user should have departed
  */
 export function shouldDepart(user: SimulatedUser): boolean {

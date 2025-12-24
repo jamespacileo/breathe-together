@@ -1,9 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_CONFIG } from '../lib/config';
-import {
-	calculateTargetScale,
-	toFramerSpringConfig,
-} from './useBreathingSpring';
+import { calculateTargetScale } from './useBreathingSpring';
 import type { BreathState } from './useBreathSync';
 
 describe('calculateTargetScale', () => {
@@ -133,25 +130,6 @@ describe('calculateTargetScale', () => {
 		// At 50% progress during 'in', should be halfway between out and in scales
 		// 1.2 - (1.2 - 0.7) * 0.5 = 1.2 - 0.25 = 0.95
 		expect(scale).toBeCloseTo(0.95, 2);
-	});
-});
-
-describe('toFramerSpringConfig', () => {
-	it('should convert tension and friction to Framer spring config', () => {
-		const config = toFramerSpringConfig(100, 20);
-
-		expect(config).toEqual({
-			stiffness: 100,
-			damping: 20,
-			restDelta: 0.001,
-		});
-	});
-
-	it('should handle different tension/friction values', () => {
-		const config = toFramerSpringConfig(200, 30);
-
-		expect(config.stiffness).toBe(200);
-		expect(config.damping).toBe(30);
 	});
 });
 

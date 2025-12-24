@@ -3,12 +3,6 @@ import { useEffect } from 'react';
 import type { VisualizationConfig } from '../lib/config';
 import type { BreathState } from './useBreathSync';
 
-export interface BreathingSpringConfig {
-	stiffness: number; // Maps to tension
-	damping: number; // Maps to friction
-	restDelta?: number; // Threshold for "at rest"
-}
-
 /**
  * Calculate target scale based on breath phase and progress
  */
@@ -94,26 +88,4 @@ export function useBreathingSpring(
 	]);
 
 	return scale;
-}
-
-/**
- * Convert our Spring class parameters to Framer Motion spring config
- *
- * Our Spring class:
- * - tension: spring stiffness (higher = faster)
- * - friction: damping (higher = less bouncy)
- *
- * Framer Motion:
- * - stiffness: spring constant (same as tension)
- * - damping: resistance (same as friction)
- */
-export function toFramerSpringConfig(
-	tension: number,
-	friction: number,
-): BreathingSpringConfig {
-	return {
-		stiffness: tension,
-		damping: friction,
-		restDelta: 0.001,
-	};
 }

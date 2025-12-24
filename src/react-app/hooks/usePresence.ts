@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PopulationSnapshot } from '../lib/simulation';
-import type { MoodId } from '../lib/simulationConfig';
+import { EMPTY_MOODS, type MoodId } from '../lib/simulationConfig';
 import type { SimulatedUser } from '../lib/userGenerator';
 
 export interface PresenceData {
@@ -28,27 +28,9 @@ async function fetchPresence(): Promise<PresenceData> {
 	// Ensure moods object exists
 	return {
 		count: data.count ?? 0,
-		moods: data.moods ?? {
-			moment: 0,
-			anxious: 0,
-			processing: 0,
-			preparing: 0,
-			grateful: 0,
-			celebrating: 0,
-			here: 0,
-		},
+		moods: data.moods ?? EMPTY_MOODS,
 	};
 }
-
-const EMPTY_MOODS: Record<MoodId, number> = {
-	moment: 0,
-	anxious: 0,
-	processing: 0,
-	preparing: 0,
-	grateful: 0,
-	celebrating: 0,
-	here: 0,
-};
 
 /**
  * Hook for tracking global presence

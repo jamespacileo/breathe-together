@@ -2,11 +2,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
 	getSimulationEngine,
 	type PopulationSnapshot,
-	resetSimulationEngine,
 	type SimulationEngine,
 } from '../lib/simulation';
 import {
 	DEFAULT_SIMULATION_CONFIG,
+	EMPTY_MOODS,
 	type SimulationConfig,
 } from '../lib/simulationConfig';
 
@@ -36,15 +36,7 @@ export interface UseSimulationResult {
 const EMPTY_SNAPSHOT: PopulationSnapshot = {
 	count: 0,
 	users: [],
-	moods: {
-		moment: 0,
-		anxious: 0,
-		processing: 0,
-		preparing: 0,
-		grateful: 0,
-		celebrating: 0,
-		here: 0,
-	},
+	moods: EMPTY_MOODS,
 	timestamp: Date.now(),
 };
 
@@ -149,32 +141,4 @@ export function useSimulation(
 		updateConfig,
 		config: configRef.current,
 	};
-}
-
-/**
- * Hook to get just the population count (lighter weight)
- */
-export function useSimulationCount(
-	initialConfig: Partial<SimulationConfig> = {},
-): number {
-	const { snapshot } = useSimulation(initialConfig);
-	return snapshot.count;
-}
-
-/**
- * Hook to get mood distribution (for visualization)
- */
-export function useSimulationMoods(
-	initialConfig: Partial<SimulationConfig> = {},
-): PopulationSnapshot['moods'] {
-	const { snapshot } = useSimulation(initialConfig);
-	return snapshot.moods;
-}
-
-/**
- * Reset the global simulation engine
- * Call when unmounting the app or switching modes
- */
-export function useSimulationCleanup(): () => void {
-	return resetSimulationEngine;
 }

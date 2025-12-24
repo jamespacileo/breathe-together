@@ -1,5 +1,9 @@
 import PoissonProcess from 'poisson-process';
-import type { MoodId, SimulationConfig } from './simulationConfig';
+import {
+	EMPTY_MOODS,
+	type MoodId,
+	type SimulationConfig,
+} from './simulationConfig';
 import {
 	generateUser,
 	type SimulatedUser,
@@ -136,15 +140,7 @@ export class SimulationEngine {
 		const users = Array.from(this.users.values());
 
 		// Count users per mood
-		const moods: Record<MoodId, number> = {
-			moment: 0,
-			anxious: 0,
-			processing: 0,
-			preparing: 0,
-			grateful: 0,
-			celebrating: 0,
-			here: 0,
-		};
+		const moods: Record<MoodId, number> = { ...EMPTY_MOODS };
 
 		for (const user of users) {
 			moods[user.mood]++;

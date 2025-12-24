@@ -69,6 +69,19 @@ export const SimulationConfigSchema = z.object({
 export type SimulationConfig = z.infer<typeof SimulationConfigSchema>;
 
 /**
+ * Empty mood counts - used as initial/default state
+ */
+export const EMPTY_MOODS: Record<MoodId, number> = {
+	moment: 0,
+	anxious: 0,
+	processing: 0,
+	preparing: 0,
+	grateful: 0,
+	celebrating: 0,
+	here: 0,
+};
+
+/**
  * Default mood distribution - roughly balanced with realistic proportions
  */
 export const DEFAULT_MOOD_DISTRIBUTION: MoodDistribution = {
