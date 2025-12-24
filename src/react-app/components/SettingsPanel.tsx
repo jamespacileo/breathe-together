@@ -1,80 +1,6 @@
-import { ChevronRight, Palette, Settings, Sparkles, X } from 'lucide-react';
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { ChevronRight, Palette, Settings, X } from 'lucide-react';
 import type { VisualizationConfig } from '../lib/config';
 import { IconButton } from './ui/icon-button';
-import { Slider } from './ui/slider';
-
-interface ConfigSliderProps {
-	label: string;
-	value: number;
-	onChange: (value: number) => void;
-	min: number;
-	max: number;
-	step?: number;
-}
-
-const ConfigSlider = memo(function ConfigSlider({
-	label,
-	value,
-	onChange,
-	min,
-	max,
-	step = 0.01,
-}: ConfigSliderProps) {
-	const [localValue, setLocalValue] = useState(value);
-	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-	const isInteractingRef = useRef(false);
-
-	useEffect(() => {
-		if (!isInteractingRef.current) {
-			setLocalValue(value);
-		}
-	}, [value]);
-
-	const handleChange = useCallback(
-		(newValue: number) => {
-			isInteractingRef.current = true;
-			setLocalValue(newValue);
-
-			if (debounceRef.current) {
-				clearTimeout(debounceRef.current);
-			}
-			debounceRef.current = setTimeout(() => {
-				onChange(newValue);
-				isInteractingRef.current = false;
-			}, 16);
-		},
-		[onChange],
-	);
-
-	useEffect(() => {
-		return () => {
-			if (debounceRef.current) {
-				clearTimeout(debounceRef.current);
-			}
-		};
-	}, []);
-
-	return (
-		<div className="mb-3">
-			<div className="flex justify-between text-xs mb-1.5">
-				<span className="text-white/70">{label}</span>
-				<span className="font-mono text-white/90">
-					{typeof localValue === 'number'
-						? localValue.toFixed(step < 1 ? 2 : 0)
-						: localValue}
-				</span>
-			</div>
-			<Slider
-				value={[localValue]}
-				onValueChange={([v]) => handleChange(v)}
-				min={min}
-				max={max}
-				step={step}
-			/>
-		</div>
-	);
-});
 
 interface ColorPickerProps {
 	label: string;
@@ -164,28 +90,6 @@ export function SettingsPanel({
 						label="Background"
 						value={config.backgroundColor}
 						onChange={(v) => updateConfig('backgroundColor', v)}
-					/>
-				</section>
-
-				{/* Animation Section */}
-				<section>
-					<div className="flex items-center gap-2 text-xs uppercase tracking-wide text-white/70 mb-3">
-						<Sparkles className="h-4 w-4" />
-						Animation
-					</div>
-					<ConfigSlider
-						label="Glow Intensity"
-						value={config.glowIntensity}
-						onChange={(v) => updateConfig('glowIntensity', v)}
-						min={0}
-						max={1}
-					/>
-					<ConfigSlider
-						label="Motion Trails"
-						value={config.trailFade}
-						onChange={(v) => updateConfig('trailFade', v)}
-						min={0.01}
-						max={1}
 					/>
 				</section>
 
