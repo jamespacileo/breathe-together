@@ -16,19 +16,21 @@ export function PatternSelector({
 }: PatternSelectorProps) {
 	return (
 		<motion.div
-			initial={{ opacity: 0, x: 20 }}
-			animate={{ opacity: 1, x: 0 }}
-			transition={{ duration: 0.5, delay: 0.2 }}
+			initial={{ opacity: 0, scale: 0.95 }}
+			animate={{ opacity: 1, scale: 1 }}
+			transition={{ duration: 0.4, delay: 0.1 }}
 		>
 			<ToggleGroup
 				type="single"
 				value={pattern}
 				onValueChange={(value) => value && onChange(value as PatternId)}
 				className={cn(
-					// Cosmic glass container
+					// Mobile-first: vertical stack, horizontal on larger screens
 					'flex-col sm:flex-row',
-					'bg-gradient-to-r from-void-light/70 via-nebula-deep/15 to-void-light/70',
-					'shadow-[0_0_40px_rgba(107,33,168,0.1)]',
+					// Minimal glass container
+					'bg-stellar-ghost/30 backdrop-blur-md',
+					'border border-stellar-ghost',
+					'shadow-sm',
 					className,
 				)}
 			>
@@ -38,7 +40,9 @@ export function PatternSelector({
 						value={key}
 						aria-label={`${cfg.name} breathing pattern`}
 						className={cn(
-							'min-h-[44px] sm:min-h-0 px-4 py-2.5 sm:py-2',
+							// Touch-friendly sizing
+							'min-h-[44px] px-3 py-2',
+							'text-xs sm:text-sm',
 							'font-light tracking-wide',
 						)}
 					>

@@ -5,7 +5,7 @@ export interface IconButtonProps
 	extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 	'aria-label': string;
 	size?: 'sm' | 'md' | 'lg';
-	variant?: 'default' | 'cosmic' | 'ghost';
+	variant?: 'default' | 'cosmic' | 'ghost' | 'minimal';
 }
 
 const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
@@ -30,6 +30,9 @@ const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
 						// Ghost: minimal
 						'bg-transparent text-stellar-muted hover:text-stellar hover:bg-stellar-ghost':
 							variant === 'ghost',
+						// Minimal: clean game-like style
+						'bg-stellar-ghost/50 text-stellar-muted border border-stellar-ghost hover:bg-stellar-ghost hover:text-stellar hover:border-stellar-faint active:scale-95 backdrop-blur-sm':
+							variant === 'minimal',
 					},
 					// Sizes (with touch-friendly minimums)
 					{

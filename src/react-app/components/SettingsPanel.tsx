@@ -144,9 +144,10 @@ export function SettingsPanel({
 				<IconButton
 					onClick={() => setIsOpen(true)}
 					aria-label="Open settings"
-					variant="default"
+					variant="minimal"
+					size="sm"
 				>
-					<Settings className="h-5 w-5" />
+					<Settings className="h-4 w-4" />
 				</IconButton>
 			</motion.div>
 		);
@@ -155,15 +156,15 @@ export function SettingsPanel({
 	return (
 		<AnimatePresence>
 			<motion.div
-				initial={{ opacity: 0, x: -20, scale: 0.95 }}
+				initial={{ opacity: 0, x: -10, scale: 0.95 }}
 				animate={{ opacity: 1, x: 0, scale: 1 }}
-				exit={{ opacity: 0, x: -20, scale: 0.95 }}
-				transition={{ duration: 0.3, ease: 'easeOut' }}
-				className="w-[calc(100vw-1.5rem)] sm:w-72 max-h-[85vh] sm:max-h-[90vh] overflow-y-auto cosmic-glass rounded-2xl text-sm"
+				exit={{ opacity: 0, x: -10, scale: 0.95 }}
+				transition={{ duration: 0.25, ease: 'easeOut' }}
+				className="w-[calc(100vw-2rem)] sm:w-64 max-h-[70vh] sm:max-h-[85vh] overflow-y-auto bg-stellar-ghost/40 backdrop-blur-xl border border-stellar-ghost rounded-xl text-sm"
 			>
 				{/* Header */}
-				<div className="sticky top-0 z-10 bg-gradient-to-b from-void-light/95 to-void-light/80 backdrop-blur-xl p-4 border-b border-stellar-ghost flex justify-between items-center">
-					<span className="font-serif text-lg font-light tracking-wide text-stellar">
+				<div className="sticky top-0 z-10 bg-void-light/90 backdrop-blur-xl px-3 py-2.5 border-b border-stellar-ghost flex justify-between items-center">
+					<span className="text-sm font-light tracking-wide text-stellar">
 						Settings
 					</span>
 					<IconButton
@@ -176,11 +177,11 @@ export function SettingsPanel({
 					</IconButton>
 				</div>
 
-				<div className="p-5 space-y-6">
+				<div className="p-3 space-y-4">
 					{/* Theme Section */}
 					<section>
-						<div className="flex items-center gap-2 text-xs uppercase tracking-[0.15em] text-nebula-soft mb-4">
-							<Palette className="h-4 w-4" />
+						<div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-stellar-muted mb-3">
+							<Palette className="h-3.5 w-3.5" />
 							<span>Theme</span>
 						</div>
 						<ColorPicker
@@ -197,8 +198,8 @@ export function SettingsPanel({
 
 					{/* Animation Section */}
 					<section>
-						<div className="flex items-center gap-2 text-xs uppercase tracking-[0.15em] text-aurora-bright mb-4">
-							<Sparkles className="h-4 w-4" />
+						<div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.12em] text-stellar-muted mb-3">
+							<Sparkles className="h-3.5 w-3.5" />
 							<span>Animation</span>
 						</div>
 						<ConfigSlider
