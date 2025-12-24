@@ -1,4 +1,4 @@
-import { ChevronRight, Palette, Settings, Sparkles, X } from 'lucide-react';
+import { ChevronRight, Palette, Settings, X } from 'lucide-react';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import type { VisualizationConfig } from '../lib/config';
 import { IconButton } from './ui/icon-button';
@@ -164,28 +164,6 @@ export function SettingsPanel({
 						label="Background"
 						value={config.backgroundColor}
 						onChange={(v) => updateConfig('backgroundColor', v)}
-					/>
-				</section>
-
-				{/* Animation Section */}
-				<section>
-					<div className="flex items-center gap-2 text-xs uppercase tracking-wide text-white/70 mb-3">
-						<Sparkles className="h-4 w-4" />
-						Animation
-					</div>
-					<ConfigSlider
-						label="Glow Intensity"
-						value={config.glowIntensity}
-						onChange={(v) => updateConfig('glowIntensity', v)}
-						min={0}
-						max={1}
-					/>
-					<ConfigSlider
-						label="Motion Trails"
-						value={config.trailFade}
-						onChange={(v) => updateConfig('trailFade', v)}
-						min={0.01}
-						max={1}
 					/>
 				</section>
 

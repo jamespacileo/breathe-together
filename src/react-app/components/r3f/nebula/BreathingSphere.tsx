@@ -153,7 +153,7 @@ interface BreathingSphereProps {
 export function BreathingSphere({
 	breathState,
 	config,
-	userCount,
+	userCount: _userCount,
 }: BreathingSphereProps) {
 	const materialRef = useRef<THREE.ShaderMaterial>(null);
 	const geometryRef = useRef<THREE.BufferGeometry>(null);
