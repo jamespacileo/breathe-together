@@ -70,7 +70,7 @@ describe('useBreathSync', () => {
 		expect(result.current.phase).toBe('in');
 
 		// Switch to relaxation pattern
-		rerender({ pattern: 'relaxation' as PatternId });
+		rerender({ pattern: 'relaxation' });
 
 		// Relaxation pattern also starts with 'in' but has different timing
 		expect(result.current.phase).toBe('in');
