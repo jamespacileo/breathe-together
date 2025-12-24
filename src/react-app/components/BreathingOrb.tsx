@@ -3,7 +3,7 @@ import type { BreathState } from '../hooks/useBreathSync';
 import type { PresenceData } from '../hooks/usePresence';
 import type { VisualizationConfig } from '../lib/config';
 import { BreathingFallback, ErrorBoundary } from './ErrorBoundary';
-import { BreathingScene } from './r3f/BreathingScene';
+import { ParticleBreathing } from './ParticleBreathing';
 
 interface BreathingOrbProps {
 	breathState: BreathState;
@@ -13,32 +13,23 @@ interface BreathingOrbProps {
 
 /**
  * Main breathing visualization component
- * Uses React Three Fiber for GPU-accelerated particle rendering
+ * Uses Three.js for GPU-accelerated particle rendering
  */
 export function BreathingOrb({
 	breathState,
-	presence,
+	presence: _presence,
 	config,
 }: BreathingOrbProps) {
 	return (
-		<div
-			className="absolute inset-0 overflow-hidden"
-			style={{
-				background: `linear-gradient(135deg, ${config.backgroundColor} 0%, ${config.backgroundColorMid} 50%, ${config.backgroundColor} 100%)`,
-			}}
-		>
-			{/* React Three Fiber scene with error boundary for GPU failures */}
+		<div className="absolute inset-0 overflow-hidden">
+			{/* Three.js particle scene with error boundary for GPU failures */}
 			<ErrorBoundary
 				fallback={<BreathingFallback />}
 				onError={(error) => {
-					console.error('WebGL/R3F error:', error.message);
+					console.error('WebGL error:', error.message);
 				}}
 			>
-				<BreathingScene
-					breathState={breathState}
-					presence={presence}
-					config={config}
-				/>
+				<ParticleBreathing breathState={breathState} config={config} />
 			</ErrorBoundary>
 
 			{/* Breathing guide - centered below the orb */}

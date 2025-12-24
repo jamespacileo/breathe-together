@@ -85,6 +85,73 @@ export const VisualizationConfigSchema = z.object({
 		.describe('Luminance threshold for bloom'),
 	bloomRadius: z.number().min(0).max(1).describe('Bloom blur radius'),
 
+	// Animation Effects
+	glowIntensity: z.number().min(0).max(1).describe('Glow effect intensity'),
+	trailFade: z.number().min(0.01).max(1).describe('Motion trail fade amount'),
+
+	// Firefly Particles
+	fireflyCount: z
+		.number()
+		.int()
+		.min(10)
+		.max(500)
+		.describe('Maximum visible firefly particles'),
+	fireflyFadeIn: z
+		.number()
+		.min(100)
+		.max(5000)
+		.describe('Firefly fade-in duration (ms)'),
+	fireflyFadeOut: z
+		.number()
+		.min(100)
+		.max(5000)
+		.describe('Firefly fade-out duration (ms)'),
+	fireflyResampleInterval: z
+		.number()
+		.min(500)
+		.max(10000)
+		.describe('Firefly resample interval (ms)'),
+	fireflyPulseSpeed: z
+		.number()
+		.min(0.0001)
+		.max(0.05)
+		.describe('Firefly pulse animation speed'),
+	fireflySize: z.number().min(1).max(50).describe('Firefly particle size'),
+
+	// Presence Ring/Ribbon
+	presenceRadius: z
+		.number()
+		.min(0.3)
+		.max(3)
+		.describe('Presence ring radius multiplier'),
+	presenceOpacity: z
+		.number()
+		.min(0)
+		.max(1)
+		.describe('Presence ring base opacity'),
+	ribbonSegments: z
+		.number()
+		.int()
+		.min(16)
+		.max(256)
+		.describe('Number of ribbon arc segments'),
+	ribbonBaseWidth: z.number().min(0.5).max(20).describe('Base ribbon width'),
+	ribbonScaleFactor: z
+		.number()
+		.min(0.01)
+		.max(2)
+		.describe('Ribbon scale factor based on user count'),
+	ribbonPulseAmount: z
+		.number()
+		.min(0)
+		.max(0.05)
+		.describe('Ribbon breathing pulse amplitude'),
+	ribbonBlendWidth: z
+		.number()
+		.min(0.01)
+		.max(0.5)
+		.describe('Ribbon edge blend/fade width'),
+
 	// Colors
 	primaryColor: z
 		.string()
@@ -154,6 +221,27 @@ export const DEFAULT_CONFIG: VisualizationConfig = {
 	bloomStrength: 0.3,
 	bloomThreshold: 0.6,
 	bloomRadius: 0.3,
+
+	// Animation Effects
+	glowIntensity: 0.6,
+	trailFade: 0.15,
+
+	// Firefly Particles
+	fireflyCount: 100,
+	fireflyFadeIn: 1000,
+	fireflyFadeOut: 1500,
+	fireflyResampleInterval: 3000,
+	fireflyPulseSpeed: 0.003,
+	fireflySize: 8,
+
+	// Presence Ring/Ribbon
+	presenceRadius: 1.2,
+	presenceOpacity: 0.7,
+	ribbonSegments: 64,
+	ribbonBaseWidth: 4,
+	ribbonScaleFactor: 0.3,
+	ribbonPulseAmount: 0.01,
+	ribbonBlendWidth: 0.15,
 
 	// Colors
 	primaryColor: '#7EB5C1',

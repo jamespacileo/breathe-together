@@ -130,8 +130,6 @@ function getPatternShortName(pattern: PatternId): string {
 			return 'Box';
 		case 'relaxation':
 			return '4-7-8';
-		default:
-			return PATTERNS[pattern].name;
 	}
 }
 
@@ -141,7 +139,5 @@ function getPatternDescription(pattern: PatternId): string {
 			return '4-4-4-4 balanced';
 		case 'relaxation':
 			return '4-7-8 calming';
-		default:
-			return '';
 	}
 }

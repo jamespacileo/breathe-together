@@ -62,12 +62,10 @@ describe('useBreathSync', () => {
 
 	it('should respond to pattern change', async () => {
 		vi.setSystemTime(0);
-		const { result, rerender } = renderHook<
-			ReturnType<typeof useBreathSync>,
-			{ pattern: PatternId }
-		>(({ pattern }) => useBreathSync(pattern), {
-			initialProps: { pattern: 'box' },
-		});
+		const { result, rerender } = renderHook(
+			({ pattern }: { pattern: PatternId }) => useBreathSync(pattern),
+			{ initialProps: { pattern: 'box' as PatternId } },
+		);
 
 		expect(result.current.phase).toBe('in');
 
