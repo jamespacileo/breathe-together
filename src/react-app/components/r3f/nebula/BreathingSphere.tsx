@@ -213,7 +213,6 @@ export function BreathingSphere({
 }: BreathingSphereProps) {
 	const materialRef = useRef<THREE.ShaderMaterial>(null);
 	const geometryRef = useRef<THREE.BufferGeometry>(null);
-	const startTimeRef = useRef(performance.now() / 1000);
 	const breathStateRef = useRef(breathState);
 	const prevUserCountRef = useRef(0);
 	breathStateRef.current = breathState;
