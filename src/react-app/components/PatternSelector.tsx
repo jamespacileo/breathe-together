@@ -19,7 +19,6 @@ export function PatternSelector({
 	const containerRef = useRef<HTMLDivElement>(null);
 	const currentPattern = PATTERNS[pattern];
 
-	// Close on outside click
 	useEffect(() => {
 		function handleClickOutside(event: MouseEvent) {
 			if (
@@ -45,9 +44,9 @@ export function PatternSelector({
 	return (
 		<motion.div
 			ref={containerRef}
-			initial={{ opacity: 0, x: 10 }}
-			animate={{ opacity: 1, x: 0 }}
-			transition={{ duration: 0.5, delay: 0.3 }}
+			initial={{ opacity: 0 }}
+			animate={{ opacity: 1 }}
+			transition={{ duration: 0.8, delay: 0.4 }}
 			className={cn('relative', className)}
 		>
 			<button
@@ -57,19 +56,24 @@ export function PatternSelector({
 				aria-haspopup="listbox"
 				aria-label={`Current pattern: ${currentPattern.name}. Click to change.`}
 				className={cn(
-					'flex items-center gap-1.5 px-3 py-1.5 rounded-full',
-					'bg-white/5 backdrop-blur-sm border border-white/10',
-					'text-white/70 text-xs font-light',
-					'hover:bg-white/10 hover:border-white/20 transition-all',
-					'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30',
+					'group flex items-center gap-1.5 px-3 py-1.5 rounded-full',
+					'bg-white/[0.03] border border-white/[0.06]',
+					'text-white/50 text-xs tracking-wide',
+					'hover:bg-white/[0.06] hover:text-white/70 hover:border-white/10',
+					'transition-all duration-300',
+					'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20',
 					'min-h-[36px]',
 				)}
 			>
-				<span className="hidden sm:inline">{currentPattern.name}</span>
-				<span className="sm:hidden">{getPatternShortName(pattern)}</span>
+				<span className="hidden sm:inline font-light">
+					{currentPattern.name}
+				</span>
+				<span className="sm:hidden font-light">
+					{getPatternShortName(pattern)}
+				</span>
 				<ChevronDown
 					className={cn(
-						'h-3.5 w-3.5 transition-transform',
+						'h-3 w-3 opacity-40 transition-transform duration-200',
 						isOpen && 'rotate-180',
 					)}
 				/>
@@ -78,16 +82,17 @@ export function PatternSelector({
 			<AnimatePresence>
 				{isOpen && (
 					<motion.div
-						initial={{ opacity: 0, y: -8, scale: 0.95 }}
-						animate={{ opacity: 1, y: 0, scale: 1 }}
-						exit={{ opacity: 0, y: -8, scale: 0.95 }}
+						initial={{ opacity: 0, y: -4 }}
+						animate={{ opacity: 1, y: 0 }}
+						exit={{ opacity: 0, y: -4 }}
 						transition={{ duration: 0.15 }}
 						role="listbox"
 						className={cn(
-							'absolute right-0 mt-1.5 py-1',
-							'bg-black/80 backdrop-blur-md border border-white/15 rounded-xl',
-							'shadow-xl shadow-black/30',
-							'min-w-[140px]',
+							'absolute right-0 mt-2 py-1.5',
+							'bg-[#0c1220]/95 backdrop-blur-xl',
+							'border border-white/[0.08] rounded-lg',
+							'shadow-2xl shadow-black/50',
+							'min-w-[160px]',
 						)}
 					>
 						{Object.entries(PATTERNS).map(([key, cfg]) => (
@@ -98,14 +103,16 @@ export function PatternSelector({
 								aria-selected={pattern === key}
 								onClick={() => handleSelect(key as PatternId)}
 								className={cn(
-									'w-full px-3 py-2 text-left text-sm transition-colors',
-									'hover:bg-white/10',
-									'focus-visible:outline-none focus-visible:bg-white/10',
-									pattern === key ? 'text-white bg-white/5' : 'text-white/70',
+									'w-full px-3 py-2.5 text-left transition-colors duration-150',
+									'hover:bg-white/[0.04]',
+									'focus-visible:outline-none focus-visible:bg-white/[0.04]',
+									pattern === key
+										? 'text-white/90'
+										: 'text-white/50 hover:text-white/70',
 								)}
 							>
-								<div className="font-medium">{cfg.name}</div>
-								<div className="text-xs text-white/40 mt-0.5">
+								<div className="font-display text-sm italic">{cfg.name}</div>
+								<div className="text-[10px] text-white/30 mt-0.5 tracking-wide">
 									{getPatternDescription(key as PatternId)}
 								</div>
 							</button>

@@ -1,13 +1,31 @@
 @import "tailwindcss";
 
 :root {
-	font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+	/* Typography */
+	--font-display: "Cormorant Garamond", Georgia, serif;
+	--font-body: "Outfit", system-ui, sans-serif;
+
+	/* Color palette - twilight cosmos */
+	--color-void: #080c14;
+	--color-deep: #0c1220;
+	--color-surface: #111827;
+	--color-mist: rgba(255, 255, 255, 0.04);
+	--color-ghost: rgba(255, 255, 255, 0.08);
+	--color-whisper: rgba(255, 255, 255, 0.15);
+	--color-soft: rgba(255, 255, 255, 0.5);
+	--color-text: rgba(255, 255, 255, 0.85);
+
+	/* Accent */
+	--color-glow: rgba(147, 197, 210, 0.6);
+	--color-aura: rgba(147, 197, 210, 0.15);
+
+	font-family: var(--font-body);
 	line-height: 1.5;
-	font-weight: 400;
+	font-weight: 300;
 
 	color-scheme: dark;
-	color: rgba(255, 255, 255, 0.87);
-	background-color: #0f1723;
+	color: var(--color-text);
+	background-color: var(--color-void);
 
 	font-synthesis: none;
 	text-rendering: optimizeLegibility;
@@ -26,6 +44,11 @@ body {
 	min-height: 100dvh;
 	overflow: hidden;
 	touch-action: manipulation;
+	background: radial-gradient(
+		ellipse at 50% 0%,
+		var(--color-deep) 0%,
+		var(--color-void) 70%
+	);
 }
 
 /* Prevent iOS zoom on input focus */
@@ -35,4 +58,39 @@ body {
 	textarea {
 		font-size: 16px;
 	}
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+	width: 4px;
+}
+
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--color-whisper);
+	border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: var(--color-soft);
+}
+
+/* Selection */
+::selection {
+	background: var(--color-aura);
+	color: white;
+}
+
+/* Focus styles */
+:focus-visible {
+	outline: 1px solid var(--color-glow);
+	outline-offset: 2px;
+}
+
+/* Display font class */
+.font-display {
+	font-family: var(--font-display);
 }

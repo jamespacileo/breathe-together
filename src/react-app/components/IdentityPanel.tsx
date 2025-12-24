@@ -45,9 +45,9 @@ export function IdentityPanel({
 
 	return (
 		<Dialog open onOpenChange={(open) => !open && onClose()}>
-			<DialogContent className="max-w-xs sm:max-w-sm mx-4 sm:mx-auto max-h-[85vh] overflow-y-auto">
+			<DialogContent className="max-w-xs sm:max-w-sm mx-4 sm:mx-auto max-h-[85vh] overflow-y-auto bg-[#0c1220]/95 border-white/[0.06]">
 				<DialogHeader>
-					<DialogTitle className="text-center font-light text-lg">
+					<DialogTitle className="text-center font-display text-xl italic font-light text-white/80">
 						Join the circle
 					</DialogTitle>
 				</DialogHeader>
@@ -162,26 +162,28 @@ export function UserBadge({ user, onClick }: UserBadgeProps) {
 	return (
 		<motion.button
 			type="button"
-			initial={{ opacity: 0, y: 20 }}
+			initial={{ opacity: 0, y: 16 }}
 			animate={{ opacity: 1, y: 0 }}
-			transition={{ duration: 0.5, delay: 0.4 }}
+			transition={{ duration: 0.6, delay: 0.5, ease: [0.23, 1, 0.32, 1] }}
 			onClick={onClick}
 			className={cn(
 				'flex items-center gap-2.5 pl-1.5 pr-4 py-1.5',
-				'bg-white/5 backdrop-blur-sm border border-white/10 rounded-full',
+				'bg-white/[0.03] backdrop-blur-sm border border-white/[0.06] rounded-full',
 				'text-white cursor-pointer',
-				'hover:bg-white/10 hover:border-white/20 transition-all',
-				'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30',
+				'hover:bg-white/[0.06] hover:border-white/10 transition-all duration-300',
+				'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20',
 			)}
 		>
 			<div
-				className="w-8 h-8 rounded-full shrink-0"
+				className="w-7 h-7 rounded-full shrink-0 opacity-90"
 				style={{ background: getAvatarGradient(user.avatar) }}
 			/>
 			<div className="text-left">
-				<div className="font-medium text-sm leading-tight">{user.name}</div>
+				<div className="font-display text-sm leading-tight italic text-white/80">
+					{user.name}
+				</div>
 				{mood ? (
-					<div className="text-[11px] text-white/50 truncate max-w-[100px] sm:max-w-[140px] leading-tight">
+					<div className="text-[10px] text-white/40 truncate max-w-[100px] sm:max-w-[140px] leading-tight tracking-wide">
 						{mood.label}
 						{user.moodDetail ? ` ${user.moodDetail}` : ''}
 					</div>
@@ -197,23 +199,22 @@ interface JoinButtonProps {
 
 export function JoinButton({ onClick }: JoinButtonProps) {
 	return (
-		<motion.div
-			initial={{ opacity: 0, y: 20 }}
-			animate={{ opacity: 1, y: 0 }}
-			transition={{ duration: 0.5, delay: 0.4 }}
+		<motion.button
+			type="button"
+			initial={{ opacity: 0 }}
+			animate={{ opacity: 1 }}
+			transition={{ duration: 0.8, delay: 0.6 }}
+			onClick={onClick}
+			className={cn(
+				'px-5 py-2 rounded-full',
+				'bg-white/[0.02] border border-white/[0.05]',
+				'font-display text-sm italic text-white/50',
+				'hover:bg-white/[0.04] hover:text-white/70 hover:border-white/10',
+				'transition-all duration-300',
+				'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20',
+			)}
 		>
-			<Button
-				onClick={onClick}
-				variant="ghost"
-				className={cn(
-					'rounded-full px-5 py-2 h-auto',
-					'bg-white/5 border border-white/10 backdrop-blur-sm',
-					'text-white/70 text-sm font-light',
-					'hover:bg-white/10 hover:text-white hover:border-white/20',
-				)}
-			>
-				Join the circle
-			</Button>
-		</motion.div>
+			Join the circle
+		</motion.button>
 	);
 }

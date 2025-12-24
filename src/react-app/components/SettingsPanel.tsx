@@ -127,19 +127,19 @@ export function SettingsPanel({
 			{/* Settings toggle button */}
 			<motion.button
 				type="button"
-				initial={{ opacity: 0, x: -10 }}
-				animate={{ opacity: 1, x: 0 }}
-				transition={{ duration: 0.5, delay: 0.1 }}
+				initial={{ opacity: 0 }}
+				animate={{ opacity: 1 }}
+				transition={{ duration: 0.8, delay: 0.2 }}
 				onClick={() => setIsOpen(!isOpen)}
 				aria-label={isOpen ? 'Close settings' : 'Open settings'}
 				aria-expanded={isOpen}
 				className={cn(
-					'flex items-center justify-center rounded-full transition-all',
-					'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30',
+					'flex items-center justify-center rounded-full transition-all duration-300',
+					'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20',
 					'w-9 h-9 min-h-[44px] min-w-[44px]',
 					isOpen
-						? 'bg-white/15 text-white'
-						: 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white/70',
+						? 'bg-white/[0.08] text-white/70'
+						: 'bg-white/[0.03] text-white/30 hover:bg-white/[0.06] hover:text-white/50',
 				)}
 			>
 				<Settings className="h-4 w-4" />
@@ -149,27 +149,27 @@ export function SettingsPanel({
 			<AnimatePresence>
 				{isOpen && (
 					<motion.div
-						initial={{ opacity: 0, y: -8, scale: 0.95 }}
-						animate={{ opacity: 1, y: 0, scale: 1 }}
-						exit={{ opacity: 0, y: -8, scale: 0.95 }}
+						initial={{ opacity: 0, y: -4 }}
+						animate={{ opacity: 1, y: 0 }}
+						exit={{ opacity: 0, y: -4 }}
 						transition={{ duration: 0.15 }}
 						className={cn(
 							'absolute top-11 left-0',
-							'w-[calc(100vw-2rem)] sm:w-56 max-h-[65vh] overflow-y-auto',
-							'bg-black/90 backdrop-blur-xl border border-white/10 rounded-xl',
-							'text-white text-sm shadow-2xl shadow-black/50',
+							'w-[calc(100vw-2rem)] sm:w-52 max-h-[60vh] overflow-y-auto',
+							'bg-[#0c1220]/95 backdrop-blur-xl border border-white/[0.06] rounded-lg',
+							'text-white text-sm shadow-2xl shadow-black/60',
 						)}
 					>
 						{/* Header */}
-						<div className="sticky top-0 bg-black/90 backdrop-blur-sm px-4 py-3 border-b border-white/5 flex justify-between items-center">
-							<span className="text-xs font-medium uppercase tracking-wider text-white/70">
+						<div className="sticky top-0 bg-[#0c1220]/90 backdrop-blur-sm px-4 py-3 border-b border-white/[0.04] flex justify-between items-center">
+							<span className="font-display text-sm italic text-white/60">
 								Settings
 							</span>
 							<button
 								type="button"
 								onClick={() => setIsOpen(false)}
 								aria-label="Close"
-								className="p-1 rounded-full text-white/40 hover:text-white/70 hover:bg-white/10 transition-colors"
+								className="p-1 rounded-full text-white/30 hover:text-white/60 hover:bg-white/[0.06] transition-colors"
 							>
 								<X className="h-3.5 w-3.5" />
 							</button>
@@ -178,8 +178,8 @@ export function SettingsPanel({
 						<div className="p-4 space-y-5">
 							{/* Theme Section */}
 							<section>
-								<div className="flex items-center gap-2 text-xs uppercase tracking-wider text-white/50 mb-3">
-									<Palette className="h-3.5 w-3.5" />
+								<div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-white/30 mb-3">
+									<Palette className="h-3 w-3" />
 									Theme
 								</div>
 								<ColorPicker
@@ -196,8 +196,8 @@ export function SettingsPanel({
 
 							{/* Animation Section */}
 							<section>
-								<div className="flex items-center gap-2 text-xs uppercase tracking-wider text-white/50 mb-3">
-									<Sparkles className="h-3.5 w-3.5" />
+								<div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-white/30 mb-3">
+									<Sparkles className="h-3 w-3" />
 									Animation
 								</div>
 								<ConfigSlider
