@@ -3,7 +3,7 @@ import type { BreathState } from '../../hooks/useBreathSync';
 import type { PresenceData } from '../../hooks/usePresence';
 import type { VisualizationConfig } from '../../lib/visualConfig';
 import { BreathingFallback, ErrorBoundary } from '../ErrorBoundary';
-import { ParticleBreathing } from './ParticleBreathing';
+import { GPGPUScene } from '../GPGPUParticles';
 
 interface BreathingOrbProps {
 	breathState: BreathState;
@@ -22,14 +22,14 @@ export function BreathingOrb({
 }: BreathingOrbProps) {
 	return (
 		<div className="absolute inset-0 overflow-hidden">
-			{/* Three.js particle scene with error boundary for GPU failures */}
+			{/* Three.js GPGPU particle scene with error boundary for GPU failures */}
 			<ErrorBoundary
 				fallback={<BreathingFallback />}
 				onError={(error) => {
 					console.error('WebGL error:', error.message);
 				}}
 			>
-				<ParticleBreathing breathState={breathState} config={config} />
+				<GPGPUScene breathState={breathState} config={config} />
 			</ErrorBoundary>
 
 			{/* Breathing guide text with cosmic styling */}
