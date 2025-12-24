@@ -1,7 +1,8 @@
-import { ChevronRight, Palette, Settings, Sparkles, X } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { ChevronRight, Settings, X } from 'lucide-react';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import type { VisualizationConfig } from '../lib/config';
-import { IconButton } from './ui/icon-button';
+import { cn } from '../lib/utils';
 import { Slider } from './ui/slider';
 
 interface ConfigSliderProps {
@@ -56,10 +57,12 @@ const ConfigSlider = memo(function ConfigSlider({
 	}, []);
 
 	return (
-		<div className="mb-3">
-			<div className="flex justify-between text-xs mb-1.5">
-				<span className="text-white/70">{label}</span>
-				<span className="font-mono text-white/90">
+		<div className="mb-5">
+			<div className="flex justify-between text-[10px] mb-3">
+				<span className="text-white/30 tracking-widest uppercase font-light">
+					{label}
+				</span>
+				<span className="font-mono text-white/40 tabular-nums">
 					{typeof localValue === 'number'
 						? localValue.toFixed(step < 1 ? 2 : 0)
 						: localValue}
@@ -84,15 +87,17 @@ interface ColorPickerProps {
 
 function ColorPicker({ label, value, onChange }: ColorPickerProps) {
 	return (
-		<div className="mb-3 flex items-center justify-between">
-			<span className="text-xs text-white/70">{label}</span>
+		<div className="mb-4 flex items-center justify-between">
+			<span className="text-[10px] text-white/30 tracking-widest uppercase font-light">
+				{label}
+			</span>
 			<div className="flex items-center gap-2">
-				<span className="text-xs font-mono text-white/60">{value}</span>
+				<span className="text-[10px] font-mono text-white/25">{value}</span>
 				<input
 					type="color"
 					value={value}
 					onChange={(e) => onChange(e.target.value)}
-					className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border border-white/20"
+					className="w-6 h-6 rounded-full cursor-pointer bg-transparent border border-white/10 overflow-hidden"
 				/>
 			</div>
 		</div>
@@ -121,79 +126,107 @@ export function SettingsPanel({
 		setConfig({ ...config, [key]: value });
 	};
 
-	if (!isOpen) {
-		return (
-			<IconButton
-				onClick={() => setIsOpen(true)}
-				aria-label="Open settings"
-				className="bg-black/50 backdrop-blur-md hover:bg-black/70 border border-white/20"
-			>
-				<Settings className="h-5 w-5" />
-			</IconButton>
-		);
-	}
-
 	return (
-		<div className="w-[calc(100vw-1.5rem)] sm:w-64 max-h-[85vh] sm:max-h-[90vh] overflow-y-auto bg-black/80 backdrop-blur-md border border-white/20 rounded-xl text-white text-sm">
-			{/* Header */}
-			<div className="sticky top-0 bg-black/90 p-3 border-b border-white/10 flex justify-between items-center">
-				<span className="font-medium">Settings</span>
-				<IconButton
-					onClick={() => setIsOpen(false)}
-					aria-label="Close"
-					size="sm"
-					className="opacity-50 hover:opacity-100"
-				>
-					<X className="h-4 w-4" />
-				</IconButton>
-			</div>
-
-			<div className="p-4 space-y-6">
-				{/* Theme Section */}
-				<section>
-					<div className="flex items-center gap-2 text-xs uppercase tracking-wide text-white/70 mb-3">
-						<Palette className="h-4 w-4" />
-						Theme
-					</div>
-					<ColorPicker
-						label="Accent Color"
-						value={config.primaryColor}
-						onChange={(v) => updateConfig('primaryColor', v)}
-					/>
-					<ColorPicker
-						label="Background"
-						value={config.backgroundColor}
-						onChange={(v) => updateConfig('backgroundColor', v)}
-					/>
-				</section>
-
-				{/* Animation Section */}
-				<section>
-					<div className="flex items-center gap-2 text-xs uppercase tracking-wide text-white/70 mb-3">
-						<Sparkles className="h-4 w-4" />
-						Animation
-					</div>
-					<ConfigSlider
-						label="Bloom Intensity"
-						value={config.bloomStrength}
-						onChange={(v) => updateConfig('bloomStrength', v)}
-						min={0}
-						max={3}
-					/>
-				</section>
-
-				{/* Advanced Mode Toggle */}
-				{onEnableDevMode && (
-					<button
-						type="button"
-						onClick={onEnableDevMode}
-						className="w-full flex items-center justify-between p-3 -mx-1 text-xs text-white/40 hover:text-white/60 transition-colors rounded-lg hover:bg-white/5"
-					>
-						<span>Advanced Settings</span>
-						<ChevronRight className="h-4 w-4" />
-					</button>
+		<>
+			{/* Settings toggle button */}
+			<motion.button
+				type="button"
+				initial={{ opacity: 0 }}
+				animate={{ opacity: 1 }}
+				transition={{ duration: 1, delay: 0.4 }}
+				onClick={() => setIsOpen(!isOpen)}
+				aria-label={isOpen ? 'Close settings' : 'Open settings'}
+				aria-expanded={isOpen}
+				className={cn(
+					'flex items-center justify-center rounded-full transition-all duration-500',
+					'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/10',
+					'w-10 h-10 min-h-[44px] min-w-[44px]',
+					isOpen
+						? 'bg-white/[0.04] text-white/40'
+						: 'bg-transparent text-white/20 hover:text-white/40',
 				)}
-			</div>
-		</div>
+			>
+				<Settings className="h-4 w-4" />
+			</motion.button>
+
+			{/* Settings panel */}
+			<AnimatePresence>
+				{isOpen && (
+					<motion.div
+						initial={{ opacity: 0, y: -8, scale: 0.96 }}
+						animate={{ opacity: 1, y: 0, scale: 1 }}
+						exit={{ opacity: 0, y: -8, scale: 0.96 }}
+						transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+						className={cn(
+							'absolute top-12 left-0',
+							'w-[calc(100vw-2rem)] sm:w-56 max-h-[60vh] overflow-y-auto',
+							'bg-[#080c14]/90 backdrop-blur-2xl border border-white/[0.03] rounded-xl',
+							'text-white text-sm shadow-2xl shadow-black/40',
+						)}
+					>
+						{/* Header */}
+						<div className="sticky top-0 bg-[#080c14]/80 backdrop-blur-sm px-4 py-3 border-b border-white/[0.02] flex justify-between items-center">
+							<span className="font-display text-sm italic text-white/40 tracking-wide">
+								settings
+							</span>
+							<button
+								type="button"
+								onClick={() => setIsOpen(false)}
+								aria-label="Close"
+								className="p-1.5 rounded-full text-white/20 hover:text-white/40 transition-colors duration-300"
+							>
+								<X className="h-3.5 w-3.5" />
+							</button>
+						</div>
+
+						<div className="p-5 space-y-6">
+							{/* Theme Section */}
+							<section>
+								<ColorPicker
+									label="Accent"
+									value={config.primaryColor}
+									onChange={(v) => updateConfig('primaryColor', v)}
+								/>
+								<ColorPicker
+									label="Background"
+									value={config.backgroundColor}
+									onChange={(v) => updateConfig('backgroundColor', v)}
+								/>
+							</section>
+
+							{/* Animation Section */}
+							<section>
+								<ConfigSlider
+									label="Bloom"
+									value={config.bloomStrength}
+									onChange={(v) => updateConfig('bloomStrength', v)}
+									min={0}
+									max={2}
+								/>
+								<ConfigSlider
+									label="Atmosphere"
+									value={config.hazeOpacity}
+									onChange={(v) => updateConfig('hazeOpacity', v)}
+									min={0}
+									max={0.3}
+								/>
+							</section>
+
+							{/* Advanced Mode Toggle */}
+							{onEnableDevMode && (
+								<button
+									type="button"
+									onClick={onEnableDevMode}
+									className="w-full flex items-center justify-between py-2 text-[10px] text-white/20 hover:text-white/40 transition-colors duration-300 tracking-widest uppercase font-light"
+								>
+									<span>Advanced</span>
+									<ChevronRight className="h-3 w-3" />
+								</button>
+							)}
+						</div>
+					</motion.div>
+				)}
+			</AnimatePresence>
+		</>
 	);
 }

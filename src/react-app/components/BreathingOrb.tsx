@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import type { BreathState } from '../hooks/useBreathSync';
 import type { PresenceData } from '../hooks/usePresence';
 import type { VisualizationConfig } from '../lib/config';
@@ -32,27 +32,33 @@ export function BreathingOrb({
 				<ParticleBreathing breathState={breathState} config={config} />
 			</ErrorBoundary>
 
-			{/* Breathing guide text with Framer Motion animations */}
-			<div className="absolute bottom-[15%] left-1/2 -translate-x-1/2 text-center text-white pointer-events-none select-none">
-				<motion.div
-					key={breathState.phaseName}
-					initial={{ opacity: 0, y: 10 }}
-					animate={{ opacity: 0.9, y: 0 }}
-					exit={{ opacity: 0, y: -10 }}
-					transition={{ duration: 0.3 }}
-					className="text-2xl font-light tracking-[0.2em] uppercase mb-2"
-				>
-					{breathState.phaseName}
-				</motion.div>
-
-				<div className="w-48 h-0.5 bg-white/20 rounded-sm overflow-hidden mx-auto">
+			{/* Breathing guide - ethereal, centered below the orb */}
+			<div className="absolute bottom-[18%] sm:bottom-[14%] left-0 right-0 flex flex-col items-center pointer-events-none select-none">
+				<AnimatePresence mode="wait">
 					<motion.div
-						className="h-full bg-white/60 rounded-sm"
-						initial={{ width: 0 }}
-						animate={{ width: `${breathState.progress * 100}%` }}
+						key={breathState.phaseName}
+						initial={{ opacity: 0, y: 8 }}
+						animate={{ opacity: 1, y: 0 }}
+						exit={{ opacity: 0, y: -8 }}
+						transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
+						className="font-display text-xl sm:text-2xl font-light tracking-wider text-white/40 mb-6 italic lowercase"
+					>
+						{breathState.phaseName}
+					</motion.div>
+				</AnimatePresence>
+
+				{/* Progress - ultra minimal dot */}
+				<div className="relative flex items-center justify-center">
+					<motion.div
+						className="w-1 h-1 rounded-full bg-white/20"
+						animate={{
+							scale: [1, 1.5, 1],
+							opacity: [0.2, 0.4, 0.2],
+						}}
 						transition={{
-							duration: 0.1,
-							ease: 'linear',
+							duration: 2,
+							repeat: Number.POSITIVE_INFINITY,
+							ease: 'easeInOut',
 						}}
 					/>
 				</div>
