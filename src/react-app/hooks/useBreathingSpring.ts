@@ -63,19 +63,11 @@ export function useBreathingSpring(
 	});
 
 	// Update target when breath state changes
-	// Only depend on specific config properties used by calculateTargetScale
-	// Note: targetValue is stable (MotionValue) so excluded from deps
+	// biome-ignore lint/correctness/useExhaustiveDependencies: targetValue is stable (MotionValue), and we intentionally depend on specific config properties only
 	useEffect(() => {
 		const targetScale = calculateTargetScale(breathState, config);
 		targetValue.set(targetScale);
-	}, [
-		breathState.phase,
-		breathState.progress,
-		config.breatheInScale,
-		config.breatheOutScale,
-		config.holdOscillation,
-		config.holdOscillationSpeed,
-	]);
+	}, [breathState, config]);
 
 	return scale;
 }

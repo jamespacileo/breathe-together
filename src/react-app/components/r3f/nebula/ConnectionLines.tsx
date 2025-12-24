@@ -42,6 +42,7 @@ export function ConnectionLines({
 	}, [maxConnections]);
 
 	// Animation loop
+	// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: particle connection algorithm requires nested loops for distance checking
 	useFrame(() => {
 		if (!(lineSegmentsRef.current && groupRef.current && buffersRef.current))
 			return;
