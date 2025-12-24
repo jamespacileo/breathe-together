@@ -1,70 +1,153 @@
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════════════════════
+   COSMIC ETHEREAL DESIGN SYSTEM
+   A breathing meditation interface inspired by the infinite cosmos
+   ═══════════════════════════════════════════════════════════════ */
+
 :root {
-	font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+	/* Typography */
+	font-family: "Outfit", system-ui, sans-serif;
 	line-height: 1.5;
-	font-weight: 400;
+	font-weight: 300;
 
+	/* Color scheme */
 	color-scheme: dark;
-	color: rgba(255, 255, 255, 0.87);
-	background-color: #0f1723;
+	color: rgba(255, 255, 255, 0.9);
+	background-color: #050714;
 
+	/* Rendering optimization */
 	font-synthesis: none;
 	text-rendering: optimizeLegibility;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
+
+	/* Cosmic CSS variables */
+	--void: #050714;
+	--void-deep: #020408;
+	--void-light: #0a0f1f;
+
+	--nebula: #6b21a8;
+	--nebula-glow: #a855f7;
+	--nebula-soft: #c4b5fd;
+	--nebula-deep: #3b0764;
+
+	--aurora: #22d3ee;
+	--aurora-bright: #67e8f9;
+	--aurora-soft: #a5f3fc;
+
+	--stardust: #fbbf24;
+	--stardust-rose: #fb7185;
+
+	--stellar: rgba(255, 255, 255, 0.95);
+	--stellar-soft: rgba(255, 255, 255, 0.7);
+	--stellar-muted: rgba(255, 255, 255, 0.5);
+	--stellar-dim: rgba(255, 255, 255, 0.3);
+	--stellar-faint: rgba(255, 255, 255, 0.15);
+	--stellar-ghost: rgba(255, 255, 255, 0.08);
+
+	/* Glow effects */
+	--glow-nebula: 0 0 30px rgba(168, 85, 247, 0.4);
+	--glow-aurora: 0 0 40px rgba(34, 211, 238, 0.4);
+	--glow-stardust: 0 0 30px rgba(251, 191, 36, 0.3);
 }
 
+/* Links with aurora glow */
 a {
-	font-weight: 500;
-	color: #646cff;
-	text-decoration: inherit;
-}
-a:hover {
-	color: #535bf2;
+	font-weight: 400;
+	color: var(--aurora);
+	text-decoration: none;
+	transition: all 0.3s ease;
 }
 
+a:hover {
+	color: var(--aurora-bright);
+	text-shadow: 0 0 20px var(--aurora);
+}
+
+/* Base body styles */
 body {
 	margin: 0;
 	display: flex;
 	place-items: center;
 	min-width: 320px;
 	min-height: 100vh;
+	background: var(--void);
+}
+
+/* Serif display headings - celestial elegance */
+h1,
+h2,
+h3 {
+	font-family: "Cormorant Garamond", Georgia, serif;
+	font-weight: 300;
+	letter-spacing: 0.02em;
 }
 
 h1 {
-	font-size: 3.2em;
+	font-size: 3rem;
 	line-height: 1.1;
 }
 
-button {
-	border-radius: 8px;
-	border: 1px solid transparent;
-	padding: 0.6em 1.2em;
-	font-size: 1em;
-	font-weight: 500;
-	font-family: inherit;
-	background-color: #1a1a1a;
-	cursor: pointer;
-	transition: border-color 0.25s;
-}
-button:hover {
-	border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-	outline: 4px auto -webkit-focus-ring-color;
+h2 {
+	font-size: 2rem;
+	line-height: 1.2;
 }
 
+h3 {
+	font-size: 1.5rem;
+	line-height: 1.3;
+}
+
+/* Cosmic button styles */
+button {
+	border-radius: 9999px;
+	border: 1px solid var(--stellar-faint);
+	padding: 0.6em 1.4em;
+	font-size: 0.875rem;
+	font-weight: 400;
+	font-family: "Outfit", system-ui, sans-serif;
+	letter-spacing: 0.05em;
+	background: linear-gradient(
+		135deg,
+		rgba(107, 33, 168, 0.2) 0%,
+		rgba(34, 211, 238, 0.1) 100%
+	);
+	color: var(--stellar);
+	cursor: pointer;
+	transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+	backdrop-filter: blur(8px);
+}
+
+button:hover {
+	border-color: var(--nebula-glow);
+	background: linear-gradient(
+		135deg,
+		rgba(107, 33, 168, 0.35) 0%,
+		rgba(34, 211, 238, 0.2) 100%
+	);
+	box-shadow: var(--glow-nebula);
+	transform: translateY(-1px);
+}
+
+button:focus,
+button:focus-visible {
+	outline: none;
+	border-color: var(--aurora);
+	box-shadow:
+		0 0 0 3px rgba(34, 211, 238, 0.2),
+		var(--glow-aurora);
+}
+
+button:active {
+	transform: translateY(0);
+}
+
+/* Remove light mode - we live in the cosmos */
 @media (prefers-color-scheme: light) {
 	:root {
-		color: #213547;
-		background-color: #ffffff;
-	}
-	a:hover {
-		color: #747bff;
-	}
-	button {
-		background-color: #f9f9f9;
+		color-scheme: dark;
+		color: rgba(255, 255, 255, 0.9);
+		background-color: #050714;
 	}
 }
