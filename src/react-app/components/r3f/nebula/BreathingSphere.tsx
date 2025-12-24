@@ -1,98 +1,203 @@
 import { useFrame } from '@react-three/fiber';
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import type { BreathState } from '../../../hooks/useBreathSync';
 import { getBreathValue } from '../../../lib/breathUtils';
 import type { VisualizationConfig } from '../../../lib/config';
 
-// Vertex shader matching the HTML example
+// Maximum particles - buffers allocated once at this size
+const MAX_PARTICLES = 500;
+
+// Particle state for JS physics simulation
+interface Particle {
+	// Home position (on Fibonacci sphere)
+	homeX: number;
+	homeY: number;
+	homeZ: number;
+	// Current position (spring-animated in JS)
+	x: number;
+	y: number;
+	z: number;
+	// Velocity for spring physics
+	vx: number;
+	vy: number;
+	vz: number;
+	// Per-particle physics variation
+	stiffness: number;
+	damping: number;
+	// Entry/exit
+	alpha: number;
+	targetAlpha: number;
+	// Visual (passed to GPU)
+	size: number;
+	colorR: number;
+	colorG: number;
+	colorB: number;
+}
+
+// Vertex shader - receives positions from JS, handles visual effects only
 const VERTEX_SHADER = `
 attribute float size;
+attribute float alpha;
+
+uniform float uTime;
+uniform float uBreathValue;
+
 varying vec3 vColor;
 varying float vDist;
+varying float vAlpha;
 
 void main() {
   vColor = color;
+
+  // Skip computation for invisible particles
+  if (alpha < 0.01) {
+    gl_Position = vec4(0.0, 0.0, -1000.0, 1.0);
+    gl_PointSize = 0.0;
+    vAlpha = 0.0;
+    return;
+  }
+
+  // Twinkle effect on size (per-particle variation using position as seed)
+  float twinkleSpeed = 0.4 + position.x * 0.3 + position.y * 0.2;
+  float twinklePhase = position.z * 6.28;
+  float twinkle = sin(uTime * twinkleSpeed + twinklePhase);
+  float sizeMultiplier = 0.75 + twinkle * 0.25;
+
+  // Pulse effect (slower, subtle)
+  float pulseSpeed = 0.2 + position.y * 0.1;
+  float pulsePhase = position.x * 3.14;
+  float pulse = sin(uTime * pulseSpeed + pulsePhase);
+  sizeMultiplier *= (1.0 + pulse * 0.1);
+
+  // Brightness sparkle (modulates alpha) based on breath
+  float shimmer = 0.8 + uBreathValue * 0.2;
+  float brightnessSpeed = 0.8 + length(position.xy) * 0.3;
+  float brightnessPhase = position.z * 3.14 + position.x * 1.57;
+  float brightness = 0.85 + sin(uTime * brightnessSpeed + brightnessPhase) * 0.15;
+  vAlpha = alpha * shimmer * brightness;
+
   vec4 mv = modelViewMatrix * vec4(position, 1.0);
   vDist = -mv.z;
-  gl_PointSize = size * (4.0 / -mv.z);
+  gl_PointSize = size * sizeMultiplier * alpha * (4.0 / -mv.z);
   gl_Position = projectionMatrix * mv;
 }
 `;
 
-// Fragment shader matching the HTML example
+// Fragment shader
 const FRAGMENT_SHADER = `
 uniform sampler2D uTexture;
 varying vec3 vColor;
 varying float vDist;
+varying float vAlpha;
 
 void main() {
+  if (vAlpha < 0.01) discard;
   vec4 tex = texture2D(uTexture, gl_PointCoord);
-  float fade = smoothstep(8.0, 2.0, vDist);
-  gl_FragColor = vec4(vColor, tex.a * 0.7 * fade);
+  float fade = smoothstep(12.0, 2.0, vDist);
+  gl_FragColor = vec4(vColor, tex.a * 1.4 * fade * vAlpha);
 }
 `;
 
-// Create glow texture matching the HTML example exactly
-function createGlowTexture(): THREE.CanvasTexture {
+// Create star texture with subtle 4-point diffraction spikes
+function createStarTexture(): THREE.CanvasTexture {
 	const canvas = document.createElement('canvas');
 	canvas.width = 64;
 	canvas.height = 64;
 	const ctx = canvas.getContext('2d')!;
+	const cx = 32;
+	const cy = 32;
 
-	const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
-	gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
-	gradient.addColorStop(0.15, 'rgba(255, 255, 255, 0.7)');
-	gradient.addColorStop(0.4, 'rgba(255, 255, 255, 0.2)');
-	gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-
-	ctx.fillStyle = gradient;
+	// Outer soft glow
+	const glow = ctx.createRadialGradient(cx, cy, 0, cx, cy, 30);
+	glow.addColorStop(0, 'rgba(255, 255, 255, 1)');
+	glow.addColorStop(0.1, 'rgba(255, 255, 255, 0.7)');
+	glow.addColorStop(0.3, 'rgba(255, 255, 255, 0.3)');
+	glow.addColorStop(0.6, 'rgba(255, 255, 255, 0.1)');
+	glow.addColorStop(1, 'rgba(255, 255, 255, 0)');
+	ctx.fillStyle = glow;
 	ctx.fillRect(0, 0, 64, 64);
+
+	// Subtle 4-point diffraction spikes
+	ctx.globalCompositeOperation = 'lighter';
+
+	const vSpike = ctx.createLinearGradient(cx, 0, cx, 64);
+	vSpike.addColorStop(0, 'rgba(255, 255, 255, 0)');
+	vSpike.addColorStop(0.3, 'rgba(255, 255, 255, 0.2)');
+	vSpike.addColorStop(0.5, 'rgba(255, 255, 255, 0.5)');
+	vSpike.addColorStop(0.7, 'rgba(255, 255, 255, 0.2)');
+	vSpike.addColorStop(1, 'rgba(255, 255, 255, 0)');
+	ctx.fillStyle = vSpike;
+	ctx.fillRect(cx - 1, 0, 2, 64);
+
+	const hSpike = ctx.createLinearGradient(0, cy, 64, cy);
+	hSpike.addColorStop(0, 'rgba(255, 255, 255, 0)');
+	hSpike.addColorStop(0.3, 'rgba(255, 255, 255, 0.2)');
+	hSpike.addColorStop(0.5, 'rgba(255, 255, 255, 0.5)');
+	hSpike.addColorStop(0.7, 'rgba(255, 255, 255, 0.2)');
+	hSpike.addColorStop(1, 'rgba(255, 255, 255, 0)');
+	ctx.fillStyle = hSpike;
+	ctx.fillRect(0, cy - 1, 64, 2);
+
+	// Bright core
+	const core = ctx.createRadialGradient(cx, cy, 0, cx, cy, 6);
+	core.addColorStop(0, 'rgba(255, 255, 255, 1)');
+	core.addColorStop(0.4, 'rgba(255, 255, 255, 0.8)');
+	core.addColorStop(1, 'rgba(255, 255, 255, 0)');
+	ctx.fillStyle = core;
+	ctx.beginPath();
+	ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+	ctx.fill();
 
 	return new THREE.CanvasTexture(canvas);
 }
 
 // Singleton texture
-let glowTexture: THREE.CanvasTexture | null = null;
-function getGlowTexture(): THREE.CanvasTexture {
-	if (!glowTexture) {
-		glowTexture = createGlowTexture();
+let starTexture: THREE.CanvasTexture | null = null;
+function getStarTexture(): THREE.CanvasTexture {
+	if (!starTexture) {
+		starTexture = createStarTexture();
 	}
-	return glowTexture;
+	return starTexture;
 }
 
-// 3D noise function for organic movement
-function noise3D(x: number, y: number, z: number, time: number): number {
-	const freq = 0.8;
-	return (
-		(Math.sin(x * freq + time) * Math.cos(y * freq * 0.7 + time * 1.1) +
-			Math.sin(z * freq * 0.9 + time * 0.8) *
-				Math.cos(x * freq * 0.6 - time * 0.9) +
-			Math.sin(y * freq * 0.8 - time * 1.2) *
-				Math.cos(z * freq * 0.5 + time * 0.7)) *
-		0.33
-	);
+// Helper to generate random color in nebula palette
+function generateParticleColor(): { r: number; g: number; b: number } {
+	const c = Math.random();
+	if (c < 0.35) {
+		// Cyan-blue
+		return {
+			r: 0.45 + Math.random() * 0.15,
+			g: 0.75 + Math.random() * 0.15,
+			b: 0.9 + Math.random() * 0.1,
+		};
+	} else if (c < 0.65) {
+		// Purple
+		return {
+			r: 0.65 + Math.random() * 0.15,
+			g: 0.55 + Math.random() * 0.15,
+			b: 0.9 + Math.random() * 0.1,
+		};
+	} else if (c < 0.85) {
+		// Warm white
+		return {
+			r: 0.95,
+			g: 0.9 + Math.random() * 0.05,
+			b: 0.85 + Math.random() * 0.1,
+		};
+	} else {
+		// Pink
+		return {
+			r: 0.9 + Math.random() * 0.1,
+			g: 0.6 + Math.random() * 0.15,
+			b: 0.7 + Math.random() * 0.15,
+		};
+	}
 }
 
-// Particle data structure
-interface Particle {
-	homeX: number;
-	homeY: number;
-	homeZ: number;
-	x: number;
-	y: number;
-	z: number;
-	vx: number;
-	vy: number;
-	vz: number;
-	phaseOffset: number;
-	stiffness: number;
-	damping: number;
-	twinkleSpeed: number;
-	twinkleOffset: number;
-	baseSize: number;
-	pulseSpeed: number;
-	pulseOffset: number;
+// Linear interpolation
+function lerp(a: number, b: number, t: number): number {
+	return a + (b - a) * t;
 }
 
 interface BreathingSphereProps {
@@ -106,51 +211,42 @@ export function BreathingSphere({
 	config,
 	userCount,
 }: BreathingSphereProps) {
-	const pointsRef = useRef<THREE.Points>(null);
-	const groupRef = useRef<THREE.Group>(null);
 	const materialRef = useRef<THREE.ShaderMaterial>(null);
-	const startTimeRef = useRef(Date.now());
+	const geometryRef = useRef<THREE.BufferGeometry>(null);
+	const startTimeRef = useRef(performance.now() / 1000);
 	const breathStateRef = useRef(breathState);
+	const prevUserCountRef = useRef(0);
 	breathStateRef.current = breathState;
 
 	// Configuration
-	const safeUserCount =
-		typeof userCount === 'number' && !Number.isNaN(userCount) ? userCount : 1;
-	const particleCount = Math.max(1, Math.min(safeUserCount, 500));
 	const contractedRadius = config.sphereContractedRadius ?? 0.7;
 	const expandedRadius = config.sphereExpandedRadius ?? 2.2;
-	const rotationSpeed = config.sphereRotationSpeed ?? 0.025;
 
-	// Store particles in ref for mutation during animation
-	const particlesRef = useRef<Particle[]>([]);
+	// Get star texture (stable)
+	const texture = useMemo(() => getStarTexture(), []);
 
-	// Get glow texture
-	const texture = useMemo(() => getGlowTexture(), []);
+	// Initialize particle state and GPU buffers once
+	const { particles, buffers } = useMemo(() => {
+		const particles: Particle[] = [];
+		const positions = new Float32Array(MAX_PARTICLES * 3);
+		const alphas = new Float32Array(MAX_PARTICLES);
+		const sizes = new Float32Array(MAX_PARTICLES);
+		const colors = new Float32Array(MAX_PARTICLES * 3);
 
-	// Initialize particles and buffers
-	const { positions, colors, sizes, particles } = useMemo(() => {
-		const count = particleCount;
-		const newParticles: Particle[] = [];
-
-		const positionsArr = new Float32Array(count * 3);
-		const colorsArr = new Float32Array(count * 3);
-		const sizesArr = new Float32Array(count);
-
-		for (let i = 0; i < count; i++) {
-			// Fibonacci sphere distribution
-			const phi = Math.acos(1 - (2 * (i + 0.5)) / Math.max(count, 1));
+		// Initialize with Fibonacci sphere distribution
+		for (let i = 0; i < MAX_PARTICLES; i++) {
+			const phi = Math.acos(1 - (2 * (i + 0.5)) / MAX_PARTICLES);
 			const theta = Math.PI * (1 + Math.sqrt(5)) * i;
-			const baseRadius = expandedRadius * (0.3 + Math.random() * 0.7);
+			const r = expandedRadius * (0.3 + Math.random() * 0.7);
 
-			const homeX = baseRadius * Math.sin(phi) * Math.cos(theta);
-			const homeY = baseRadius * Math.sin(phi) * Math.sin(theta);
-			const homeZ = baseRadius * Math.cos(phi);
+			const homeX = r * Math.sin(phi) * Math.cos(theta);
+			const homeY = r * Math.sin(phi) * Math.sin(theta);
+			const homeZ = r * Math.cos(phi);
 
-			// Particle size: larger when fewer users for visibility
-			const baseSize =
-				count < 10 ? 25 + Math.random() * 20 : 12 + Math.random() * 18;
+			const color = generateParticleColor();
 
-			newParticles.push({
+			// Create particle with physics state
+			particles.push({
 				homeX,
 				homeY,
 				homeZ,
@@ -160,146 +256,170 @@ export function BreathingSphere({
 				vx: 0,
 				vy: 0,
 				vz: 0,
-				phaseOffset: Math.random() * Math.PI * 2,
-				stiffness: 1.2 + Math.random() * 0.8,
-				damping: 0.94 + Math.random() * 0.03,
-				twinkleSpeed: 0.4 + Math.random() * 1.5,
-				twinkleOffset: Math.random() * Math.PI * 2,
-				baseSize,
-				pulseSpeed: 0.2 + Math.random() * 0.3,
-				pulseOffset: Math.random() * Math.PI * 2,
+				// Per-particle physics variation for organic feel
+				stiffness: 0.25 + Math.random() * 0.15,
+				damping: 0.985 + Math.random() * 0.01,
+				alpha: 0,
+				targetAlpha: 0, // Start inactive
+				size: 22 + Math.random() * 28,
+				colorR: color.r,
+				colorG: color.g,
+				colorB: color.b,
 			});
 
-			// Initial positions
-			positionsArr[i * 3] = homeX;
-			positionsArr[i * 3 + 1] = homeY;
-			positionsArr[i * 3 + 2] = homeZ;
-
-			// Color palette matching the HTML example exactly
-			const c = Math.random();
-			if (c < 0.35) {
-				// Light blue (35%)
-				colorsArr[i * 3] = 0.45 + Math.random() * 0.15;
-				colorsArr[i * 3 + 1] = 0.75 + Math.random() * 0.15;
-				colorsArr[i * 3 + 2] = 0.9 + Math.random() * 0.1;
-			} else if (c < 0.65) {
-				// Purple-blue (30%)
-				colorsArr[i * 3] = 0.65 + Math.random() * 0.15;
-				colorsArr[i * 3 + 1] = 0.55 + Math.random() * 0.15;
-				colorsArr[i * 3 + 2] = 0.9 + Math.random() * 0.1;
-			} else if (c < 0.85) {
-				// Warm white (20%)
-				colorsArr[i * 3] = 0.95;
-				colorsArr[i * 3 + 1] = 0.9 + Math.random() * 0.05;
-				colorsArr[i * 3 + 2] = 0.85 + Math.random() * 0.1;
-			} else {
-				// Pink-magenta (15%)
-				colorsArr[i * 3] = 0.9 + Math.random() * 0.1;
-				colorsArr[i * 3 + 1] = 0.6 + Math.random() * 0.15;
-				colorsArr[i * 3 + 2] = 0.7 + Math.random() * 0.15;
-			}
-
-			sizesArr[i] = baseSize;
+			// Initialize GPU buffers
+			positions[i * 3] = homeX;
+			positions[i * 3 + 1] = homeY;
+			positions[i * 3 + 2] = homeZ;
+			alphas[i] = 0;
+			sizes[i] = particles[i].size;
+			colors[i * 3] = color.r;
+			colors[i * 3 + 1] = color.g;
+			colors[i * 3 + 2] = color.b;
 		}
 
-		particlesRef.current = newParticles;
+		return { particles, buffers: { positions, alphas, sizes, colors } };
+	}, [expandedRadius]);
 
-		return {
-			positions: positionsArr,
-			colors: colorsArr,
-			sizes: sizesArr,
-			particles: newParticles,
-		};
-	}, [particleCount, expandedRadius]);
+	// Handle spawn/despawn when userCount changes
+	useEffect(() => {
+		const safeCount =
+			typeof userCount === 'number' && !Number.isNaN(userCount)
+				? Math.max(1, Math.min(userCount, MAX_PARTICLES))
+				: 1;
 
-	// Animation loop
-	useFrame(() => {
-		if (!(pointsRef.current && groupRef.current)) return;
+		const prevCount = prevUserCountRef.current;
 
-		const currentParticles = particlesRef.current;
-		if (currentParticles.length === 0) return;
+		// Spawn new particles
+		for (let i = prevCount; i < safeCount; i++) {
+			particles[i].targetAlpha = 1;
+			particles[i].alpha = 0; // Start invisible, fade in
+		}
 
-		const elapsed = (Date.now() - startTimeRef.current) / 1000;
+		// Despawn excess particles
+		for (let i = safeCount; i < prevCount; i++) {
+			particles[i].targetAlpha = 0; // Fade out
+		}
+
+		prevUserCountRef.current = safeCount;
+	}, [userCount, particles]);
+
+	// Main animation loop - JS physics + GPU buffer updates
+	useFrame((state) => {
+		if (!materialRef.current || !geometryRef.current) return;
+
+		const elapsed = state.clock.elapsedTime;
 		const breathValue = getBreathValue(breathStateRef.current);
+		const mat = materialRef.current;
+		const geo = geometryRef.current;
 
-		const targetRadius =
-			expandedRadius - (expandedRadius - contractedRadius) * breathValue;
-		const scale = targetRadius / expandedRadius;
+		// Update uniforms
+		mat.uniforms.uTime.value = elapsed;
+		mat.uniforms.uBreathValue.value = breathValue;
 
-		for (let i = 0; i < currentParticles.length; i++) {
-			const p = currentParticles[i];
+		// Calculate scale: contracted when inhaled (breathValue=1), expanded when exhaled (breathValue=0)
+		const scale = lerp(expandedRadius, contractedRadius, breathValue);
+		const scaleRatio = scale / expandedRadius;
 
-			// Target position based on breath
-			const tx = p.homeX * scale;
-			const ty = p.homeY * scale;
-			const tz = p.homeZ * scale;
+		// Rotation: small fixed angle tied to breath value (not accumulating over time)
+		// When inhaled (breathValue=1): rotated by ~15 degrees (0.26 rad)
+		// When exhaled (breathValue=0): no rotation
+		// This creates a gentle "twist" during inhale that unwinds during exhale
+		const rotationAngle = breathValue * 0.26;
+		const cosA = Math.cos(rotationAngle);
+		const sinA = Math.sin(rotationAngle);
 
-			// Noise for organic movement - use HOME position (stable), not animated
-			const noiseStrength = 0.1 * (1 - breathValue * 0.5);
-			const noiseTime = elapsed * 0.35 + p.phaseOffset;
-			const nx = noise3D(p.homeX, p.homeY, p.homeZ, noiseTime) * noiseStrength;
-			const ny =
-				noise3D(p.homeY, p.homeZ, p.homeX, noiseTime + 100) * noiseStrength;
-			const nz =
-				noise3D(p.homeZ, p.homeX, p.homeY, noiseTime + 200) * noiseStrength;
+		// Get buffer arrays
+		const posAttr = geo.attributes.position;
+		const alphaAttr = geo.attributes.alpha;
+		const positions = posAttr.array as Float32Array;
+		const alphas = alphaAttr.array as Float32Array;
 
-			// Spring physics
-			const dx = tx + nx - p.x;
-			const dy = ty + ny - p.y;
-			const dz = tz + nz - p.z;
+		// Physics loop for all potentially visible particles
+		for (let i = 0; i < MAX_PARTICLES; i++) {
+			const p = particles[i];
 
-			p.vx = (p.vx + dx * p.stiffness * 0.016) * p.damping;
-			p.vy = (p.vy + dy * p.stiffness * 0.016) * p.damping;
-			p.vz = (p.vz + dz * p.stiffness * 0.016) * p.damping;
+			// Alpha lerp (entry/exit fade)
+			p.alpha += (p.targetAlpha - p.alpha) * 0.015;
 
+			// Skip physics for invisible particles
+			if (p.alpha < 0.001 && p.targetAlpha === 0) {
+				alphas[i] = 0;
+				continue;
+			}
+
+			// 1. Calculate scaled home position
+			const scaledHomeX = p.homeX * scaleRatio;
+			const scaledHomeY = p.homeY * scaleRatio;
+			const scaledHomeZ = p.homeZ * scaleRatio;
+
+			// 2. Rotate around Y axis (subtle twist during inhale)
+			const targetX = scaledHomeX * cosA - scaledHomeZ * sinA;
+			const targetZ = scaledHomeX * sinA + scaledHomeZ * cosA;
+			const targetY = scaledHomeY;
+
+			// 3. Spring physics (Euler integration with damping)
+			const dx = targetX - p.x;
+			const dy = targetY - p.y;
+			const dz = targetZ - p.z;
+
+			// Acceleration = stiffness * displacement
+			p.vx += dx * p.stiffness;
+			p.vy += dy * p.stiffness;
+			p.vz += dz * p.stiffness;
+
+			// Apply damping ("dense air" drag)
+			p.vx *= p.damping;
+			p.vy *= p.damping;
+			p.vz *= p.damping;
+
+			// Update position
 			p.x += p.vx;
 			p.y += p.vy;
 			p.z += p.vz;
 
-			// Update position buffer
+			// 4. Write to GPU buffer
 			positions[i * 3] = p.x;
 			positions[i * 3 + 1] = p.y;
 			positions[i * 3 + 2] = p.z;
-
-			// Twinkle and pulse effects on size
-			const twinkle = Math.sin(elapsed * p.twinkleSpeed + p.twinkleOffset);
-			const pulse = Math.sin(elapsed * p.pulseSpeed + p.pulseOffset);
-			sizes[i] = p.baseSize * (0.75 + twinkle * 0.25) * (1 + pulse * 0.1);
+			alphas[i] = p.alpha;
 		}
 
-		// Update geometry attributes
-		const geometry = pointsRef.current.geometry;
-		if (geometry.attributes.position) {
-			geometry.attributes.position.needsUpdate = true;
-		}
-		if (geometry.attributes.size) {
-			geometry.attributes.size.needsUpdate = true;
-		}
-
-		// Slow rotation
-		groupRef.current.rotation.y = elapsed * rotationSpeed;
-		groupRef.current.rotation.x = Math.sin(elapsed * 0.06) * 0.06;
+		// Signal GPU to read new data
+		posAttr.needsUpdate = true;
+		alphaAttr.needsUpdate = true;
 	});
 
 	return (
-		<group ref={groupRef}>
-			<points ref={pointsRef}>
-				<bufferGeometry>
-					<bufferAttribute attach="attributes-position" args={[positions, 3]} />
-					<bufferAttribute attach="attributes-color" args={[colors, 3]} />
-					<bufferAttribute attach="attributes-size" args={[sizes, 1]} />
-				</bufferGeometry>
-				<shaderMaterial
-					ref={materialRef}
-					uniforms={{ uTexture: { value: texture } }}
-					vertexShader={VERTEX_SHADER}
-					fragmentShader={FRAGMENT_SHADER}
-					transparent
-					vertexColors
-					blending={THREE.AdditiveBlending}
-					depthWrite={false}
+		<points>
+			<bufferGeometry ref={geometryRef}>
+				<bufferAttribute
+					attach="attributes-position"
+					args={[buffers.positions, 3]}
+					usage={THREE.DynamicDrawUsage}
 				/>
-			</points>
-		</group>
+				<bufferAttribute
+					attach="attributes-alpha"
+					args={[buffers.alphas, 1]}
+					usage={THREE.DynamicDrawUsage}
+				/>
+				<bufferAttribute attach="attributes-size" args={[buffers.sizes, 1]} />
+				<bufferAttribute attach="attributes-color" args={[buffers.colors, 3]} />
+			</bufferGeometry>
+			<shaderMaterial
+				ref={materialRef}
+				uniforms={{
+					uTime: { value: 0 },
+					uBreathValue: { value: 0 },
+					uTexture: { value: texture },
+				}}
+				vertexShader={VERTEX_SHADER}
+				fragmentShader={FRAGMENT_SHADER}
+				transparent
+				vertexColors
+				blending={THREE.AdditiveBlending}
+				depthWrite={false}
+			/>
+		</points>
 	);
 }

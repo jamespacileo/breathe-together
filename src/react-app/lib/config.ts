@@ -130,9 +130,9 @@ export const DEFAULT_CONFIG: VisualizationConfig = {
 	holdOscillation: 0.02,
 	holdOscillationSpeed: 0.003,
 
-	// Main Spring
-	mainSpringTension: 100,
-	mainSpringFriction: 20,
+	// Main Spring (soft, floaty - "suspended in thick air" feel)
+	mainSpringTension: 60,
+	mainSpringFriction: 14,
 
 	// 3D Breathing Sphere
 	nebulaEnabled: true,
