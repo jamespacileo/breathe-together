@@ -2,7 +2,7 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 
-// GLSL Shaders - refined for subtle, elegant motion
+// GLSL Shaders - refined for subtle, elegant motion with phase-specific behaviors
 const simulationVertexShader = `
 void main() {
   gl_Position = vec4(position, 1.0);
@@ -18,6 +18,7 @@ uniform float uTime;
 uniform float uBreathPhase;
 uniform float uExpandedRadius;
 uniform float uContractedRadius;
+uniform int uPhaseType; // 0=inhale, 1=hold-in, 2=exhale, 3=hold-out
 
 // Simple smooth noise
 float hash(vec3 p) {
@@ -64,9 +65,52 @@ void main() {
   // Calculate base orbital position
   vec3 targetPos = dir * particleTargetRadius;
 
-  // Gentle orbital rotation - consistent speed
-  float orbitSpeed = 0.15 + phase * 0.05;
-  float orbit = uTime * orbitSpeed;
+  // === PHASE-SPECIFIC BEHAVIORS ===
+
+  // Base orbit speed varies by phase
+  float baseOrbitSpeed = 0.15 + phase * 0.05;
+  float orbitSpeedMultiplier = 1.0;
+  float displacementStrength = 0.2;
+  float bobAmount = 0.1;
+  float springStrength = 0.06;
+  float spiralStrength = 0.0;
+
+  if (uPhaseType == 0) {
+    // INHALE: Particles spiral inward with faster orbit, gathering energy
+    orbitSpeedMultiplier = 1.4;
+    displacementStrength = 0.15;
+    bobAmount = 0.08;
+    springStrength = 0.08; // Faster response
+    spiralStrength = 0.3;  // Inward spiral
+  } else if (uPhaseType == 1) {
+    // HOLD-IN: Calm settling, minimal motion, gentle pulsing
+    orbitSpeedMultiplier = 0.6;
+    displacementStrength = 0.05; // Very subtle
+    bobAmount = 0.03;
+    springStrength = 0.04; // Slower, settled
+    // Add gentle pulsing effect
+    float pulse = sin(uTime * 2.0) * 0.02;
+    particleTargetRadius *= (1.0 + pulse);
+  } else if (uPhaseType == 2) {
+    // EXHALE: Particles drift outward gracefully, releasing
+    orbitSpeedMultiplier = 0.9;
+    displacementStrength = 0.35; // More free movement
+    bobAmount = 0.15;
+    springStrength = 0.05; // Slower, floaty
+    spiralStrength = -0.2; // Outward drift
+  } else {
+    // HOLD-OUT: Peaceful floating, dreamy drift
+    orbitSpeedMultiplier = 0.5;
+    displacementStrength = 0.25;
+    bobAmount = 0.12;
+    springStrength = 0.04;
+    // Gentle wandering motion
+    float wander = noise(origPos * 0.05 + uTime * 0.1) * 0.3;
+    particleTargetRadius *= (1.0 + wander * 0.05);
+  }
+
+  // Apply orbital rotation with phase-specific speed
+  float orbit = uTime * baseOrbitSpeed * orbitSpeedMultiplier;
   float cosOrbit = cos(orbit);
   float sinOrbit = sin(orbit);
 
@@ -77,22 +121,30 @@ void main() {
     -targetPos.x * sinOrbit + targetPos.z * cosOrbit
   );
 
-  // Very subtle displacement - much reduced from before
+  // Apply spiral effect (inward during inhale, outward during exhale)
+  if (abs(spiralStrength) > 0.01) {
+    float spiralAngle = uTime * spiralStrength * (0.5 + phase * 0.5);
+    float cosSp = cos(spiralAngle);
+    float sinSp = sin(spiralAngle);
+    // Add vertical spiral component
+    targetPos.y += sin(spiralAngle + phase * 6.28) * spiralStrength * 0.5;
+  }
+
+  // Noise-based displacement with phase-specific strength
   float noiseVal = noise(origPos * 0.1 + uTime * 0.05 + phase) - 0.5;
-  float displacementStrength = mix(0.3, 0.1, uBreathPhase); // Less movement when contracted
   targetPos += dir * noiseVal * displacementStrength;
 
-  // Gentle vertical bobbing
-  float bobAmount = mix(0.15, 0.05, uBreathPhase);
+  // Vertical bobbing with phase-specific amplitude
   targetPos.y += sin(uTime * 0.4 + phase * 6.28) * bobAmount;
 
-  // Smooth spring interpolation
-  float springStrength = 0.06;
+  // Smooth spring interpolation with phase-specific strength
   vec3 velocity = (targetPos - pos) * springStrength;
-
   vec3 newPos = pos + velocity;
 
-  gl_FragColor = vec4(newPos, posData.w);
+  // Store velocity magnitude in w for trail effect (approximated)
+  float velocityMag = length(velocity);
+
+  gl_FragColor = vec4(newPos, velocityMag);
 }
 `;
 
@@ -103,6 +155,7 @@ uniform sampler2D uPositions;
 uniform float uTime;
 uniform float uBreathPhase;
 uniform float uPixelRatio;
+uniform int uPhaseType; // 0=inhale, 1=hold-in, 2=exhale, 3=hold-out
 
 attribute vec2 aReference;
 attribute float aSize;
@@ -115,33 +168,95 @@ varying float vDistance;
 varying float vPhase;
 varying float vBreathPhase;
 varying float vSparkle;
+varying float vVelocity;
+varying float vDepthFactor;
+varying float vPhaseType;
 
 void main() {
   vec4 posData = texture2D(uPositions, aReference);
   vec3 pos = posData.xyz;
+  float velocity = posData.w; // Velocity magnitude from simulation
 
   vPosition = pos;
   vPhase = aPhase;
   vBreathPhase = uBreathPhase;
-  vColor = aColor;
+  vVelocity = velocity;
+  vPhaseType = float(uPhaseType);
 
   vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
   vDistance = -mvPosition.z;
 
-  // Consistent small size - fine particles
-  float distanceAttenuation = 250.0 / max(vDistance, 1.0);
-  float baseSize = aSize * 0.7 * distanceAttenuation;
+  // === DEPTH-BASED SIZE VARIATION ===
+  float depthFromCamera = vDistance;
+  float minDepth = 30.0;
+  float maxDepth = 70.0;
+  vDepthFactor = 1.0 - smoothstep(minDepth, maxDepth, depthFromCamera);
 
-  // Very subtle sparkle - random bright moments
-  float sparkleTime = uTime * 3.0 + aPhase * 100.0;
-  float sparkle = pow(max(0.0, sin(sparkleTime) * sin(sparkleTime * 1.7) * sin(sparkleTime * 2.3)), 8.0);
+  // Smaller base size for more defined particles
+  float distanceAttenuation = 180.0 / max(vDistance, 1.0);
+
+  // Front particles get size boost, back particles get reduced
+  float depthSizeMultiplier = 0.6 + vDepthFactor * 0.5; // 0.6 to 1.1 range
+
+  // Smaller overall size (0.4 instead of 0.7)
+  float baseSize = aSize * 0.4 * distanceAttenuation * depthSizeMultiplier;
+
+  // === PHASE-SPECIFIC SIZE PULSING ===
+  float sizePulse = 1.0;
+  if (uPhaseType == 0) {
+    sizePulse = 1.0 - uBreathPhase * 0.1;
+  } else if (uPhaseType == 1) {
+    sizePulse = 1.0 + sin(uTime * 2.5 + aPhase * 6.28) * 0.06;
+  } else if (uPhaseType == 2) {
+    sizePulse = 1.0 + (1.0 - uBreathPhase) * 0.15;
+  } else {
+    sizePulse = 1.05 + sin(uTime * 1.5 + aPhase * 6.28) * 0.04;
+  }
+  baseSize *= sizePulse;
+
+  // === TRAIL EFFECT ===
+  float trailStretch = 1.0 + velocity * 5.0;
+  baseSize *= min(trailStretch, 1.3);
+
+  // === SPARKLE - more frequent and noticeable ===
+  float sparkleTime = uTime * 5.0 + aPhase * 100.0;
+  // Multiple frequency sparkle for more glimmer
+  float sparkle1 = pow(max(0.0, sin(sparkleTime)), 12.0);
+  float sparkle2 = pow(max(0.0, sin(sparkleTime * 1.7 + 1.0)), 12.0);
+  float sparkle3 = pow(max(0.0, sin(sparkleTime * 2.3 + 2.0)), 12.0);
+  float sparkle = max(sparkle1, max(sparkle2, sparkle3));
   vSparkle = sparkle;
 
-  // Slight size boost during sparkle
-  baseSize *= (1.0 + sparkle * 0.3);
+  // Size boost during sparkle - makes them "pop"
+  baseSize *= (1.0 + sparkle * 0.5);
 
   gl_PointSize = baseSize * uPixelRatio;
   gl_Position = projectionMatrix * mvPosition;
+
+  // === COLOR - boost saturation to prevent washout ===
+  vec3 color = aColor;
+
+  // Increase saturation by pushing away from gray
+  vec3 gray = vec3(dot(color, vec3(0.299, 0.587, 0.114)));
+  color = mix(gray, color, 1.4); // 1.4 = 40% more saturated
+
+  // Temperature shift (subtle)
+  vec3 warmShift = vec3(0.06, 0.01, -0.04);
+  vec3 coolShift = vec3(-0.02, 0.01, 0.05);
+
+  float warmth = 0.0;
+  if (uPhaseType == 0) {
+    warmth = -0.4;
+  } else if (uPhaseType == 1) {
+    warmth = 0.0;
+  } else if (uPhaseType == 2) {
+    warmth = 0.5;
+  } else {
+    warmth = 0.2;
+  }
+
+  vec3 colorShift = warmth > 0.0 ? warmShift * warmth : coolShift * abs(warmth);
+  vColor = clamp(color + colorShift, 0.0, 1.0);
 }
 `;
 
@@ -150,6 +265,7 @@ precision highp float;
 
 uniform float uTime;
 uniform float uBreathPhase;
+uniform int uPhaseType;
 
 varying vec3 vColor;
 varying vec3 vPosition;
@@ -157,39 +273,88 @@ varying float vDistance;
 varying float vPhase;
 varying float vBreathPhase;
 varying float vSparkle;
+varying float vVelocity;
+varying float vDepthFactor;
+varying float vPhaseType;
 
 void main() {
   vec2 center = gl_PointCoord - 0.5;
   float dist = length(center);
 
-  // Sharp circle with soft edge
-  float alpha = 1.0 - smoothstep(0.3, 0.5, dist);
+  // === SHARPER, MORE DEFINED PARTICLE SHAPE ===
+  // Tight core with sharp falloff - like a shiny bead
+  float coreDist = dist * 2.5; // Scaled for sharper edge
+  float alpha = 1.0 - smoothstep(0.6, 1.0, coreDist);
 
   if (alpha < 0.01) discard;
 
-  // Base color with subtle breathing modulation
+  // Base color (already saturated in vertex shader)
   vec3 color = vColor;
+  int phaseType = int(vPhaseType + 0.5);
 
-  // Gentle brightness variation - NOT too bright
-  float brightness = 0.7 + vBreathPhase * 0.15;
-  color *= brightness;
+  // === SHINY HIGHLIGHT - gem-like specular ===
+  // Bright core highlight that preserves color
+  float coreHighlight = exp(-coreDist * 4.0);
+  // Boost the color itself rather than adding white
+  color *= (1.0 + coreHighlight * 0.8);
 
-  // Very subtle sparkle glint - barely noticeable white highlight
-  if (vSparkle > 0.5) {
-    float sparkleIntensity = (vSparkle - 0.5) * 2.0;
-    color = mix(color, vec3(1.0, 0.98, 0.95), sparkleIntensity * 0.4);
+  // === SPARKLE/GLIMMER - sharp bright flash ===
+  if (vSparkle > 0.3) {
+    float sparkleIntensity = pow((vSparkle - 0.3) / 0.7, 2.0);
+    // Sharp highlight in center during sparkle
+    float sparkleCore = exp(-coreDist * 6.0) * sparkleIntensity;
+    // Add white highlight only in the very center
+    color += vec3(1.0) * sparkleCore * 0.8;
+    // Also boost overall brightness during sparkle
+    color *= (1.0 + sparkleIntensity * 0.4);
   }
 
-  // Soft center glow
-  float centerBright = exp(-dist * 6.0) * 0.2;
-  color += vec3(1.0, 0.95, 0.9) * centerBright;
+  // === PHASE-SPECIFIC BRIGHTNESS (gentler to preserve color) ===
+  float brightness = 1.0;
+  if (phaseType == 0) {
+    brightness = 0.85 + vBreathPhase * 0.15;
+  } else if (phaseType == 1) {
+    brightness = 1.0 + sin(uTime * 3.0) * 0.05;
+  } else if (phaseType == 2) {
+    brightness = 1.0 - vBreathPhase * 0.1;
+  } else {
+    brightness = 0.9 + sin(uTime * 2.0) * 0.03;
+  }
+  color *= brightness;
 
-  // Moderate base alpha - particles should be visible but not overwhelming
-  float baseAlpha = 0.5 + vBreathPhase * 0.2;
+  // === DEPTH-BASED BRIGHTNESS (subtler) ===
+  float depthBrightness = 0.8 + vDepthFactor * 0.25;
+  color *= depthBrightness;
+
+  // === EDGE RIM for definition ===
+  // Subtle bright rim at edge for that "shiny object" look
+  float rimDist = abs(coreDist - 0.7);
+  float rim = exp(-rimDist * 8.0) * 0.15;
+  color += vColor * rim; // Add color, not white
+
+  // === ALPHA - more opaque for solid look ===
+  float baseAlpha = 0.8;
+  if (phaseType == 0) {
+    baseAlpha = 0.7 + vBreathPhase * 0.2;
+  } else if (phaseType == 1) {
+    baseAlpha = 0.9;
+  } else if (phaseType == 2) {
+    baseAlpha = 0.85 - vBreathPhase * 0.1;
+  } else {
+    baseAlpha = 0.75;
+  }
+
+  // Sparkle makes particles more solid/bright
+  baseAlpha = min(1.0, baseAlpha + vSparkle * 0.2);
+
   alpha *= baseAlpha;
 
-  // Distance fade for depth
-  float distanceFade = 1.0 - smoothstep(35.0, 70.0, vDistance);
+  // Depth fade (gentler)
+  float depthFade = 0.5 + vDepthFactor * 0.5;
+  alpha *= depthFade;
+
+  // Distance fade
+  float distanceFade = 1.0 - smoothstep(40.0, 70.0, vDistance);
   alpha *= distanceFade;
 
   gl_FragColor = vec4(color, alpha);
@@ -262,7 +427,7 @@ const PARTICLE_COUNT = FBO_SIZE * FBO_SIZE;
 
 export function GPGPUParticleSystem({
 	breathPhase,
-	phaseType: _phaseType,
+	phaseType,
 	expandedRadius,
 	contractedRadius,
 }: GPGPUParticleSystemProps) {
@@ -271,17 +436,17 @@ export function GPGPUParticleSystem({
 	const sphereRef = useRef<THREE.Mesh>(null);
 	const sphereMaterialRef = useRef<THREE.ShaderMaterial>(null);
 
-	// Softer, more cohesive color palette
+	// More saturated color palette for visible, gem-like particles
 	const colorPalette = useMemo(
 		() => [
-			new THREE.Color(0x7ec8d9), // Soft teal
-			new THREE.Color(0xb8d4e3), // Pale blue
-			new THREE.Color(0xd4c4e3), // Soft lavender
-			new THREE.Color(0xe3d4d4), // Blush
-			new THREE.Color(0xc9e4de), // Mint
-			new THREE.Color(0xe8dfd8), // Cream
-			new THREE.Color(0xd1e3dd), // Sage
-			new THREE.Color(0xdde3f0), // Periwinkle
+			new THREE.Color(0x4db8cc), // Vibrant teal
+			new THREE.Color(0x7ba3d4), // Clear blue
+			new THREE.Color(0xb894d4), // Vivid lavender
+			new THREE.Color(0xd4a0a0), // Rose pink
+			new THREE.Color(0x7dd4b8), // Bright mint
+			new THREE.Color(0xd4c490), // Warm gold
+			new THREE.Color(0x90d4a8), // Fresh green
+			new THREE.Color(0xa0b8e0), // Sky blue
 		],
 		[],
 	);
@@ -359,6 +524,7 @@ export function GPGPUParticleSystem({
 				uOriginalPositions: { value: originalPositionTexture },
 				uTime: { value: 0 },
 				uBreathPhase: { value: 0 },
+				uPhaseType: { value: 0 },
 				uExpandedRadius: { value: expandedRadius },
 				uContractedRadius: { value: contractedRadius },
 				resolution: { value: new THREE.Vector2(FBO_SIZE, FBO_SIZE) },
@@ -439,6 +605,7 @@ export function GPGPUParticleSystem({
 				uPositions: { value: gpgpu.positionTexture },
 				uTime: { value: 0 },
 				uBreathPhase: { value: 0 },
+				uPhaseType: { value: 0 },
 				uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
 			},
 			transparent: true,
@@ -474,6 +641,7 @@ export function GPGPUParticleSystem({
 		// Update simulation
 		gpgpu.simulationMaterial.uniforms.uTime.value = time;
 		gpgpu.simulationMaterial.uniforms.uBreathPhase.value = breathPhase;
+		gpgpu.simulationMaterial.uniforms.uPhaseType.value = phaseType;
 		gpgpu.simulationMaterial.uniforms.uExpandedRadius.value = expandedRadius;
 		gpgpu.simulationMaterial.uniforms.uContractedRadius.value =
 			contractedRadius;
@@ -498,6 +666,7 @@ export function GPGPUParticleSystem({
 		material.uniforms.uPositions.value = writeTarget.texture;
 		material.uniforms.uTime.value = time;
 		material.uniforms.uBreathPhase.value = breathPhase;
+		material.uniforms.uPhaseType.value = phaseType;
 
 		// Update sphere
 		if (sphereMaterialRef.current) {
