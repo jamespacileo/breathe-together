@@ -1,6 +1,8 @@
 import { useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
+import { getWordPoints } from '../../lib/glyphs';
+import { WORD_CONFIG, WORD_LIST } from '../../lib/wordSystem';
 import {
 	particleFragmentShader,
 	particleVertexShader,
@@ -21,6 +23,22 @@ interface GPGPUParticleSystemProps {
 const FBO_SIZE = 56; // ~3136 particles - slightly fewer for better performance
 const PARTICLE_COUNT = FBO_SIZE * FBO_SIZE;
 
+// Word formation state
+interface WordState {
+	isForming: boolean;
+	word: string | null;
+	startTime: number;
+	progress: number;
+	recruitedIndices: number[];
+	targetPositions: Array<{
+		x: number;
+		y: number;
+		z: number;
+		letterIndex: number;
+	}>;
+	letterCount: number;
+}
+
 export function GPGPUParticleSystem({
 	breathData,
 	expandedRadius,
@@ -32,6 +50,22 @@ export function GPGPUParticleSystem({
 	const sphereMaterialRef = useRef<THREE.ShaderMaterial>(null);
 	const birthProgressRef = useRef(0); // Tracks entry animation progress
 	const currentTargetRef = useRef(0); // GPGPU ping-pong target
+
+	// Word system state
+	const wordStateRef = useRef<WordState>({
+		isForming: false,
+		word: null,
+		startTime: 0,
+		progress: 0,
+		recruitedIndices: [],
+		targetPositions: [],
+		letterCount: 0,
+	});
+	const inhaleCountRef = useRef(0);
+	const lastWordInhaleRef = useRef(0);
+	const sessionStartTimeRef = useRef(Date.now());
+	const lastPhaseTypeRef = useRef(-1);
+	const usedWordsRef = useRef<Set<string>>(new Set());
 
 	// More saturated color palette for visible, gem-like particles
 	const colorPalette = useMemo(
@@ -113,6 +147,29 @@ export function GPGPUParticleSystem({
 		);
 		originalPositionTexture.needsUpdate = true;
 
+		// Word formation textures
+		// wordTargetsData: xyz = target position, w = letter index
+		const wordTargetsData = new Float32Array(PARTICLE_COUNT * 4);
+		const wordTargetsTexture = new THREE.DataTexture(
+			wordTargetsData,
+			FBO_SIZE,
+			FBO_SIZE,
+			THREE.RGBAFormat,
+			floatType,
+		);
+		wordTargetsTexture.needsUpdate = true;
+
+		// wordParticlesData: r = isWordParticle (0/1), g = unused, b = letterCount, a = unused
+		const wordParticlesData = new Float32Array(PARTICLE_COUNT * 4);
+		const wordParticlesTexture = new THREE.DataTexture(
+			wordParticlesData,
+			FBO_SIZE,
+			FBO_SIZE,
+			THREE.RGBAFormat,
+			floatType,
+		);
+		wordParticlesTexture.needsUpdate = true;
+
 		const simulationMaterial = new THREE.ShaderMaterial({
 			vertexShader: simulationVertexShader,
 			fragmentShader: simulationFragmentShader,
@@ -132,6 +189,12 @@ export function GPGPUParticleSystem({
 				uBreathWave: { value: 0 },
 				uViewOffset: { value: new THREE.Vector2(0, 0) },
 				uPhaseTransitionBlend: { value: 0 },
+				// Word formation uniforms
+				uWordTargets: { value: wordTargetsTexture },
+				uWordParticles: { value: wordParticlesTexture },
+				uWordProgress: { value: 0 },
+				uWordFormationEnd: { value: WORD_CONFIG.FORMATION_END },
+				uWordLetterOverlap: { value: WORD_CONFIG.LETTER_OVERLAP },
 			},
 			defines: {
 				resolution: `vec2(${FBO_SIZE}.0, ${FBO_SIZE}.0)`,
@@ -149,6 +212,10 @@ export function GPGPUParticleSystem({
 			positionTargetB,
 			positionTexture,
 			originalPositionTexture,
+			wordTargetsTexture,
+			wordTargetsData,
+			wordParticlesTexture,
+			wordParticlesData,
 			simulationMaterial,
 			simulationScene,
 			simulationCamera,
@@ -228,6 +295,10 @@ export function GPGPUParticleSystem({
 				uCrystallization: { value: 0 },
 				uBreathWave: { value: 0 },
 				uBirthProgress: { value: 0 },
+				// Word formation uniforms
+				uWordParticles: { value: gpgpu.wordParticlesTexture },
+				uWordProgress: { value: 0 },
+				uWordFormationEnd: { value: WORD_CONFIG.FORMATION_END },
 			},
 			transparent: true,
 			blending: THREE.AdditiveBlending,
@@ -265,6 +336,8 @@ export function GPGPUParticleSystem({
 			gpgpu.positionTargetB.dispose();
 			gpgpu.positionTexture.dispose();
 			gpgpu.originalPositionTexture.dispose();
+			gpgpu.wordTargetsTexture.dispose();
+			gpgpu.wordParticlesTexture.dispose();
 			gpgpu.simulationMaterial.dispose();
 			gpgpu.quadGeometry.dispose();
 			geometry.dispose();
@@ -273,43 +346,265 @@ export function GPGPUParticleSystem({
 		};
 	}, [gpgpu, geometry, material, sphereMaterial]);
 
+	// Select a random word from the list
+	const selectWord = useCallback(() => {
+		const availableWords = WORD_LIST.filter(
+			(w) => !usedWordsRef.current.has(w),
+		);
+		if (availableWords.length === 0) {
+			usedWordsRef.current.clear();
+			return WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
+		}
+		const word =
+			availableWords[Math.floor(Math.random() * availableWords.length)];
+		usedWordsRef.current.add(word);
+		if (usedWordsRef.current.size > WORD_LIST.length / 2) {
+			const entries = Array.from(usedWordsRef.current);
+			for (let i = 0; i < entries.length / 2; i++) {
+				usedWordsRef.current.delete(entries[i]);
+			}
+		}
+		return word;
+	}, []);
+
+	// Helper: Find nearest particle to a target position
+	const findNearestParticle = useCallback(
+		(
+			target: { x: number; y: number; z: number },
+			currentPositions: Float32Array,
+			usedIndices: Set<number>,
+		): number => {
+			let nearestIdx = -1;
+			let nearestDist = Infinity;
+
+			for (let i = 0; i < PARTICLE_COUNT; i++) {
+				if (usedIndices.has(i)) continue;
+
+				const px = currentPositions[i * 4];
+				const py = currentPositions[i * 4 + 1];
+				const pz = currentPositions[i * 4 + 2];
+
+				const dx = px - target.x;
+				const dy = py - target.y;
+				const dz = pz - target.z;
+				const dist = dx * dx + dy * dy + dz * dz;
+
+				if (dist < nearestDist) {
+					nearestDist = dist;
+					nearestIdx = i;
+				}
+			}
+
+			return nearestIdx;
+		},
+		[],
+	);
+
+	// Recruit particles for word formation using nearest-neighbor algorithm
+	const recruitParticles = useCallback(
+		(
+			targetPositions: Array<{
+				x: number;
+				y: number;
+				z: number;
+				letterIndex: number;
+			}>,
+			currentPositions: Float32Array,
+		): number[] => {
+			const usedIndices = new Set<number>();
+			const recruited: number[] = [];
+
+			for (const target of targetPositions) {
+				const nearestIdx = findNearestParticle(
+					target,
+					currentPositions,
+					usedIndices,
+				);
+				if (nearestIdx >= 0) {
+					usedIndices.add(nearestIdx);
+					recruited.push(nearestIdx);
+				}
+			}
+
+			return recruited;
+		},
+		[findNearestParticle],
+	);
+
+	// Trigger word formation
+	const triggerWordFormation = useCallback(
+		(time: number, currentPositions: Float32Array) => {
+			const word = selectWord();
+			const targetPositions = getWordPoints(
+				word,
+				WORD_CONFIG.PARTICLES_PER_LETTER,
+				WORD_CONFIG.WORD_SCALE,
+			);
+
+			const recruitedIndices = recruitParticles(
+				targetPositions,
+				currentPositions,
+			);
+			const letterCount = word.replace(/\s/g, '').length;
+
+			// Update word textures
+			const wordTargetsData = gpgpu.wordTargetsData;
+			const wordParticlesData = gpgpu.wordParticlesData;
+
+			// Clear previous data
+			wordTargetsData.fill(0);
+			wordParticlesData.fill(0);
+
+			// Set target positions and mark word particles
+			for (let i = 0; i < recruitedIndices.length; i++) {
+				const particleIdx = recruitedIndices[i];
+				const target = targetPositions[i];
+
+				// Word targets: xyz = position, w = letterIndex
+				wordTargetsData[particleIdx * 4] = target.x;
+				wordTargetsData[particleIdx * 4 + 1] = target.y;
+				wordTargetsData[particleIdx * 4 + 2] = target.z;
+				wordTargetsData[particleIdx * 4 + 3] = target.letterIndex;
+
+				// Word particles: r = isWordParticle, g = unused, b = letterCount
+				wordParticlesData[particleIdx * 4] = 1.0;
+				wordParticlesData[particleIdx * 4 + 1] = 0;
+				wordParticlesData[particleIdx * 4 + 2] = letterCount;
+				wordParticlesData[particleIdx * 4 + 3] = 0;
+			}
+
+			gpgpu.wordTargetsTexture.needsUpdate = true;
+			gpgpu.wordParticlesTexture.needsUpdate = true;
+
+			wordStateRef.current = {
+				isForming: true,
+				word,
+				startTime: time,
+				progress: 0,
+				recruitedIndices,
+				targetPositions,
+				letterCount,
+			};
+
+			lastWordInhaleRef.current = inhaleCountRef.current;
+		},
+		[gpgpu, selectWord, recruitParticles],
+	);
+
+	// End word formation
+	const endWordFormation = useCallback(() => {
+		// Clear word particle data
+		gpgpu.wordParticlesData.fill(0);
+		gpgpu.wordParticlesTexture.needsUpdate = true;
+
+		wordStateRef.current = {
+			isForming: false,
+			word: null,
+			startTime: 0,
+			progress: 0,
+			recruitedIndices: [],
+			targetPositions: [],
+			letterCount: 0,
+		};
+	}, [gpgpu]);
+
+	// Check if should trigger word
+	const shouldTriggerWord = useCallback(() => {
+		if (
+			inhaleCountRef.current - lastWordInhaleRef.current <
+			WORD_CONFIG.MIN_GAP
+		) {
+			return false;
+		}
+
+		const sessionDuration = (Date.now() - sessionStartTimeRef.current) / 1000;
+		const ramp = Math.min(sessionDuration / WORD_CONFIG.RAMP_DURATION, 1);
+		const probability =
+			WORD_CONFIG.BASE_PROBABILITY +
+			(WORD_CONFIG.MAX_PROBABILITY - WORD_CONFIG.BASE_PROBABILITY) * ramp;
+
+		return Math.random() < probability;
+	}, []);
+
+	// Helper: Handle word trigger on inhale
+	const handleWordTrigger = useCallback(
+		(timeMs: number, phaseType: number) => {
+			if (phaseType !== 0 || lastPhaseTypeRef.current === 0) return;
+
+			inhaleCountRef.current++;
+			if (wordStateRef.current.isForming || !shouldTriggerWord()) return;
+
+			const currentTarget = currentTargetRef.current;
+			const readTarget =
+				currentTarget === 0 ? gpgpu.positionTargetA : gpgpu.positionTargetB;
+
+			const positions = new Float32Array(PARTICLE_COUNT * 4);
+			gl.readRenderTargetPixels(
+				readTarget,
+				0,
+				0,
+				FBO_SIZE,
+				FBO_SIZE,
+				positions,
+			);
+			triggerWordFormation(timeMs, positions);
+		},
+		[gpgpu, gl, shouldTriggerWord, triggerWordFormation],
+	);
+
+	// Helper: Update word animation state
+	const updateWordProgress = useCallback(
+		(timeMs: number) => {
+			if (!wordStateRef.current.isForming) return;
+
+			const elapsed = timeMs - wordStateRef.current.startTime;
+			wordStateRef.current.progress = Math.min(
+				1,
+				elapsed / WORD_CONFIG.WORD_DURATION,
+			);
+
+			if (wordStateRef.current.progress >= 1) {
+				endWordFormation();
+			}
+		},
+		[endWordFormation],
+	);
+
+	// Helper: Update simulation uniforms
+	const updateSimulationUniforms = useCallback(
+		(time: number, data: EnhancedBreathData) => {
+			const simUniforms = gpgpu.simulationMaterial.uniforms;
+			simUniforms.uTime.value = time;
+			simUniforms.uBreathPhase.value = data.breathPhase;
+			simUniforms.uPhaseType.value = data.phaseType;
+			simUniforms.uExpandedRadius.value = expandedRadius;
+			simUniforms.uContractedRadius.value = contractedRadius;
+			simUniforms.uAnticipation.value = data.anticipation;
+			simUniforms.uOvershoot.value = data.overshoot;
+			simUniforms.uDiaphragmDirection.value = data.diaphragmDirection;
+			simUniforms.uCrystallization.value = data.crystallization;
+			simUniforms.uBreathWave.value = data.breathWave;
+			simUniforms.uViewOffset.value.set(data.viewOffset.x, data.viewOffset.y);
+			simUniforms.uPhaseTransitionBlend.value = data.phaseTransitionBlend;
+			simUniforms.uWordProgress.value = wordStateRef.current.progress;
+		},
+		[gpgpu, expandedRadius, contractedRadius],
+	);
+
 	// Animation loop
 	useFrame((state) => {
 		const time = state.clock.elapsedTime;
+		const timeMs = time * 1000;
 
-		// Update birth progress (ramps from 0 to 2 over first 3 seconds)
-		// This creates the "blooming" entry animation
 		birthProgressRef.current = Math.min(2, time / 1.5);
 
-		// Destructure breath data
-		const {
-			breathPhase,
-			phaseType,
-			anticipation,
-			overshoot,
-			diaphragmDirection,
-			colorTemperature,
-			crystallization,
-			breathWave,
-			viewOffset,
-			phaseTransitionBlend,
-		} = breathData;
+		// Handle word formation
+		handleWordTrigger(timeMs, breathData.phaseType);
+		lastPhaseTypeRef.current = breathData.phaseType;
+		updateWordProgress(timeMs);
 
 		// Update simulation uniforms
-		const simUniforms = gpgpu.simulationMaterial.uniforms;
-		simUniforms.uTime.value = time;
-		simUniforms.uBreathPhase.value = breathPhase;
-		simUniforms.uPhaseType.value = phaseType;
-		simUniforms.uExpandedRadius.value = expandedRadius;
-		simUniforms.uContractedRadius.value = contractedRadius;
-		// New subtle effect uniforms
-		simUniforms.uAnticipation.value = anticipation;
-		simUniforms.uOvershoot.value = overshoot;
-		simUniforms.uDiaphragmDirection.value = diaphragmDirection;
-		simUniforms.uCrystallization.value = crystallization;
-		simUniforms.uBreathWave.value = breathWave;
-		simUniforms.uViewOffset.value.set(viewOffset.x, viewOffset.y);
-		simUniforms.uPhaseTransitionBlend.value = phaseTransitionBlend;
+		updateSimulationUniforms(time, breathData);
 
 		const currentTarget = currentTargetRef.current;
 		const readTarget =
@@ -332,33 +627,30 @@ export function GPGPUParticleSystem({
 		const partUniforms = material.uniforms;
 		partUniforms.uPositions.value = writeTarget.texture;
 		partUniforms.uTime.value = time;
-		partUniforms.uBreathPhase.value = breathPhase;
-		partUniforms.uPhaseType.value = phaseType;
-		// New subtle effect uniforms
-		partUniforms.uColorTemperature.value = colorTemperature;
-		partUniforms.uCrystallization.value = crystallization;
-		partUniforms.uBreathWave.value = breathWave;
+		partUniforms.uBreathPhase.value = breathData.breathPhase;
+		partUniforms.uPhaseType.value = breathData.phaseType;
+		partUniforms.uColorTemperature.value = breathData.colorTemperature;
+		partUniforms.uCrystallization.value = breathData.crystallization;
+		partUniforms.uBreathWave.value = breathData.breathWave;
 		partUniforms.uBirthProgress.value = birthProgressRef.current;
+		partUniforms.uWordProgress.value = wordStateRef.current.progress;
 
-		// Update sphere with phase-specific colors
+		// Update sphere uniforms
 		if (sphereMaterialRef.current) {
 			const sphereUniforms = sphereMaterialRef.current.uniforms;
 			sphereUniforms.uTime.value = time;
-			sphereUniforms.uBreathPhase.value = breathPhase;
-			sphereUniforms.uPhaseType.value = phaseType;
-			sphereUniforms.uColorTemperature.value = colorTemperature;
-			sphereUniforms.uCrystallization.value = crystallization;
+			sphereUniforms.uBreathPhase.value = breathData.breathPhase;
+			sphereUniforms.uPhaseType.value = breathData.phaseType;
+			sphereUniforms.uColorTemperature.value = breathData.colorTemperature;
+			sphereUniforms.uCrystallization.value = breathData.crystallization;
 		}
 
-		// Scale sphere with breathing - MORE expansion on exhale
-		// breathPhase: 0 = exhaled (expanded), 1 = inhaled (contracted)
+		// Scale sphere with breathing
 		if (sphereRef.current) {
-			// Base contracted size when inhaled
 			const minScale = contractedRadius * 0.35;
-			// Maximum expanded size when exhaled - significantly larger
 			const maxScale = contractedRadius * 0.7;
-			// Interpolate: when breathPhase=0 (exhaled) -> maxScale, breathPhase=1 (inhaled) -> minScale
-			const sphereScale = minScale + (maxScale - minScale) * (1 - breathPhase);
+			const sphereScale =
+				minScale + (maxScale - minScale) * (1 - breathData.breathPhase);
 			sphereRef.current.scale.setScalar(sphereScale);
 		}
 	});

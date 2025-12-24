@@ -1,6 +1,6 @@
 /**
  * Main Particle Fragment Shader
- * Handles particle shape, glow, sparkle, and phase-specific rendering
+ * Handles particle shape, glow, sparkle, phase-specific rendering, and word formation
  */
 export const particleFragmentShader = /* glsl */ `
 precision highp float;
@@ -9,6 +9,8 @@ uniform float uTime;
 uniform float uBreathPhase;
 uniform int uPhaseType;
 uniform float uCrystallization;
+uniform float uWordProgress;
+uniform float uWordFormationEnd;
 
 varying vec3 vColor;
 varying vec3 vPosition;
@@ -20,6 +22,8 @@ varying float vVelocity;
 varying float vDepthFactor;
 varying float vPhaseType;
 varying float vBirthAlpha;
+varying float vIsWordParticle;
+varying float vWordProgress;
 
 void main() {
   vec2 center = gl_PointCoord - 0.5;
@@ -98,6 +102,29 @@ void main() {
   // === BIRTH ANIMATION ALPHA ===
   // Particles fade in during birth
   alpha *= vBirthAlpha;
+
+  // === WORD PARTICLE EFFECTS ===
+  if (vIsWordParticle > 0.5 && vWordProgress > 0.0) {
+    // Calculate formation progress
+    float wordFormProgress = 0.0;
+    if (vWordProgress < uWordFormationEnd) {
+      wordFormProgress = vWordProgress / uWordFormationEnd;
+    } else {
+      float dissolve = (vWordProgress - uWordFormationEnd) / (1.0 - uWordFormationEnd);
+      wordFormProgress = 1.0 - dissolve;
+    }
+
+    // Enhanced alpha for word particles (make them stand out)
+    alpha = mix(alpha, min(1.0, alpha * 1.3), wordFormProgress);
+
+    // Subtle inner glow effect for word particles
+    float innerGlow = exp(-coreDist * 3.0) * wordFormProgress * 0.3;
+    color += vec3(0.8, 0.9, 1.0) * innerGlow;
+
+    // Pulsing effect during word formation
+    float pulse = sin(uTime * 3.0) * 0.1 * wordFormProgress;
+    alpha *= (1.0 + pulse);
+  }
 
   gl_FragColor = vec4(color, alpha);
 }

@@ -1,6 +1,6 @@
 /**
  * Main Particle Vertex Shader
- * Handles particle sizing, sparkle effects, and color temperature
+ * Handles particle sizing, sparkle effects, color temperature, and word formation
  */
 export const particleVertexShader = /* glsl */ `
 precision highp float;
@@ -16,6 +16,11 @@ uniform float uColorTemperature;  // -1 cool to 1 warm
 uniform float uCrystallization;   // Hold stillness factor
 uniform float uBreathWave;        // Radial wave intensity
 uniform float uBirthProgress;     // Global entry animation (0-1)
+
+// === WORD FORMATION UNIFORMS ===
+uniform sampler2D uWordParticles;   // Which particles are word particles (r=1) + progress (g) + letterCount (b)
+uniform float uWordProgress;        // Global word animation progress (0-1)
+uniform float uWordFormationEnd;    // When formation phase ends (default 0.7)
 
 attribute vec2 aReference;
 attribute float aSize;
@@ -33,6 +38,8 @@ varying float vVelocity;
 varying float vDepthFactor;
 varying float vPhaseType;
 varying float vBirthAlpha;
+varying float vIsWordParticle;
+varying float vWordProgress;
 
 void main() {
   vec4 posData = texture2D(uPositions, aReference);
@@ -44,6 +51,12 @@ void main() {
   vBreathPhase = uBreathPhase;
   vVelocity = velocity;
   vPhaseType = float(uPhaseType);
+
+  // === WORD PARTICLE STATE ===
+  vec4 wordParticleData = texture2D(uWordParticles, aReference);
+  float isWordParticle = wordParticleData.r;
+  vIsWordParticle = isWordParticle;
+  vWordProgress = uWordProgress;
 
   // === ENTRY BIRTH ANIMATION ===
   // Particles emerge from center during first few seconds
@@ -107,6 +120,25 @@ void main() {
   // Birth animation: particles start smaller
   baseSize *= birthAlpha;
 
+  // === WORD PARTICLE SIZE ENHANCEMENT ===
+  if (isWordParticle > 0.5 && uWordProgress > 0.0) {
+    // Calculate formation progress for size boost
+    float wordFormProgress = 0.0;
+    if (uWordProgress < uWordFormationEnd) {
+      wordFormProgress = uWordProgress / uWordFormationEnd;
+    } else {
+      float dissolve = (uWordProgress - uWordFormationEnd) / (1.0 - uWordFormationEnd);
+      wordFormProgress = 1.0 - dissolve;
+    }
+
+    // Word particles get slightly larger when forming
+    baseSize *= (1.0 + wordFormProgress * 0.4);
+
+    // Enhanced sparkle for word particles
+    sparkle = max(sparkle, wordFormProgress * 0.6);
+    vSparkle = sparkle;
+  }
+
   gl_PointSize = baseSize * uPixelRatio;
   gl_Position = projectionMatrix * mvPosition;
 
@@ -131,6 +163,25 @@ void main() {
     float waveRadius = uBreathWave * 25.0;
     float waveInfluence = exp(-abs(distFromCenter - waveRadius) * 0.3) * uBreathWave;
     color += vec3(0.1, 0.15, 0.2) * waveInfluence;
+  }
+
+  // === WORD PARTICLE COLOR ENHANCEMENT ===
+  if (isWordParticle > 0.5 && uWordProgress > 0.0) {
+    // Calculate formation progress
+    float wordFormProgress = 0.0;
+    if (uWordProgress < uWordFormationEnd) {
+      wordFormProgress = uWordProgress / uWordFormationEnd;
+    } else {
+      float dissolve = (uWordProgress - uWordFormationEnd) / (1.0 - uWordFormationEnd);
+      wordFormProgress = 1.0 - dissolve;
+    }
+
+    // Add a subtle glow/brightness boost to word particles
+    color += vec3(0.15, 0.2, 0.25) * wordFormProgress;
+
+    // Slight saturation boost
+    vec3 gray = vec3(dot(color, vec3(0.299, 0.587, 0.114)));
+    color = mix(color, mix(gray, color, 1.5), wordFormProgress * 0.5);
   }
 
   vColor = clamp(color, 0.0, 1.0);

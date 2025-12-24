@@ -1,6 +1,6 @@
 /**
  * GPGPU Simulation Fragment Shader
- * Handles particle physics, orbital motion, and breath-synchronized effects
+ * Handles particle physics, orbital motion, breath-synchronized effects, and word formation
  */
 export const simulationFragmentShader = /* glsl */ `
 precision highp float;
@@ -21,6 +21,13 @@ uniform float uCrystallization;   // Hold phase stillness (0-1)
 uniform float uBreathWave;        // Radial wave intensity (0-1)
 uniform vec2 uViewOffset;         // Micro-saccade parallax
 uniform float uPhaseTransitionBlend; // 0-1, smooths parameter changes at phase boundaries
+
+// === WORD FORMATION UNIFORMS ===
+uniform sampler2D uWordTargets;     // Target positions for word particles (xyz) + letterIndex (w)
+uniform sampler2D uWordParticles;   // Which particles are word particles (r=1) + progress (g) + letterCount (b)
+uniform float uWordProgress;        // Global word animation progress (0-1)
+uniform float uWordFormationEnd;    // When formation phase ends (default 0.7)
+uniform float uWordLetterOverlap;   // Letter reveal overlap duration (default 0.4)
 
 // Simple smooth noise
 float hash(vec3 p) {
@@ -247,6 +254,52 @@ void main() {
     float gridSize = 0.02; // Sub-pixel precision
     vec3 snapped = floor(newPos / gridSize + 0.5) * gridSize;
     newPos = mix(newPos, snapped, snapStrength * 0.5);
+  }
+
+  // === WORD FORMATION ===
+  // Check if this particle is recruited for word formation
+  vec4 wordParticleData = texture2D(uWordParticles, uv);
+  float isWordParticle = wordParticleData.r;
+
+  if (isWordParticle > 0.5 && uWordProgress > 0.0) {
+    // Get target position and letter info
+    vec4 wordTargetData = texture2D(uWordTargets, uv);
+    vec3 wordTarget = wordTargetData.xyz;
+    float letterIndex = wordTargetData.w;
+    float letterCount = wordParticleData.b;
+
+    // Calculate per-letter progress for sequential reveal
+    float letterProgress = 0.0;
+
+    if (uWordProgress < uWordFormationEnd) {
+      // Formation phase: letters reveal sequentially
+      float formProgress = uWordProgress / uWordFormationEnd;
+      float letterRevealPoint = letterIndex / max(1.0, letterCount);
+
+      // Each letter starts revealing at its proportional point
+      letterProgress = clamp((formProgress * 1.5 - letterRevealPoint) / uWordLetterOverlap, 0.0, 1.0);
+
+      // Smooth easing (smoothstep)
+      letterProgress = letterProgress * letterProgress * (3.0 - 2.0 * letterProgress);
+    } else {
+      // Dissolve phase: all letters fade out together
+      float dissolveProgress = (uWordProgress - uWordFormationEnd) / (1.0 - uWordFormationEnd);
+      float dissolve = clamp(dissolveProgress, 0.0, 1.0);
+
+      // Ease out the dissolve
+      letterProgress = 1.0 - dissolve * dissolve;
+    }
+
+    // Add subtle floating animation to word particles
+    float floatOffset = sin(uTime * 1.5 + letterIndex * 0.5) * 0.15;
+    vec3 animatedTarget = wordTarget;
+    animatedTarget.y += floatOffset * letterProgress;
+
+    // Interpolate from sphere position to word position
+    newPos = mix(newPos, animatedTarget, letterProgress);
+
+    // Reduce velocity when forming word (particles should feel more stable)
+    velocity *= (1.0 - letterProgress * 0.7);
   }
 
   // Store velocity magnitude in w for trail effect
