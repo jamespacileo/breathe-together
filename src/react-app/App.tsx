@@ -15,6 +15,22 @@ import { useSimulation } from './hooks/useSimulation';
 import { type UserIdentity, useAppStore } from './stores/appStore';
 import './App.css';
 
+/**
+ * Cosmic Background Component
+ * Renders starfield and nebula atmospheric layers
+ */
+function CosmicBackground() {
+	return (
+		<>
+			{/* Starfield layer - subtle twinkling stars */}
+			<div className="starfield" aria-hidden="true" />
+
+			{/* Nebula glow layer - atmospheric depth */}
+			<div className="nebula-layer" aria-hidden="true" />
+		</>
+	);
+}
+
 function App() {
 	// Dev mode toggle (Cmd/Ctrl + Shift + D)
 	const [isDevMode, setIsDevMode] = useState(false);
@@ -69,7 +85,10 @@ function App() {
 	};
 
 	return (
-		<div className="fixed inset-0 overflow-hidden">
+		<div className="fixed inset-0 overflow-hidden bg-void">
+			{/* Cosmic background layers */}
+			<CosmicBackground />
+
 			{/* Main breathing visualization */}
 			<BreathingOrb
 				breathState={breathState}
@@ -78,7 +97,7 @@ function App() {
 			/>
 
 			{/* Settings/Debug panel - top left */}
-			<div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-50">
+			<div className="absolute top-4 left-4 sm:top-5 sm:left-5 z-50">
 				{isDevMode ? (
 					<DebugPanel
 						config={config}
@@ -111,17 +130,17 @@ function App() {
 			</div>
 
 			{/* Presence counter - top center */}
-			<div className="absolute top-3 sm:top-6 left-1/2 -translate-x-1/2 z-10">
+			<div className="absolute top-5 sm:top-8 left-1/2 -translate-x-1/2 z-10">
 				<PresenceCounter presence={presence} />
 			</div>
 
 			{/* Pattern selector - top right */}
-			<div className="absolute top-3 right-3 sm:top-6 sm:right-6 z-10">
+			<div className="absolute top-4 right-4 sm:top-5 sm:right-5 z-10">
 				<PatternSelector pattern={pattern} onChange={setPattern} />
 			</div>
 
 			{/* User badge or join button - bottom center */}
-			<div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-10">
+			<div className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 z-10">
 				{user ? (
 					<UserBadge user={user} onClick={() => setShowIdentity(true)} />
 				) : (

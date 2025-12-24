@@ -5,7 +5,7 @@ import { cn } from '../../lib/utils';
 export interface ButtonProps
 	extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 	asChild?: boolean;
-	variant?: 'default' | 'outline' | 'ghost' | 'link';
+	variant?: 'default' | 'outline' | 'ghost' | 'link' | 'cosmic' | 'aurora';
 	size?: 'default' | 'sm' | 'lg' | 'icon';
 }
 
@@ -24,19 +24,37 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 		return (
 			<Comp
 				className={cn(
-					'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/50 disabled:pointer-events-none disabled:opacity-50',
+					// Base styles
+					'inline-flex items-center justify-center whitespace-nowrap text-sm font-light tracking-wide transition-all duration-300 ease-out',
+					'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aurora/50 focus-visible:ring-offset-2 focus-visible:ring-offset-void',
+					'disabled:pointer-events-none disabled:opacity-40',
+					// Variants
 					{
-						'bg-white/10 text-white hover:bg-white/20': variant === 'default',
-						'border border-white/20 bg-transparent text-white hover:bg-white/10':
+						// Default: Subtle cosmic glass
+						'rounded-full bg-gradient-to-r from-nebula/20 via-nebula-glow/10 to-aurora/10 text-stellar backdrop-blur-md border border-stellar-faint hover:border-nebula-glow/50 hover:shadow-glow-sm hover:from-nebula/30 hover:to-aurora/20':
+							variant === 'default',
+						// Outline: Ethereal border
+						'rounded-full border border-stellar-dim bg-transparent text-stellar-soft hover:text-stellar hover:border-aurora/50 hover:bg-aurora/5 hover:shadow-glow-aurora':
 							variant === 'outline',
-						'text-white hover:bg-white/10': variant === 'ghost',
-						'text-white underline-offset-4 hover:underline': variant === 'link',
+						// Ghost: Minimal presence
+						'rounded-lg text-stellar-muted hover:text-stellar hover:bg-stellar-ghost':
+							variant === 'ghost',
+						// Link: Aurora accent
+						'text-aurora-bright underline-offset-4 hover:underline hover:text-aurora decoration-aurora/50':
+							variant === 'link',
+						// Cosmic: Full nebula effect
+						'rounded-full bg-gradient-to-r from-nebula via-nebula-glow to-aurora text-white font-normal shadow-glow hover:shadow-glow-lg hover:scale-[1.02] active:scale-[0.98]':
+							variant === 'cosmic',
+						// Aurora: Bright accent button
+						'rounded-full bg-gradient-to-r from-aurora-deep via-aurora to-aurora-bright text-void-deep font-medium shadow-glow-aurora hover:shadow-[0_0_50px_rgba(34,211,238,0.5)] hover:scale-[1.02] active:scale-[0.98]':
+							variant === 'aurora',
 					},
+					// Sizes
 					{
-						'h-9 px-4 py-2': size === 'default',
-						'h-8 rounded-md px-3 text-xs': size === 'sm',
-						'h-10 rounded-md px-8': size === 'lg',
-						'h-9 w-9': size === 'icon',
+						'h-10 px-6 py-2': size === 'default',
+						'h-8 px-4 text-xs': size === 'sm',
+						'h-12 px-8 text-base': size === 'lg',
+						'h-10 w-10 p-0': size === 'icon',
 					},
 					className,
 				)}

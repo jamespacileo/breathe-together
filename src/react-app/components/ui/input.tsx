@@ -10,7 +10,24 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 			<input
 				type={type}
 				className={cn(
-					'flex h-9 w-full rounded-md border border-white/20 bg-white/5 px-3 py-1 text-sm text-white shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-white/40 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/50 disabled:cursor-not-allowed disabled:opacity-50',
+					// Base cosmic input
+					'flex h-11 w-full rounded-xl px-4 py-2 text-sm font-light',
+					// Cosmic glass background
+					'bg-gradient-to-r from-void-light/80 to-nebula-deep/20 backdrop-blur-md',
+					// Border with subtle glow
+					'border border-stellar-faint',
+					// Text styling
+					'text-stellar placeholder:text-stellar-dim',
+					// Transitions
+					'transition-all duration-300 ease-out',
+					// Focus state - aurora glow
+					'focus-visible:outline-none focus-visible:border-aurora/50 focus-visible:shadow-[0_0_20px_rgba(34,211,238,0.2)]',
+					// Hover
+					'hover:border-stellar-dim',
+					// File input
+					'file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-stellar-soft',
+					// Disabled
+					'disabled:cursor-not-allowed disabled:opacity-40',
 					className,
 				)}
 				ref={ref}
