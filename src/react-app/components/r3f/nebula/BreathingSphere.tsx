@@ -5,87 +5,98 @@ import type { BreathState } from '../../../hooks/useBreathSync';
 import { getBreathValue } from '../../../lib/breathUtils';
 import type { VisualizationConfig } from '../../../lib/config';
 
-const PARTICLE_COUNT = 300;
+const PARTICLE_COUNT = 1500;
 
-// Simple 3D noise function for organic drift
-function noise3D(x: number, y: number, z: number, seed: number): number {
-	const n =
-		Math.sin(x * 1.2 + seed) * Math.cos(y * 0.9 + seed * 0.7) +
-		Math.sin(y * 1.1 + seed * 0.5) * Math.cos(z * 0.8 + seed * 0.3) +
-		Math.sin(z * 1.0 + seed * 0.9) * Math.cos(x * 0.7 + seed * 0.6);
-	return n / 3;
+// Avatar/mood color palette
+const COLOR_PALETTE = [
+	[0.31, 0.8, 0.77], // Teal
+	[1.0, 0.42, 0.42], // Coral
+	[1.0, 0.9, 0.43], // Yellow
+	[0.58, 0.88, 0.83], // Mint
+	[0.95, 0.51, 0.51], // Salmon
+	[0.67, 0.59, 0.85], // Lavender
+	[0.99, 0.73, 0.83], // Pink
+	[0.66, 0.85, 0.92], // Sky blue
+	[0.98, 0.97, 0.44], // Lemon
+	[0.53, 0.85, 0.69], // Seafoam
+	[1.0, 0.67, 0.65], // Peach
+	[0.71, 0.89, 0.98], // Light blue
+	[0.86, 0.93, 0.76], // Pale green
+	[1.0, 0.83, 0.71], // Apricot
+	[0.79, 0.69, 1.0], // Lilac
+];
+
+// Simple noise function for fluid motion
+function noise3D(x: number, y: number, z: number, t: number): number {
+	return (
+		Math.sin(x * 0.5 + t) *
+			Math.cos(y * 0.5 + t * 0.7) *
+			Math.sin(z * 0.5 + t * 0.3) *
+			0.5 +
+		Math.sin(x * 1.2 + t * 1.3) * Math.cos(y * 0.8 + t) * 0.3 +
+		Math.cos(z * 0.9 + t * 0.9) * Math.sin(x * 0.7 + t * 0.5) * 0.2
+	);
 }
 
-// Particle state for fluid simulation
+// Particle state
 interface Particle {
-	// Spherical coordinates (stable reference)
-	theta: number;
-	phi: number;
-	baseRadius: number;
-
-	// Current position (animated)
+	// Original position (for direction reference)
+	ox: number;
+	oy: number;
+	oz: number;
+	// Current position
 	x: number;
 	y: number;
 	z: number;
-
-	// Velocity for spring physics
-	vx: number;
-	vy: number;
-	vz: number;
-
-	// Noise offsets for organic drift
-	noiseOffsetX: number;
-	noiseOffsetY: number;
-	noiseOffsetZ: number;
-
-	// Per-particle variation
-	radiusVariation: number;
-	driftSpeed: number;
+	// Original distance from center
+	originalDist: number;
+	// Phase offset for variation
+	phase: number;
 }
 
-// Vertex shader - simple point rendering with size attenuation
+// Vertex shader
 const VERTEX_SHADER = `
 attribute float size;
 
-uniform float uTime;
-uniform float uBreathValue;
+uniform float uBreathPhase;
 
 varying vec3 vColor;
 varying float vAlpha;
+varying float vBreathPhase;
 
 void main() {
 	vColor = color;
+	vBreathPhase = uBreathPhase;
 
-	// Subtle twinkle based on position
-	float twinkle = sin(uTime * 0.5 + position.x * 3.0 + position.y * 2.0) * 0.15 + 0.85;
-	vAlpha = twinkle;
+	// Brighter on inhale (breathPhase = 1), more transparent on exhale
+	vAlpha = 0.3 + uBreathPhase * 0.6;
 
 	vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-	float dist = -mvPosition.z;
-
-	// Size attenuation with distance
-	gl_PointSize = size * (5.0 / dist) * (0.8 + uBreathValue * 0.2);
+	gl_PointSize = size * (300.0 / -mvPosition.z);
 	gl_Position = projectionMatrix * mvPosition;
 }
 `;
 
-// Fragment shader - soft glowing particle
+// Fragment shader
 const FRAGMENT_SHADER = `
 varying vec3 vColor;
 varying float vAlpha;
+varying float vBreathPhase;
 
 void main() {
-	// Soft circular gradient
-	vec2 center = gl_PointCoord - 0.5;
-	float dist = length(center);
+	float dist = length(gl_PointCoord - vec2(0.5));
+	if (dist > 0.5) discard;
 
-	// Soft falloff
-	float alpha = 1.0 - smoothstep(0.0, 0.5, dist);
-	alpha *= alpha; // Extra soft edges
+	float alpha = smoothstep(0.5, 0.1, dist) * vAlpha;
 
-	if (alpha < 0.01) discard;
+	// Add brightness boost on inhale
+	float brightness = 1.0 + vBreathPhase * 0.5;
+	vec3 color = vColor * brightness;
 
-	gl_FragColor = vec4(vColor, alpha * vAlpha * 0.9);
+	// Add slight glow in center
+	color += vec3(0.15) * (1.0 - dist * 2.0) * vBreathPhase;
+
+	gl_FragColor = vec4(color, alpha);
 }
 `;
 
@@ -100,14 +111,14 @@ export function BreathingSphere({ breathState, config }: BreathingSphereProps) {
 	const geometryRef = useRef<THREE.BufferGeometry>(null);
 	const materialRef = useRef<THREE.ShaderMaterial>(null);
 	const breathStateRef = useRef(breathState);
-	const rotationRef = useRef(0);
+	const timeRef = useRef(0);
 	breathStateRef.current = breathState;
 
-	// Configuration
-	const contractedRadius = config.sphereContractedRadius ?? 0.7;
+	// Radius configuration - dramatic compression
 	const expandedRadius = config.sphereExpandedRadius ?? 2.2;
+	const compressedRadius = config.sphereContractedRadius ?? 0.4;
 
-	// Initialize particles with spherical distribution
+	// Initialize particles
 	const { particles, buffers } = useMemo(() => {
 		const particleList: Particle[] = [];
 		const positions = new Float32Array(PARTICLE_COUNT * 3);
@@ -115,149 +126,130 @@ export function BreathingSphere({ breathState, config }: BreathingSphereProps) {
 		const colors = new Float32Array(PARTICLE_COUNT * 3);
 
 		for (let i = 0; i < PARTICLE_COUNT; i++) {
-			// Fibonacci sphere distribution for even spacing
-			const phi = Math.acos(1 - (2 * (i + 0.5)) / PARTICLE_COUNT);
-			const theta = Math.PI * (1 + Math.sqrt(5)) * i;
+			// Random spherical distribution
+			const radius = 0.8 + Math.random() * 1.2;
+			const theta = Math.random() * Math.PI * 2;
+			const phi = Math.acos(2 * Math.random() - 1);
 
-			// Varied base radius for depth
-			const baseRadius = 0.8 + Math.random() * 0.4;
+			const ox = radius * Math.sin(phi) * Math.cos(theta);
+			const oy = radius * Math.sin(phi) * Math.sin(theta);
+			const oz = radius * Math.cos(phi);
 
-			// Initial position at expanded state
-			const x = baseRadius * expandedRadius * Math.sin(phi) * Math.cos(theta);
-			const y = baseRadius * expandedRadius * Math.sin(phi) * Math.sin(theta);
-			const z = baseRadius * expandedRadius * Math.cos(phi);
+			const originalDist = Math.sqrt(ox * ox + oy * oy + oz * oz);
 
 			particleList.push({
-				theta,
-				phi,
-				baseRadius,
-				x,
-				y,
-				z,
-				vx: 0,
-				vy: 0,
-				vz: 0,
-				noiseOffsetX: Math.random() * 100,
-				noiseOffsetY: Math.random() * 100,
-				noiseOffsetZ: Math.random() * 100,
-				radiusVariation: 0.9 + Math.random() * 0.2,
-				driftSpeed: 0.3 + Math.random() * 0.4,
+				ox,
+				oy,
+				oz,
+				x: ox * expandedRadius,
+				y: oy * expandedRadius,
+				z: oz * expandedRadius,
+				originalDist,
+				phase: Math.random() * Math.PI * 2,
 			});
 
-			// Set initial positions
-			positions[i * 3] = x;
-			positions[i * 3 + 1] = y;
-			positions[i * 3 + 2] = z;
+			// Initial positions (expanded)
+			positions[i * 3] = ox * expandedRadius;
+			positions[i * 3 + 1] = oy * expandedRadius;
+			positions[i * 3 + 2] = oz * expandedRadius;
 
-			// Varied particle sizes
-			sizes[i] = 15 + Math.random() * 20;
+			// Random size
+			sizes[i] = 0.5 + Math.random() * 1.5;
 
-			// Color palette: soft blues and cyans with some warm whites
-			const colorChoice = Math.random();
-			if (colorChoice < 0.5) {
-				// Soft cyan-blue
-				colors[i * 3] = 0.5 + Math.random() * 0.2; // R
-				colors[i * 3 + 1] = 0.7 + Math.random() * 0.2; // G
-				colors[i * 3 + 2] = 0.9 + Math.random() * 0.1; // B
-			} else if (colorChoice < 0.8) {
-				// Soft purple
-				colors[i * 3] = 0.6 + Math.random() * 0.2; // R
-				colors[i * 3 + 1] = 0.5 + Math.random() * 0.2; // G
-				colors[i * 3 + 2] = 0.85 + Math.random() * 0.15; // B
-			} else {
-				// Warm white
-				colors[i * 3] = 0.9 + Math.random() * 0.1; // R
-				colors[i * 3 + 1] = 0.85 + Math.random() * 0.1; // G
-				colors[i * 3 + 2] = 0.8 + Math.random() * 0.15; // B
-			}
+			// Random color from palette
+			const color =
+				COLOR_PALETTE[Math.floor(Math.random() * COLOR_PALETTE.length)];
+			colors[i * 3] = color[0];
+			colors[i * 3 + 1] = color[1];
+			colors[i * 3 + 2] = color[2];
 		}
 
 		return { particles: particleList, buffers: { positions, sizes, colors } };
 	}, [expandedRadius]);
 
 	// Animation loop
-	useFrame((state) => {
-		if (!(geometryRef.current && materialRef.current)) return;
+	useFrame((_state, delta) => {
+		if (!(geometryRef.current && materialRef.current && pointsRef.current))
+			return;
 
-		const time = state.clock.elapsedTime;
-		const breathValue = getBreathValue(breathStateRef.current);
+		timeRef.current += delta;
+		const time = timeRef.current;
+		const breathPhase = getBreathValue(breathStateRef.current);
 
-		// Update shader uniforms
-		materialRef.current.uniforms.uTime.value = time;
-		materialRef.current.uniforms.uBreathValue.value = breathValue;
-
-		// Target radius: contracts when inhaled (breathValue=1), expands when exhaled (breathValue=0)
-		const targetRadius =
-			expandedRadius - (expandedRadius - contractedRadius) * breathValue;
-
-		// Slow continuous rotation
-		rotationRef.current += 0.002;
-		const rotation = rotationRef.current;
-		const cosR = Math.cos(rotation);
-		const sinR = Math.sin(rotation);
+		// Update shader uniform
+		materialRef.current.uniforms.uBreathPhase.value = breathPhase;
 
 		const positionAttr = geometryRef.current.attributes.position;
 		const positions = positionAttr.array as Float32Array;
 
-		// Spring physics parameters - soft and floaty
-		const stiffness = 0.015; // Low stiffness for slow, fluid response
-		const damping = 0.92; // High damping for thick fluid feel
-
 		for (let i = 0; i < PARTICLE_COUNT; i++) {
 			const p = particles[i];
 
-			// Calculate target position on sphere with current radius
-			const radius = targetRadius * p.baseRadius * p.radiusVariation;
+			// Normalize direction
+			const nx = p.ox / p.originalDist;
+			const ny = p.oy / p.originalDist;
+			const nz = p.oz / p.originalDist;
 
-			// Add organic drift using noise
-			const driftAmount = 0.15;
-			const driftX =
-				noise3D(time * p.driftSpeed + p.noiseOffsetX, p.theta, p.phi, 1) *
-				driftAmount;
-			const driftY =
-				noise3D(p.theta, time * p.driftSpeed + p.noiseOffsetY, p.phi, 2) *
-				driftAmount;
-			const driftZ =
-				noise3D(p.theta, p.phi, time * p.driftSpeed + p.noiseOffsetZ, 3) *
-				driftAmount;
+			// Target radius based on breath phase
+			// breathPhase 1 = inhaled (compressed), breathPhase 0 = exhaled (expanded)
+			const targetRadius =
+				expandedRadius - breathPhase * (expandedRadius - compressedRadius);
 
-			// Spherical to cartesian with drift
-			const baseX = (radius + driftX) * Math.sin(p.phi) * Math.cos(p.theta);
-			const baseY = (radius + driftY) * Math.sin(p.phi) * Math.sin(p.theta);
-			const baseZ = (radius + driftZ) * Math.cos(p.phi);
+			// Add variation based on original position for organic feel
+			const radiusVariation = (p.originalDist / 2) * 0.3;
+			const particleTargetRadius = targetRadius * (0.85 + radiusVariation);
 
-			// Apply rotation around Y axis
-			const targetX = baseX * cosR - baseZ * sinR;
-			const targetZ = baseX * sinR + baseZ * cosR;
-			const targetY = baseY;
+			// Calculate base position
+			let x = nx * particleTargetRadius;
+			let y = ny * particleTargetRadius;
+			let z = nz * particleTargetRadius;
 
-			// Spring physics toward target
-			const dx = targetX - p.x;
-			const dy = targetY - p.y;
-			const dz = targetZ - p.z;
+			// Add fluid noise displacement - less when compressed, more when expanded
+			const noiseScale = 0.15;
+			const noiseTime = time * 0.5;
 
-			// Acceleration proportional to displacement
-			p.vx += dx * stiffness;
-			p.vy += dy * stiffness;
-			p.vz += dz * stiffness;
+			const noiseX = noise3D(
+				p.ox * noiseScale,
+				p.oy * noiseScale,
+				p.oz * noiseScale,
+				noiseTime + p.phase,
+			);
+			const noiseY = noise3D(
+				p.oy * noiseScale,
+				p.oz * noiseScale,
+				p.ox * noiseScale,
+				noiseTime + p.phase + 100,
+			);
+			const noiseZ = noise3D(
+				p.oz * noiseScale,
+				p.ox * noiseScale,
+				p.oy * noiseScale,
+				noiseTime + p.phase + 200,
+			);
 
-			// Apply damping (fluid resistance)
-			p.vx *= damping;
-			p.vy *= damping;
-			p.vz *= damping;
+			// Noise strength decreases when inhaled (tighter formation)
+			const noiseStrength = 0.1 + (1 - breathPhase) * 0.4;
+			x += noiseX * noiseStrength;
+			y += noiseY * noiseStrength;
+			z += noiseZ * noiseStrength;
 
-			// Update position
-			p.x += p.vx;
-			p.y += p.vy;
-			p.z += p.vz;
+			// Add gentle floating motion - reduced when compressed
+			const floatSpeed = 0.3;
+			const floatAmount = 0.03 + (1 - breathPhase) * 0.05;
+			x += Math.sin(time * floatSpeed + p.phase) * floatAmount;
+			y += Math.cos(time * floatSpeed * 0.7 + p.phase) * floatAmount;
+			z += Math.sin(time * floatSpeed * 0.5 + p.phase * 1.3) * floatAmount;
 
-			// Write to buffer
-			positions[i * 3] = p.x;
-			positions[i * 3 + 1] = p.y;
-			positions[i * 3 + 2] = p.z;
+			positions[i * 3] = x;
+			positions[i * 3 + 1] = y;
+			positions[i * 3 + 2] = z;
 		}
 
 		positionAttr.needsUpdate = true;
+
+		// Rotate the entire particle system slowly
+		pointsRef.current.rotation.y += 0.002;
+		pointsRef.current.rotation.x = Math.sin(time * 0.1) * 0.1;
 	});
 
 	return (
@@ -274,8 +266,7 @@ export function BreathingSphere({ breathState, config }: BreathingSphereProps) {
 			<shaderMaterial
 				ref={materialRef}
 				uniforms={{
-					uTime: { value: 0 },
-					uBreathValue: { value: 0 },
+					uBreathPhase: { value: 0 },
 				}}
 				vertexShader={VERTEX_SHADER}
 				fragmentShader={FRAGMENT_SHADER}
