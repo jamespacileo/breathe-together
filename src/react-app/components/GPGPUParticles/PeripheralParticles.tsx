@@ -109,7 +109,7 @@ interface PeripheralParticlesProps {
 export function PeripheralParticles({ breathData }: PeripheralParticlesProps) {
 	const materialRef = useRef<THREE.ShaderMaterial>(null);
 
-	const { geometry, positions } = useMemo(() => {
+	const { geometry } = useMemo(() => {
 		const geo = new THREE.BufferGeometry();
 		const pos = new Float32Array(PERIPHERAL_COUNT * 3);
 		const phases = new Float32Array(PERIPHERAL_COUNT);
@@ -136,7 +136,7 @@ export function PeripheralParticles({ breathData }: PeripheralParticlesProps) {
 		geo.setAttribute('aPhase', new THREE.BufferAttribute(phases, 1));
 		geo.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
 
-		return { geometry: geo, positions: pos };
+		return { geometry: geo };
 	}, []);
 
 	useFrame((state) => {
@@ -149,7 +149,7 @@ export function PeripheralParticles({ breathData }: PeripheralParticlesProps) {
 		mat.uniforms.uCrystallization.value = breathData.crystallization;
 		mat.uniforms.uViewOffset.value.set(
 			breathData.viewOffset.x,
-			breathData.viewOffset.y
+			breathData.viewOffset.y,
 		);
 	});
 

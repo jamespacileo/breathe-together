@@ -48,7 +48,10 @@ function easeHold(t: number): number {
 /**
  * Apply physiological easing to raw progress based on phase type
  */
-export function applyBreathEasing(progress: number, phaseType: PhaseType): number {
+export function applyBreathEasing(
+	progress: number,
+	phaseType: PhaseType,
+): number {
 	const clamped = Math.max(0, Math.min(1, progress));
 
 	switch (phaseType) {
@@ -96,9 +99,9 @@ export function getDiaphragmDirection(phaseType: PhaseType): number {
 		case 'in':
 			return -1; // Down
 		case 'out':
-			return 1;  // Up
+			return 1; // Up
 		default:
-			return 0;  // Holds: no drift
+			return 0; // Holds: no drift
 	}
 }
 
@@ -106,7 +109,10 @@ export function getDiaphragmDirection(phaseType: PhaseType): number {
  * Get color temperature shift for phase
  * Returns a value from -1 (cool) to 1 (warm)
  */
-export function getColorTemperature(phaseType: PhaseType, progress: number): number {
+export function getColorTemperature(
+	phaseType: PhaseType,
+	progress: number,
+): number {
 	switch (phaseType) {
 		case 'in':
 			// Cool during inhale, cooling as we go
@@ -129,7 +135,10 @@ export function getColorTemperature(phaseType: PhaseType, progress: number): num
  * Get crystallization factor for hold phases
  * Returns 0-1 where 1 is maximum crystallization (stillness)
  */
-export function getCrystallizationFactor(phaseType: PhaseType, progress: number): number {
+export function getCrystallizationFactor(
+	phaseType: PhaseType,
+	progress: number,
+): number {
 	if (phaseType !== 'hold-in' && phaseType !== 'hold-out') {
 		return 0;
 	}
@@ -142,7 +151,10 @@ export function getCrystallizationFactor(phaseType: PhaseType, progress: number)
  * Get breath wave intensity for sound-like visualization
  * Peaks at phase transitions
  */
-export function getBreathWaveIntensity(progress: number, phaseType: PhaseType): number {
+export function getBreathWaveIntensity(
+	progress: number,
+	phaseType: PhaseType,
+): number {
 	// Wave at start of inhale (the "gasp")
 	if (phaseType === 'in' && progress < 0.15) {
 		return Math.sin((progress / 0.15) * Math.PI) * 0.8;

@@ -1,4 +1,4 @@
-import { Canvas, useThree } from '@react-three/fiber';
+import { Canvas } from '@react-three/fiber';
 import { EffectComposer, Noise, Vignette } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
@@ -43,7 +43,7 @@ export interface EnhancedBreathData {
 // Calculate enhanced breath data from state
 function getEnhancedBreathData(
 	state: BreathState,
-	viewOffset: { x: number; y: number }
+	viewOffset: { x: number; y: number },
 ): EnhancedBreathData {
 	const { phase, progress } = state;
 
@@ -134,8 +134,10 @@ function useViewOffset(): { x: number; y: number } {
 
 		// Smooth interpolation
 		const animate = () => {
-			currentRef.current.x += (targetRef.current.x - currentRef.current.x) * 0.05;
-			currentRef.current.y += (targetRef.current.y - currentRef.current.y) * 0.05;
+			currentRef.current.x +=
+				(targetRef.current.x - currentRef.current.x) * 0.05;
+			currentRef.current.y +=
+				(targetRef.current.y - currentRef.current.y) * 0.05;
 			setOffset({ ...currentRef.current });
 			requestAnimationFrame(animate);
 		};

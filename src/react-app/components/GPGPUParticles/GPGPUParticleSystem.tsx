@@ -687,9 +687,7 @@ export function GPGPUParticleSystem({
 
 			// Birth delay: particles closer to center emerge first
 			// Creates a wave-like appearance as particles "bloom" outward
-			const distFromCenter = Math.sqrt(
-				Math.pow(x - 0.5, 2) + Math.pow(y - 0.5, 2)
-			);
+			const distFromCenter = Math.sqrt((x - 0.5) ** 2 + (y - 0.5) ** 2);
 			birthDelays[i] = distFromCenter * 2.0 + Math.random() * 0.3;
 
 			const color =
