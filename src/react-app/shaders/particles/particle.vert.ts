@@ -17,6 +17,10 @@ uniform float uCrystallization;   // Hold stillness factor
 uniform float uBreathWave;        // Radial wave intensity
 uniform float uBirthProgress;     // Global entry animation (0-1)
 
+// === WORD FORMATION UNIFORMS ===
+uniform sampler2D uWordFormationData; // Per-particle word data
+uniform float uWordFormationActive;   // 0-1 whether word formation is active
+
 attribute vec2 aReference;
 attribute float aSize;
 attribute float aPhase;
@@ -33,6 +37,7 @@ varying float vVelocity;
 varying float vDepthFactor;
 varying float vPhaseType;
 varying float vBirthAlpha;
+varying float vWordBlend; // 0-1 how much this particle is forming a word
 
 void main() {
   vec4 posData = texture2D(uPositions, aReference);
@@ -44,6 +49,23 @@ void main() {
   vBreathPhase = uBreathPhase;
   vVelocity = velocity;
   vPhaseType = float(uPhaseType);
+
+  // === WORD FORMATION BLEND ===
+  // Check if this particle is forming a word
+  vWordBlend = 0.0;
+  if (uWordFormationActive > 0.01) {
+    vec4 wordData = texture2D(uWordFormationData, aReference);
+    float letterIndex = wordData.w;
+    // letterIndex >= 0 means this particle is part of the word
+    if (letterIndex >= 0.0) {
+      // Calculate blend based on how close particle is to word position
+      vec3 wordPos = wordData.xyz;
+      float distToWord = length(pos - wordPos);
+      // Particles closer to word position have higher blend
+      vWordBlend = 1.0 - smoothstep(0.0, 3.0, distToWord);
+      vWordBlend = max(vWordBlend, 0.3); // Minimum blend when selected
+    }
+  }
 
   // === ENTRY BIRTH ANIMATION ===
   // Particles emerge from center during first few seconds
@@ -91,6 +113,12 @@ void main() {
   // === TRAIL EFFECT ===
   float trailStretch = 1.0 + velocity * 5.0;
   baseSize *= min(trailStretch, 1.3);
+
+  // === WORD FORMATION SIZE BOOST ===
+  // Particles forming words grow slightly larger and brighter
+  if (vWordBlend > 0.01) {
+    baseSize *= (1.0 + vWordBlend * 0.4); // Up to 40% larger
+  }
 
   // === SPARKLE ===
   // Reduced during crystallization (holds should be calm)

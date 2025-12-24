@@ -22,6 +22,12 @@ uniform float uBreathWave;        // Radial wave intensity (0-1)
 uniform vec2 uViewOffset;         // Micro-saccade parallax
 uniform float uPhaseTransitionBlend; // 0-1, smooths parameter changes at phase boundaries
 
+// === WORD FORMATION UNIFORMS ===
+uniform sampler2D uWordFormationData; // Per-particle: xyz=target pos, w=letterIndex (-1 = not forming)
+uniform float uWordFormationActive;   // 0-1 whether word formation is active
+uniform float uWordFormationProgress; // 0-1 overall animation progress
+uniform int uWordFormationPhase;      // 0=idle, 1=forming, 2=holding, 3=dissolving
+
 // Simple smooth noise
 float hash(vec3 p) {
   p = fract(p * 0.3183099 + 0.1);
@@ -235,6 +241,50 @@ void main() {
   // Very subtle shift based on view/mouse position
   targetPos.x += uViewOffset.x * (10.0 + origDist * 0.3);
   targetPos.y += uViewOffset.y * (10.0 + origDist * 0.3);
+
+  // === WORD FORMATION BLENDING ===
+  // If this particle is forming a word, blend toward word position
+  vec3 sphereTargetPos = targetPos; // Save sphere position
+  float wordBlend = 0.0;
+
+  if (uWordFormationActive > 0.01) {
+    vec4 wordData = texture2D(uWordFormationData, uv);
+    float letterIndex = wordData.w;
+
+    // letterIndex >= 0 means this particle is part of the word
+    if (letterIndex >= 0.0) {
+      vec3 wordTargetPos = wordData.xyz;
+
+      // Calculate blend based on phase and letter index
+      // Letter stagger: earlier letters animate first
+      float letterDelay = letterIndex * 0.08; // 80ms stagger per letter
+      float adjustedProgress = uWordFormationProgress;
+
+      if (uWordFormationPhase == 1) {
+        // Forming: ease in with letter stagger
+        float formProgress = max(0.0, adjustedProgress * 2.5 - letterDelay);
+        wordBlend = smoothstep(0.0, 1.0, formProgress);
+      } else if (uWordFormationPhase == 2) {
+        // Holding: fully formed
+        wordBlend = 1.0;
+      } else if (uWordFormationPhase == 3) {
+        // Dissolving: reverse stagger (last letters dissolve first)
+        float maxLetter = 20.0; // Assume max ~20 letters
+        float reverseDelay = (maxLetter - letterIndex) * 0.06;
+        float dissolveProgress = max(0.0, (adjustedProgress - 0.65) * 3.0 - reverseDelay);
+        wordBlend = 1.0 - smoothstep(0.0, 1.0, dissolveProgress);
+      }
+
+      // Apply smooth easing
+      wordBlend = wordBlend * wordBlend * (3.0 - 2.0 * wordBlend);
+
+      // Blend between sphere and word positions
+      targetPos = mix(sphereTargetPos, wordTargetPos, wordBlend);
+
+      // Use gentler spring when forming word for smoother motion
+      springStrength = mix(springStrength, 0.12, wordBlend);
+    }
+  }
 
   // Smooth spring interpolation with phase-specific strength
   vec3 velocity = (targetPos - pos) * springStrength;

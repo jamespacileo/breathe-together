@@ -20,6 +20,7 @@ varying float vVelocity;
 varying float vDepthFactor;
 varying float vPhaseType;
 varying float vBirthAlpha;
+varying float vWordBlend; // 0-1 how much this particle is forming a word
 
 void main() {
   vec2 center = gl_PointCoord - 0.5;
@@ -62,6 +63,15 @@ void main() {
     brightness = 0.9 + sin(uTime * 2.0) * pulseAmount;
   }
   color *= brightness;
+
+  // === WORD FORMATION BRIGHTNESS BOOST ===
+  // Particles forming words become brighter and slightly more white
+  if (vWordBlend > 0.01) {
+    float wordBrightness = 1.0 + vWordBlend * 0.5; // Up to 50% brighter
+    color *= wordBrightness;
+    // Add slight white glow
+    color = mix(color, vec3(1.0), vWordBlend * 0.15);
+  }
 
   // === DEPTH-BASED BRIGHTNESS ===
   float depthBrightness = 0.8 + vDepthFactor * 0.25;

@@ -1,6 +1,12 @@
 import { useFrame, useThree } from '@react-three/fiber';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
+import type { WordAnimationPhase } from '../../hooks/useWordFormation';
+import {
+	findNearestParticles,
+	textToParticlePositions,
+} from '../../lib/textToParticles';
+import { estimateParticleCount, getRandomWord } from '../../lib/wordContent';
 import {
 	particleFragmentShader,
 	particleVertexShader,
@@ -32,6 +38,26 @@ export function GPGPUParticleSystem({
 	const sphereMaterialRef = useRef<THREE.ShaderMaterial>(null);
 	const birthProgressRef = useRef(0); // Tracks entry animation progress
 	const currentTargetRef = useRef(0); // GPGPU ping-pong target
+
+	// === WORD FORMATION STATE ===
+	const sessionStartRef = useRef(Date.now());
+	const breathsSinceWordRef = useRef(0);
+	const prevPhaseRef = useRef<string>('');
+	const wordAnimationStartRef = useRef(0);
+	const recentWordsRef = useRef<string[]>([]);
+	const [wordState, setWordState] = useState<{
+		phase: WordAnimationPhase;
+		progress: number;
+		currentWord: string | null;
+		selectedIndices: number[];
+		letterIndices: number[];
+	}>({
+		phase: 'idle',
+		progress: 0,
+		currentWord: null,
+		selectedIndices: [],
+		letterIndices: [],
+	});
 
 	// More saturated color palette for visible, gem-like particles
 	const colorPalette = useMemo(
@@ -113,6 +139,24 @@ export function GPGPUParticleSystem({
 		);
 		originalPositionTexture.needsUpdate = true;
 
+		// Word formation data texture: xyz = target word position, w = letter index (-1 = not forming)
+		const wordFormationData = new Float32Array(PARTICLE_COUNT * 4);
+		for (let i = 0; i < PARTICLE_COUNT; i++) {
+			const i4 = i * 4;
+			wordFormationData[i4] = 0;
+			wordFormationData[i4 + 1] = 0;
+			wordFormationData[i4 + 2] = 0;
+			wordFormationData[i4 + 3] = -1; // -1 = not forming a word
+		}
+		const wordFormationTexture = new THREE.DataTexture(
+			wordFormationData,
+			FBO_SIZE,
+			FBO_SIZE,
+			THREE.RGBAFormat,
+			floatType,
+		);
+		wordFormationTexture.needsUpdate = true;
+
 		const simulationMaterial = new THREE.ShaderMaterial({
 			vertexShader: simulationVertexShader,
 			fragmentShader: simulationFragmentShader,
@@ -132,6 +176,11 @@ export function GPGPUParticleSystem({
 				uBreathWave: { value: 0 },
 				uViewOffset: { value: new THREE.Vector2(0, 0) },
 				uPhaseTransitionBlend: { value: 0 },
+				// Word formation uniforms
+				uWordFormationData: { value: wordFormationTexture },
+				uWordFormationActive: { value: 0 },
+				uWordFormationProgress: { value: 0 },
+				uWordFormationPhase: { value: 0 },
 			},
 			defines: {
 				resolution: `vec2(${FBO_SIZE}.0, ${FBO_SIZE}.0)`,
@@ -149,6 +198,9 @@ export function GPGPUParticleSystem({
 			positionTargetB,
 			positionTexture,
 			originalPositionTexture,
+			originalPositionData,
+			wordFormationTexture,
+			wordFormationData,
 			simulationMaterial,
 			simulationScene,
 			simulationCamera,
@@ -228,6 +280,9 @@ export function GPGPUParticleSystem({
 				uCrystallization: { value: 0 },
 				uBreathWave: { value: 0 },
 				uBirthProgress: { value: 0 },
+				// Word formation uniforms
+				uWordFormationData: { value: gpgpu.wordFormationTexture },
+				uWordFormationActive: { value: 0 },
 			},
 			transparent: true,
 			blending: THREE.AdditiveBlending,
@@ -265,6 +320,7 @@ export function GPGPUParticleSystem({
 			gpgpu.positionTargetB.dispose();
 			gpgpu.positionTexture.dispose();
 			gpgpu.originalPositionTexture.dispose();
+			gpgpu.wordFormationTexture.dispose();
 			gpgpu.simulationMaterial.dispose();
 			gpgpu.quadGeometry.dispose();
 			geometry.dispose();
@@ -311,6 +367,155 @@ export function GPGPUParticleSystem({
 		simUniforms.uViewOffset.value.set(viewOffset.x, viewOffset.y);
 		simUniforms.uPhaseTransitionBlend.value = phaseTransitionBlend;
 
+		// === WORD FORMATION LOGIC ===
+		// Animation timing constants
+		const FORMING_DURATION = 1.5;
+		const HOLDING_DURATION = 1.2;
+		const DISSOLVING_DURATION = 1.3;
+		const TOTAL_DURATION =
+			FORMING_DURATION + HOLDING_DURATION + DISSOLVING_DURATION;
+
+		// Get breath phase name from phaseType
+		const phaseNames = ['in', 'hold-in', 'out', 'hold-out'] as const;
+		const currentPhaseName = phaseNames[phaseType] || 'out';
+
+		// Detect inhale start
+		if (currentPhaseName === 'in' && prevPhaseRef.current !== 'in') {
+			// Check if we should trigger a word
+			if (wordState.phase === 'idle') {
+				const sessionDuration = (Date.now() - sessionStartRef.current) / 1000;
+				const breathsSinceWord = breathsSinceWordRef.current;
+
+				// Minimum 2 breath gap
+				if (breathsSinceWord >= 2) {
+					// Calculate probability based on session duration
+					let probability = 0.2; // Base 1 in 5
+					if (sessionDuration < 60) {
+						probability = 0.05; // Very rare in first minute
+					} else if (sessionDuration > 180) {
+						probability = 0.3; // More common after 3 minutes
+					}
+
+					if (Math.random() < probability) {
+						// Trigger a new word!
+						breathsSinceWordRef.current = 0;
+						wordAnimationStartRef.current = time;
+
+						// Get a random word
+						const wordEntry = getRandomWord(recentWordsRef.current);
+						recentWordsRef.current = [
+							wordEntry.text,
+							...recentWordsRef.current.slice(0, 4),
+						];
+
+						// Generate particle positions for the word
+						const particleData = textToParticlePositions(wordEntry.text, {
+							targetCount: estimateParticleCount(wordEntry.text),
+							zOffset: 18,
+							scale: 1.0,
+						});
+
+						// Use original positions for nearest neighbor search
+						// This ensures particles are selected from their "home" positions
+						const selectedIndices = findNearestParticles(
+							particleData.positions,
+							gpgpu.originalPositionData,
+							PARTICLE_COUNT,
+						);
+
+						// Update the word formation data texture
+						for (let i = 0; i < PARTICLE_COUNT; i++) {
+							const i4 = i * 4;
+							gpgpu.wordFormationData[i4 + 3] = -1; // Reset all to not forming
+						}
+
+						for (let j = 0; j < selectedIndices.length; j++) {
+							const particleIdx = selectedIndices[j];
+							const wordPos = particleData.positions[j];
+							const letterIdx = particleData.letterIndices[j];
+
+							const i4 = particleIdx * 4;
+							gpgpu.wordFormationData[i4] = wordPos.x;
+							gpgpu.wordFormationData[i4 + 1] = wordPos.y;
+							gpgpu.wordFormationData[i4 + 2] = wordPos.z;
+							gpgpu.wordFormationData[i4 + 3] = letterIdx;
+						}
+
+						gpgpu.wordFormationTexture.needsUpdate = true;
+
+						setWordState({
+							phase: 'forming',
+							progress: 0,
+							currentWord: wordEntry.text,
+							selectedIndices,
+							letterIndices: particleData.letterIndices,
+						});
+					} else {
+						breathsSinceWordRef.current++;
+					}
+				} else {
+					breathsSinceWordRef.current++;
+				}
+			}
+		}
+		prevPhaseRef.current = currentPhaseName;
+
+		// Update word animation state
+		if (wordState.phase !== 'idle') {
+			const elapsed = time - wordAnimationStartRef.current;
+			let newPhase: WordAnimationPhase = 'forming';
+			let progress = 0;
+
+			if (elapsed < FORMING_DURATION) {
+				newPhase = 'forming';
+				progress = elapsed / FORMING_DURATION;
+			} else if (elapsed < FORMING_DURATION + HOLDING_DURATION) {
+				newPhase = 'holding';
+				progress = (elapsed - FORMING_DURATION) / HOLDING_DURATION;
+			} else if (elapsed < TOTAL_DURATION) {
+				newPhase = 'dissolving';
+				progress =
+					(elapsed - FORMING_DURATION - HOLDING_DURATION) / DISSOLVING_DURATION;
+			} else {
+				// Animation complete - reset
+				newPhase = 'idle';
+				progress = 0;
+
+				// Clear word formation data
+				for (let i = 0; i < PARTICLE_COUNT; i++) {
+					gpgpu.wordFormationData[i * 4 + 3] = -1;
+				}
+				gpgpu.wordFormationTexture.needsUpdate = true;
+			}
+
+			if (
+				newPhase !== wordState.phase ||
+				Math.abs(progress - wordState.progress) > 0.01
+			) {
+				setWordState((prev) => ({
+					...prev,
+					phase: newPhase,
+					progress,
+				}));
+			}
+
+			// Update word formation uniforms
+			simUniforms.uWordFormationActive.value = newPhase !== 'idle' ? 1.0 : 0.0;
+			simUniforms.uWordFormationProgress.value = elapsed / TOTAL_DURATION;
+			simUniforms.uWordFormationPhase.value =
+				newPhase === 'forming'
+					? 1
+					: newPhase === 'holding'
+						? 2
+						: newPhase === 'dissolving'
+							? 3
+							: 0;
+		} else {
+			simUniforms.uWordFormationActive.value = 0.0;
+			simUniforms.uWordFormationProgress.value = 0.0;
+			simUniforms.uWordFormationPhase.value = 0;
+		}
+
 		const currentTarget = currentTargetRef.current;
 		const readTarget =
 			currentTarget === 0 ? gpgpu.positionTargetA : gpgpu.positionTargetB;
@@ -339,6 +544,9 @@ export function GPGPUParticleSystem({
 		partUniforms.uCrystallization.value = crystallization;
 		partUniforms.uBreathWave.value = breathWave;
 		partUniforms.uBirthProgress.value = birthProgressRef.current;
+		// Word formation uniforms for particle shader
+		partUniforms.uWordFormationActive.value =
+			wordState.phase !== 'idle' ? 1.0 : 0.0;
 
 		// Update sphere with phase-specific colors
 		if (sphereMaterialRef.current) {
