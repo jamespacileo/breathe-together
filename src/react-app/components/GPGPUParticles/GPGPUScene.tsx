@@ -1,10 +1,21 @@
 import { Canvas } from '@react-three/fiber';
 import { EffectComposer, Noise, Vignette } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
-import { Suspense, useMemo } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import type { BreathState } from '../../hooks/useBreathSync';
+import {
+	applyBreathEasing,
+	getAnticipationFactor,
+	getBreathWaveIntensity,
+	getColorTemperature,
+	getCrystallizationFactor,
+	getDiaphragmDirection,
+	getOvershootFactor,
+	getPhaseTransitionBlend,
+} from '../../lib/breathEasing';
 import type { VisualizationConfig } from '../../lib/config';
 import { GPGPUParticleSystem } from './GPGPUParticleSystem';
+import { PeripheralParticles } from './PeripheralParticles';
 import { StarField } from './StarField';
 
 interface GPGPUSceneProps {
@@ -15,34 +26,148 @@ interface GPGPUSceneProps {
 // Scale factor to convert config sphere radius to particle system units
 const PARTICLE_RADIUS_SCALE = 10;
 
-// Easing function for smooth breathing
-const easeInOutSine = (t: number) => -(Math.cos(Math.PI * t) - 1) / 2;
-
-// Calculate breath data from state
-function getBreathData(state: BreathState): {
+// Enhanced breath data with all subtle effects
+export interface EnhancedBreathData {
 	breathPhase: number;
 	phaseType: number;
-} {
+	rawProgress: number;
+	easedProgress: number;
+	anticipation: number;
+	overshoot: number;
+	diaphragmDirection: number;
+	colorTemperature: number;
+	crystallization: number;
+	breathWave: number;
+	phaseTransitionBlend: number; // 0-1, smooths parameter changes at phase boundaries
+	viewOffset: { x: number; y: number };
+}
+
+// Calculate enhanced breath data from state
+function getEnhancedBreathData(
+	state: BreathState,
+	viewOffset: { x: number; y: number },
+): EnhancedBreathData {
 	const { phase, progress } = state;
+
+	// Apply physiological easing
+	const easedProgress = applyBreathEasing(progress, phase);
+
+	// Get anticipation (peaks at end of phase)
+	const anticipation = getAnticipationFactor(progress);
+
+	// Get overshoot (peaks at start of phase)
+	const overshoot = getOvershootFactor(progress);
+
+	// Diaphragmatic direction
+	const diaphragmDirection = getDiaphragmDirection(phase);
+
+	// Color temperature
+	const colorTemperature = getColorTemperature(phase, progress);
+
+	// Crystallization for holds
+	const crystallization = getCrystallizationFactor(phase, progress);
+
+	// Breath wave visualization
+	const breathWave = getBreathWaveIntensity(progress, phase);
+
+	// Phase transition blend (smooths parameter changes at phase boundaries)
+	const phaseTransitionBlend = getPhaseTransitionBlend(progress);
+
+	// Calculate breathPhase (0-1 where 1 = fully inhaled/contracted)
+	let breathPhase: number;
+	let phaseType: number;
 
 	switch (phase) {
 		case 'in':
-			return { breathPhase: easeInOutSine(progress), phaseType: 0 };
+			breathPhase = easedProgress;
+			phaseType = 0;
+			break;
 		case 'hold-in':
-			return { breathPhase: 1, phaseType: 1 };
+			breathPhase = 1;
+			phaseType = 1;
+			break;
 		case 'out':
-			return { breathPhase: 1 - easeInOutSine(progress), phaseType: 2 };
+			breathPhase = 1 - easedProgress;
+			phaseType = 2;
+			break;
 		case 'hold-out':
-			return { breathPhase: 0, phaseType: 3 };
+			breathPhase = 0;
+			phaseType = 3;
+			break;
 		default:
-			return { breathPhase: 0, phaseType: 0 };
+			breathPhase = 0;
+			phaseType = 0;
 	}
+
+	return {
+		breathPhase,
+		phaseType,
+		rawProgress: progress,
+		easedProgress,
+		anticipation,
+		overshoot,
+		diaphragmDirection,
+		colorTemperature,
+		crystallization,
+		breathWave,
+		phaseTransitionBlend,
+		viewOffset,
+	};
+}
+
+// Hook to track mouse/touch position for micro-saccade effect
+function useViewOffset(): { x: number; y: number } {
+	const [offset, setOffset] = useState({ x: 0, y: 0 });
+	const targetRef = useRef({ x: 0, y: 0 });
+	const currentRef = useRef({ x: 0, y: 0 });
+
+	useEffect(() => {
+		// Mouse movement
+		const handleMouseMove = (e: MouseEvent) => {
+			const x = (e.clientX / window.innerWidth - 0.5) * 2;
+			const y = (e.clientY / window.innerHeight - 0.5) * 2;
+			targetRef.current = { x: x * 0.02, y: y * 0.02 }; // Very subtle
+		};
+
+		// Device orientation (mobile gyroscope)
+		const handleOrientation = (e: DeviceOrientationEvent) => {
+			if (e.gamma !== null && e.beta !== null) {
+				const x = (e.gamma / 90) * 0.02; // -1 to 1, scaled to subtle
+				const y = (e.beta / 90) * 0.02;
+				targetRef.current = { x, y };
+			}
+		};
+
+		// Smooth interpolation
+		const animate = () => {
+			currentRef.current.x +=
+				(targetRef.current.x - currentRef.current.x) * 0.05;
+			currentRef.current.y +=
+				(targetRef.current.y - currentRef.current.y) * 0.05;
+			setOffset({ ...currentRef.current });
+			requestAnimationFrame(animate);
+		};
+
+		window.addEventListener('mousemove', handleMouseMove);
+		window.addEventListener('deviceorientation', handleOrientation);
+		const animId = requestAnimationFrame(animate);
+
+		return () => {
+			window.removeEventListener('mousemove', handleMouseMove);
+			window.removeEventListener('deviceorientation', handleOrientation);
+			cancelAnimationFrame(animId);
+		};
+	}, []);
+
+	return offset;
 }
 
 function InnerScene({ breathState, config }: GPGPUSceneProps) {
-	const { breathPhase, phaseType } = useMemo(
-		() => getBreathData(breathState),
-		[breathState],
+	const viewOffset = useViewOffset();
+
+	const breathData = useMemo(
+		() => getEnhancedBreathData(breathState, viewOffset),
+		[breathState, viewOffset],
 	);
 
 	const expandedRadius = config.sphereExpandedRadius * PARTICLE_RADIUS_SCALE;
@@ -52,12 +177,14 @@ function InnerScene({ breathState, config }: GPGPUSceneProps) {
 	return (
 		<>
 			{/* Distant star field for depth */}
-			<StarField breathPhase={breathPhase} count={200} />
+			<StarField breathPhase={breathData.breathPhase} count={200} />
+
+			{/* Peripheral ambient particles (almost invisible, felt not seen) */}
+			<PeripheralParticles breathData={breathData} />
 
 			{/* Main particle system with central sphere */}
 			<GPGPUParticleSystem
-				breathPhase={breathPhase}
-				phaseType={phaseType}
+				breathData={breathData}
 				expandedRadius={expandedRadius}
 				contractedRadius={contractedRadius}
 			/>
