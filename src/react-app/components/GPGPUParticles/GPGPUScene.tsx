@@ -1,7 +1,14 @@
+import { Stats } from '@react-three/drei';
 import { Canvas } from '@react-three/fiber';
-import { EffectComposer, Noise, Vignette } from '@react-three/postprocessing';
+import {
+	Bloom,
+	EffectComposer,
+	Noise,
+	Vignette,
+} from '@react-three/postprocessing';
+import { useControls } from 'leva';
 import { BlendFunction } from 'postprocessing';
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef } from 'react';
 import type { BreathState } from '../../hooks/useBreathSync';
 import {
 	applyBreathEasing,
@@ -13,10 +20,13 @@ import {
 	getOvershootFactor,
 	getPhaseTransitionBlend,
 } from '../../lib/breathEasing';
+import { getMoodColorCounts } from '../../lib/colors';
 import type { VisualizationConfig } from '../../lib/config';
-import { GPGPUParticleSystem } from './GPGPUParticleSystem';
+import { BreathingSphere } from './BreathingSphere';
+import { GalaxyBackground } from './GalaxyBackground';
 import { PeripheralParticles } from './PeripheralParticles';
 import { StarField } from './StarField';
+import { UserParticles } from './UserParticles';
 
 interface GPGPUSceneProps {
 	breathState: BreathState;
@@ -116,8 +126,8 @@ function getEnhancedBreathData(
 }
 
 // Hook to track mouse/touch position for micro-saccade effect
-function useViewOffset(): { x: number; y: number } {
-	const [offset, setOffset] = useState({ x: 0, y: 0 });
+// Uses refs instead of state to avoid re-renders per R3F best practices
+function useViewOffset(): React.MutableRefObject<{ x: number; y: number }> {
 	const targetRef = useRef({ x: 0, y: 0 });
 	const currentRef = useRef({ x: 0, y: 0 });
 	const animFrameRef = useRef(0);
@@ -139,13 +149,12 @@ function useViewOffset(): { x: number; y: number } {
 			}
 		};
 
-		// Smooth interpolation
+		// Smooth interpolation via refs (no setState to avoid re-renders)
 		const animate = () => {
 			currentRef.current.x +=
 				(targetRef.current.x - currentRef.current.x) * 0.05;
 			currentRef.current.y +=
 				(targetRef.current.y - currentRef.current.y) * 0.05;
-			setOffset({ ...currentRef.current });
 			animFrameRef.current = requestAnimationFrame(animate);
 		};
 
@@ -160,47 +169,79 @@ function useViewOffset(): { x: number; y: number } {
 		};
 	}, []);
 
-	return offset;
+	return currentRef;
 }
 
 function InnerScene({ breathState, config }: GPGPUSceneProps) {
-	const viewOffset = useViewOffset();
+	const viewOffsetRef = useViewOffset();
 
+	// Note: viewOffset is accessed via ref to avoid re-renders per R3F best practices
+	// The ref value updates smoothly via requestAnimationFrame in useViewOffset
 	const breathData = useMemo(
-		() => getEnhancedBreathData(breathState, viewOffset),
-		[breathState, viewOffset],
+		() => getEnhancedBreathData(breathState, viewOffsetRef.current),
+		[breathState, viewOffsetRef.current], // viewOffsetRef is stable, read its .current value
 	);
 
 	const expandedRadius = config.sphereExpandedRadius * PARTICLE_RADIUS_SCALE;
 	const contractedRadius =
 		config.sphereContractedRadius * PARTICLE_RADIUS_SCALE;
 
+	// Sphere glow radius for Dyson swarm positioning
+	// Based on BreathingSphere: minScale = contractedRadius * 0.35, glow = scale * 1.15
+	const sphereGlowRadius = contractedRadius * 0.35 * 1.15;
+
+	// Mock color counts for now - will be wired to usePresence
+	// Each color represents users with that mood
+	const moodColorCounts = useMemo(() => {
+		return getMoodColorCounts({
+			moment: 5,
+			anxious: 3,
+			processing: 2,
+			preparing: 4,
+			grateful: 3,
+			celebrating: 2,
+			here: 4,
+		});
+	}, []);
+
 	return (
 		<>
-			{/* Distant star field for depth */}
-			<StarField breathPhase={breathData.breathPhase} count={200} />
-
-			{/* Peripheral ambient particles (almost invisible, felt not seen) */}
+			{/* Layer 1: Background atmospheric effects (drei) */}
+			<GalaxyBackground breathData={breathData} />
+			<StarField breathData={breathData} />
 			<PeripheralParticles breathData={breathData} />
 
-			{/* Main particle system with central sphere */}
-			<GPGPUParticleSystem
+			{/* Layer 2: User particles - 1 particle per user with mood color */}
+			<UserParticles
+				breathData={breathData}
+				colorCounts={moodColorCounts}
+				sphereRadius={sphereGlowRadius}
+			/>
+
+			{/* Layer 3: Central breathing sphere */}
+			<BreathingSphere
 				breathData={breathData}
 				expandedRadius={expandedRadius}
 				contractedRadius={contractedRadius}
 			/>
 
-			{/* Minimal post-processing - no bloom */}
+			{/* Post-processing effects */}
 			<EffectComposer>
+				<Bloom
+					intensity={0.3}
+					luminanceThreshold={0.6}
+					luminanceSmoothing={0.9}
+					radius={0.8}
+				/>
 				<Vignette
-					darkness={0.4}
+					darkness={config.vignetteIntensity}
 					offset={0.35}
 					blendFunction={BlendFunction.NORMAL}
 				/>
 				<Noise
 					premultiply
 					blendFunction={BlendFunction.SOFT_LIGHT}
-					opacity={0.08}
+					opacity={config.noiseOpacity}
 				/>
 			</EffectComposer>
 		</>
@@ -208,6 +249,10 @@ function InnerScene({ breathState, config }: GPGPUSceneProps) {
 }
 
 export function GPGPUScene({ breathState, config }: GPGPUSceneProps) {
+	const { showStats } = useControls('Debug', {
+		showStats: { value: false, label: 'Show FPS' },
+	});
+
 	return (
 		<div className="w-full h-full">
 			<Canvas
@@ -218,11 +263,12 @@ export function GPGPUScene({ breathState, config }: GPGPUSceneProps) {
 					powerPreference: 'high-performance',
 				}}
 				dpr={[1, 2]}
-				style={{ background: '#0a0a12' }}
+				style={{ background: config.canvasBackground }}
 			>
 				<Suspense fallback={null}>
 					<InnerScene breathState={breathState} config={config} />
 				</Suspense>
+				{showStats ? <Stats /> : null}
 			</Canvas>
 		</div>
 	);

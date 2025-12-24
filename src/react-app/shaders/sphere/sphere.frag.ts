@@ -1,6 +1,7 @@
 /**
  * Central Sphere Fragment Shader
  * Ethereal sphere with fresnel glow and phase-specific coloring
+ * Colors passed via uniforms for centralized palette management
  */
 export const sphereFragmentShader = /* glsl */ `
 precision highp float;
@@ -12,6 +13,12 @@ uniform float uColorTemperature;
 uniform float uCrystallization;
 uniform vec3 uColor1;
 uniform vec3 uColor2;
+
+// Phase-specific colors (passed from centralized palette)
+uniform vec3 uInhaleHue;
+uniform vec3 uHoldInHue;
+uniform vec3 uExhaleHue;
+uniform vec3 uHoldOutHue;
 
 varying vec3 vNormal;
 varying vec3 vPosition;
@@ -27,48 +34,41 @@ void main() {
   vec3 baseColor = mix(uColor1, uColor2, gradient);
 
   // === PHASE-SPECIFIC HUE SHIFTING ===
-  // Inhale: Cool, gathering energy (cyan/blue tint)
-  // Hold-in: Stable, present (neutral with slight glow)
-  // Exhale: Warm, releasing (magenta/rose tint)
-  // Hold-out: Deep, peaceful (deeper blue-purple)
-
-  vec3 inhaleHue = vec3(0.15, 0.35, 0.45);    // Deep teal
-  vec3 holdInHue = vec3(0.2, 0.3, 0.4);       // Neutral blue-gray
-  vec3 exhaleHue = vec3(0.35, 0.25, 0.4);     // Warm purple-rose
-  vec3 holdOutHue = vec3(0.18, 0.22, 0.35);   // Deep peaceful blue
+  // Soft blue palette throughout - calming, meditative
+  // Colors from centralized palette via uniforms
 
   vec3 phaseColor;
   if (uPhaseType == 0) {
     // Inhale - transition from holdOut to inhale colors
-    phaseColor = mix(holdOutHue, inhaleHue, uBreathPhase);
+    phaseColor = mix(uHoldOutHue, uInhaleHue, uBreathPhase);
   } else if (uPhaseType == 1) {
     // Hold-in - settle into stable color
-    phaseColor = mix(inhaleHue, holdInHue, min(1.0, uCrystallization * 1.5));
+    phaseColor = mix(uInhaleHue, uHoldInHue, min(1.0, uCrystallization * 1.5));
   } else if (uPhaseType == 2) {
     // Exhale - transition to warm releasing color
-    phaseColor = mix(holdInHue, exhaleHue, 1.0 - uBreathPhase);
+    phaseColor = mix(uHoldInHue, uExhaleHue, 1.0 - uBreathPhase);
   } else {
     // Hold-out - deep peaceful settling
-    phaseColor = mix(exhaleHue, holdOutHue, min(1.0, uCrystallization * 1.5));
+    phaseColor = mix(uExhaleHue, uHoldOutHue, min(1.0, uCrystallization * 1.5));
   }
 
   // Blend base color with phase color
   baseColor = mix(baseColor, phaseColor, 0.6);
 
-  // Additional temperature tint (from particle system)
-  vec3 coolTint = vec3(-0.03, 0.02, 0.06);
-  vec3 warmTint = vec3(0.06, 0.0, 0.03);
+  // Subtle temperature tint - stays in blue range
+  vec3 coolTint = vec3(-0.02, 0.02, 0.04);
+  vec3 warmTint = vec3(0.02, 0.01, 0.03);
   vec3 tempShift = mix(coolTint, warmTint, uColorTemperature * 0.5 + 0.5);
   baseColor += tempShift;
 
-  // Edge glow color shifts with phase
-  vec3 edgeColor = vec3(0.5, 0.7, 0.85);
+  // Soft blue edge glow - consistent across phases
+  vec3 edgeColor = vec3(0.5, 0.72, 0.82);
   if (uPhaseType == 2) {
-    // Warmer edge during exhale
-    edgeColor = vec3(0.7, 0.6, 0.8);
+    // Slightly softer edge during exhale
+    edgeColor = vec3(0.55, 0.70, 0.80);
   } else if (uPhaseType == 0) {
-    // Cooler edge during inhale
-    edgeColor = vec3(0.5, 0.75, 0.9);
+    // Slightly brighter edge during inhale
+    edgeColor = vec3(0.48, 0.75, 0.85);
   }
 
   vec3 color = mix(baseColor, edgeColor, fresnel * 0.6);

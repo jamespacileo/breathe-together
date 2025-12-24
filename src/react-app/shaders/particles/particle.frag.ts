@@ -1,6 +1,6 @@
 /**
  * Main Particle Fragment Shader
- * Handles particle shape, glow, sparkle, and phase-specific rendering
+ * Soft, ethereal particles for meditation visualization
  */
 export const particleFragmentShader = /* glsl */ `
 precision highp float;
@@ -25,78 +25,80 @@ void main() {
   vec2 center = gl_PointCoord - 0.5;
   float dist = length(center);
 
-  // === SHARPER, MORE DEFINED PARTICLE SHAPE ===
-  float coreDist = dist * 2.5;
-  float alpha = 1.0 - smoothstep(0.6, 1.0, coreDist);
+  // === SOFT, DIFFUSE PARTICLE SHAPE ===
+  // Gaussian-like falloff for dreamy, soft appearance
+  float coreDist = dist * 2.0;
+  float alpha = exp(-coreDist * coreDist * 2.0);
 
   if (alpha < 0.01) discard;
 
-  // Base color
+  // Base color - keep it gentle
   vec3 color = vColor;
   int phaseType = int(vPhaseType + 0.5);
 
-  // === SHINY HIGHLIGHT ===
-  float coreHighlight = exp(-coreDist * 4.0);
-  color *= (1.0 + coreHighlight * 0.8);
+  // === SOFT INNER GLOW (subtle) ===
+  float coreGlow = exp(-coreDist * 3.0);
+  color = mix(color, color * 1.2, coreGlow * 0.3);
 
-  // === SPARKLE/GLIMMER ===
-  if (vSparkle > 0.3) {
-    float sparkleIntensity = pow((vSparkle - 0.3) / 0.7, 2.0);
-    float sparkleCore = exp(-coreDist * 6.0) * sparkleIntensity;
-    color += vec3(1.0) * sparkleCore * 0.8;
-    color *= (1.0 + sparkleIntensity * 0.4);
+  // === GENTLE SPARKLE (very subtle) ===
+  if (vSparkle > 0.5) {
+    float sparkleIntensity = (vSparkle - 0.5) * 2.0;
+    float sparkleCore = exp(-coreDist * 4.0) * sparkleIntensity;
+    color += vec3(0.15) * sparkleCore;
   }
 
-  // === PHASE-SPECIFIC BRIGHTNESS ===
+  // === PHASE-SPECIFIC SUBTLE BRIGHTNESS ===
   float brightness = 1.0;
   if (phaseType == 0) {
-    brightness = 0.85 + vBreathPhase * 0.15;
+    // Inhale - gentle brightening as we gather energy
+    brightness = 0.9 + vBreathPhase * 0.1;
   } else if (phaseType == 1) {
-    // During crystallization, brightness is more stable
-    float pulseAmount = 0.05 * (1.0 - uCrystallization * 0.7);
-    brightness = 1.0 + sin(uTime * 3.0) * pulseAmount;
+    // Hold-in - calm, stable glow
+    float pulseAmount = 0.02 * (1.0 - uCrystallization * 0.8);
+    brightness = 1.0 + sin(uTime * 1.5) * pulseAmount;
   } else if (phaseType == 2) {
-    brightness = 1.0 - vBreathPhase * 0.1;
+    // Exhale - softly dimming as we release
+    brightness = 1.0 - vBreathPhase * 0.05;
   } else {
-    float pulseAmount = 0.03 * (1.0 - uCrystallization * 0.7);
-    brightness = 0.9 + sin(uTime * 2.0) * pulseAmount;
+    // Hold-out - peaceful, subdued
+    float pulseAmount = 0.015 * (1.0 - uCrystallization * 0.8);
+    brightness = 0.95 + sin(uTime * 1.0) * pulseAmount;
   }
   color *= brightness;
 
-  // === DEPTH-BASED BRIGHTNESS ===
-  float depthBrightness = 0.8 + vDepthFactor * 0.25;
+  // === DEPTH-BASED SOFTENING ===
+  float depthBrightness = 0.85 + vDepthFactor * 0.15;
   color *= depthBrightness;
 
-  // === EDGE RIM ===
-  float rimDist = abs(coreDist - 0.7);
-  float rim = exp(-rimDist * 8.0) * 0.15;
-  color += vColor * rim;
-
-  // === ALPHA ===
-  float baseAlpha = 0.8;
+  // === SOFT ALPHA - more transparent for ethereal feel ===
+  float baseAlpha = 0.5;
   if (phaseType == 0) {
-    baseAlpha = 0.7 + vBreathPhase * 0.2;
+    // Inhale - particles become more visible as they gather
+    baseAlpha = 0.4 + vBreathPhase * 0.15;
   } else if (phaseType == 1) {
-    baseAlpha = 0.9;
+    // Hold-in - calm presence
+    baseAlpha = 0.55;
   } else if (phaseType == 2) {
-    baseAlpha = 0.85 - vBreathPhase * 0.1;
+    // Exhale - particles soften as they release
+    baseAlpha = 0.5 - vBreathPhase * 0.1;
   } else {
-    baseAlpha = 0.75;
+    // Hold-out - peaceful fade
+    baseAlpha = 0.4;
   }
 
-  baseAlpha = min(1.0, baseAlpha + vSparkle * 0.2);
+  // Subtle sparkle boost
+  baseAlpha = min(0.7, baseAlpha + vSparkle * 0.1);
   alpha *= baseAlpha;
 
-  // Depth fade
-  float depthFade = 0.5 + vDepthFactor * 0.5;
+  // Gentle depth fade
+  float depthFade = 0.6 + vDepthFactor * 0.4;
   alpha *= depthFade;
 
-  // Distance fade
-  float distanceFade = 1.0 - smoothstep(40.0, 70.0, vDistance);
+  // Distance fade - softer transition
+  float distanceFade = 1.0 - smoothstep(35.0, 60.0, vDistance);
   alpha *= distanceFade;
 
   // === BIRTH ANIMATION ALPHA ===
-  // Particles fade in during birth
   alpha *= vBirthAlpha;
 
   gl_FragColor = vec4(color, alpha);

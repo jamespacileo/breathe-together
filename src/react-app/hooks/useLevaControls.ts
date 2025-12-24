@@ -143,11 +143,6 @@ export function useLevaControls({
 			},
 		}),
 		'3D Sphere': folder({
-			nebulaEnabled: {
-				value: config.nebulaEnabled,
-				onChange: (v: boolean) =>
-					setConfigRef.current({ ...configRef.current, nebulaEnabled: v }),
-			},
 			sphereContractedRadius: {
 				value: config.sphereContractedRadius,
 				min: 0.3,
@@ -170,86 +165,52 @@ export function useLevaControls({
 						sphereExpandedRadius: v,
 					}),
 			},
-			sphereRotationSpeed: {
-				value: config.sphereRotationSpeed,
-				min: 0,
-				max: 0.1,
-				step: 0.001,
+		}),
+		Particles: folder({
+			particleDensity: {
+				value: config.particleDensity,
+				min: 32,
+				max: 80,
+				step: 1,
+				onChange: (v: number) =>
+					setConfigRef.current({ ...configRef.current, particleDensity: v }),
+			},
+			peripheralParticleCount: {
+				value: config.peripheralParticleCount,
+				min: 20,
+				max: 120,
+				step: 1,
 				onChange: (v: number) =>
 					setConfigRef.current({
 						...configRef.current,
-						sphereRotationSpeed: v,
+						peripheralParticleCount: v,
 					}),
 			},
 		}),
-		'Connection Lines': folder({
-			connectionEnabled: {
-				value: config.connectionEnabled,
-				onChange: (v: boolean) =>
-					setConfigRef.current({ ...configRef.current, connectionEnabled: v }),
+		Rendering: folder({
+			canvasBackground: {
+				value: config.canvasBackground,
+				onChange: (v: string) =>
+					setConfigRef.current({ ...configRef.current, canvasBackground: v }),
 			},
-			connectionDistance: {
-				value: config.connectionDistance,
-				min: 0.1,
+			vignetteIntensity: {
+				value: config.vignetteIntensity,
+				min: 0,
 				max: 1,
 				step: 0.01,
 				onChange: (v: number) =>
 					setConfigRef.current({
 						...configRef.current,
-						connectionDistance: v,
+						vignetteIntensity: v,
 					}),
 			},
-			connectionOpacity: {
-				value: config.connectionOpacity,
-				min: 0,
-				max: 0.5,
-				step: 0.01,
-				onChange: (v: number) =>
-					setConfigRef.current({ ...configRef.current, connectionOpacity: v }),
-			},
-		}),
-		Effects: folder({
-			hazeEnabled: {
-				value: config.hazeEnabled,
-				onChange: (v: boolean) =>
-					setConfigRef.current({ ...configRef.current, hazeEnabled: v }),
-			},
-			hazeOpacity: {
-				value: config.hazeOpacity,
+			noiseOpacity: {
+				value: config.noiseOpacity,
 				min: 0,
 				max: 0.3,
 				step: 0.01,
 				onChange: (v: number) =>
-					setConfigRef.current({ ...configRef.current, hazeOpacity: v }),
-			},
-			bloomEnabled: {
-				value: config.bloomEnabled,
-				onChange: (v: boolean) =>
-					setConfigRef.current({ ...configRef.current, bloomEnabled: v }),
-			},
-			bloomStrength: {
-				value: config.bloomStrength,
-				min: 0,
-				max: 3,
-				step: 0.1,
-				onChange: (v: number) =>
-					setConfigRef.current({ ...configRef.current, bloomStrength: v }),
-			},
-			bloomThreshold: {
-				value: config.bloomThreshold,
-				min: 0,
-				max: 1,
-				step: 0.01,
-				onChange: (v: number) =>
-					setConfigRef.current({ ...configRef.current, bloomThreshold: v }),
-			},
-			bloomRadius: {
-				value: config.bloomRadius,
-				min: 0,
-				max: 1,
-				step: 0.01,
-				onChange: (v: number) =>
-					setConfigRef.current({ ...configRef.current, bloomRadius: v }),
+					setConfigRef.current({ ...configRef.current, noiseOpacity: v }),
 			},
 		}),
 		Colors: folder({
@@ -287,19 +248,13 @@ export function useLevaControls({
 				holdOscillationSpeed: config.holdOscillationSpeed,
 				mainSpringTension: config.mainSpringTension,
 				mainSpringFriction: config.mainSpringFriction,
-				nebulaEnabled: config.nebulaEnabled,
 				sphereContractedRadius: config.sphereContractedRadius,
 				sphereExpandedRadius: config.sphereExpandedRadius,
-				sphereRotationSpeed: config.sphereRotationSpeed,
-				connectionEnabled: config.connectionEnabled,
-				connectionDistance: config.connectionDistance,
-				connectionOpacity: config.connectionOpacity,
-				hazeEnabled: config.hazeEnabled,
-				hazeOpacity: config.hazeOpacity,
-				bloomEnabled: config.bloomEnabled,
-				bloomStrength: config.bloomStrength,
-				bloomThreshold: config.bloomThreshold,
-				bloomRadius: config.bloomRadius,
+				particleDensity: config.particleDensity,
+				peripheralParticleCount: config.peripheralParticleCount,
+				canvasBackground: config.canvasBackground,
+				vignetteIntensity: config.vignetteIntensity,
+				noiseOpacity: config.noiseOpacity,
 				primaryColor: config.primaryColor,
 				backgroundColor: config.backgroundColor,
 				backgroundColorMid: config.backgroundColorMid,

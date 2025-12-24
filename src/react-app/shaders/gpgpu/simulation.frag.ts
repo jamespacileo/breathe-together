@@ -5,7 +5,8 @@
 export const simulationFragmentShader = /* glsl */ `
 precision highp float;
 
-uniform sampler2D uPositions;
+// GPUComputationRenderer provides this automatically based on variable name
+uniform sampler2D texturePosition;
 uniform sampler2D uOriginalPositions;
 uniform float uTime;
 uniform float uBreathPhase;
@@ -68,7 +69,7 @@ vec3 curlNoise(vec3 p) {
 void main() {
   vec2 uv = gl_FragCoord.xy / resolution.xy;
 
-  vec4 posData = texture2D(uPositions, uv);
+  vec4 posData = texture2D(texturePosition, uv);
   vec4 origData = texture2D(uOriginalPositions, uv);
 
   vec3 pos = posData.xyz;

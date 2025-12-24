@@ -3,17 +3,18 @@
  * All GLSL shaders used in the particle visualization system
  */
 
-export { peripheralFragmentShader } from './effects/peripheral.frag';
-// Effect shaders
-export { peripheralVertexShader } from './effects/peripheral.vert';
-export { starFragmentShader } from './effects/starfield.frag';
-export { starVertexShader } from './effects/starfield.vert';
+// GPGPU simulation shader (vertex shader provided by GPUComputationRenderer)
 export { simulationFragmentShader } from './gpgpu/simulation.frag';
-// GPGPU simulation shaders
-export { simulationVertexShader } from './gpgpu/simulation.vert';
+// User particle shaders
+export { userSimFragmentShader } from './gpgpu/userSim.frag';
 export { particleFragmentShader } from './particles/particle.frag';
 // Main particle shaders
 export { particleVertexShader } from './particles/particle.vert';
+export { glowFragmentShader } from './sphere/glow.frag';
+
+// Sphere glow shaders
+export { glowVertexShader } from './sphere/glow.vert';
 export { sphereFragmentShader } from './sphere/sphere.frag';
 // Central sphere shaders
 export { sphereVertexShader } from './sphere/sphere.vert';
+export { userParticleFragmentShader, userParticleVertexShader } from './user';

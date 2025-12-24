@@ -32,9 +32,6 @@ export const VisualizationConfigSchema = z.object({
 		.describe('Main spring friction'),
 
 	// 3D Breathing Sphere
-	nebulaEnabled: z
-		.boolean()
-		.describe('Enable 3D breathing sphere visualization'),
 	sphereContractedRadius: z
 		.number()
 		.min(0.3)
@@ -45,40 +42,30 @@ export const VisualizationConfigSchema = z.object({
 		.min(1)
 		.max(4)
 		.describe('Sphere radius when fully expanded (exhaled)'),
-	sphereRotationSpeed: z
-		.number()
-		.min(0)
-		.max(0.1)
-		.describe('Sphere rotation speed (radians per second)'),
 
-	// Connection Lines
-	connectionEnabled: z
-		.boolean()
-		.describe('Enable connection lines between particles'),
-	connectionDistance: z
+	// Particles
+	particleDensity: z
 		.number()
-		.min(0.1)
-		.max(1)
-		.describe('Max distance for particle connections'),
-	connectionOpacity: z
+		.min(32)
+		.max(80)
+		.describe('Particle grid resolution (FBO size, affects performance)'),
+	peripheralParticleCount: z
 		.number()
-		.min(0)
-		.max(0.5)
-		.describe('Base opacity of connection lines'),
+		.min(20)
+		.max(120)
+		.describe('Number of sparse outer particles'),
 
-	// Haze Layer
-	hazeEnabled: z.boolean().describe('Enable atmospheric haze particles'),
-	hazeOpacity: z.number().min(0).max(0.3).describe('Haze particle opacity'),
-
-	// Post-processing Bloom
-	bloomEnabled: z.boolean().describe('Enable post-processing bloom'),
-	bloomStrength: z.number().min(0).max(3).describe('Bloom intensity'),
-	bloomThreshold: z
+	// Rendering
+	canvasBackground: z
+		.string()
+		.regex(/^#[0-9A-Fa-f]{6}$/)
+		.describe('Canvas background color (hex)'),
+	vignetteIntensity: z
 		.number()
 		.min(0)
 		.max(1)
-		.describe('Luminance threshold for bloom'),
-	bloomRadius: z.number().min(0).max(1).describe('Bloom blur radius'),
+		.describe('Vignette darkness intensity'),
+	noiseOpacity: z.number().min(0).max(0.3).describe('Film grain noise opacity'),
 
 	// Colors
 	primaryColor: z
@@ -129,25 +116,17 @@ export const DEFAULT_CONFIG: VisualizationConfig = {
 	mainSpringFriction: 14,
 
 	// 3D Breathing Sphere
-	nebulaEnabled: true,
 	sphereContractedRadius: 0.7,
 	sphereExpandedRadius: 2.2,
-	sphereRotationSpeed: 0.025,
 
-	// Connection Lines
-	connectionEnabled: true,
-	connectionDistance: 0.4,
-	connectionOpacity: 0.15,
+	// Particles
+	particleDensity: 56,
+	peripheralParticleCount: 60,
 
-	// Haze Layer
-	hazeEnabled: true,
-	hazeOpacity: 0.08,
-
-	// Post-processing Bloom
-	bloomEnabled: false,
-	bloomStrength: 0.3,
-	bloomThreshold: 0.6,
-	bloomRadius: 0.3,
+	// Rendering
+	canvasBackground: '#0a0a12',
+	vignetteIntensity: 0.4,
+	noiseOpacity: 0.08,
 
 	// Colors
 	primaryColor: '#7EB5C1',

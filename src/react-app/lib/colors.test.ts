@@ -4,7 +4,7 @@ import { BASE_COLORS, getMoodColor, MOODS } from './colors';
 describe('getMoodColor', () => {
 	it('should return correct color for mood ID', () => {
 		const result = getMoodColor('moment');
-		expect(result).toBe('#7EB5C1');
+		expect(result).toBe('#7EC8D4'); // Soft Cyan
 	});
 
 	it('should return base color for undefined mood', () => {

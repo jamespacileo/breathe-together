@@ -92,17 +92,16 @@ void main() {
   float trailStretch = 1.0 + velocity * 5.0;
   baseSize *= min(trailStretch, 1.3);
 
-  // === SPARKLE ===
-  // Reduced during crystallization (holds should be calm)
-  float sparkleIntensity = 1.0 - uCrystallization * 0.6;
-  float sparkleTime = uTime * 5.0 + aPhase * 100.0;
-  float sparkle1 = pow(max(0.0, sin(sparkleTime)), 12.0);
-  float sparkle2 = pow(max(0.0, sin(sparkleTime * 1.7 + 1.0)), 12.0);
-  float sparkle3 = pow(max(0.0, sin(sparkleTime * 2.3 + 2.0)), 12.0);
-  float sparkle = max(sparkle1, max(sparkle2, sparkle3)) * sparkleIntensity;
+  // === GENTLE SPARKLE ===
+  // Very subtle, slow sparkle for meditative feel
+  float sparkleIntensity = 0.5 - uCrystallization * 0.4;
+  float sparkleTime = uTime * 2.0 + aPhase * 50.0; // Slower sparkle
+  float sparkle1 = pow(max(0.0, sin(sparkleTime)), 16.0);
+  float sparkle2 = pow(max(0.0, sin(sparkleTime * 1.3 + 1.0)), 16.0);
+  float sparkle = max(sparkle1, sparkle2) * sparkleIntensity;
   vSparkle = sparkle;
 
-  baseSize *= (1.0 + sparkle * 0.5);
+  baseSize *= (1.0 + sparkle * 0.2); // Reduced size boost
 
   // Birth animation: particles start smaller
   baseSize *= birthAlpha;
@@ -110,27 +109,27 @@ void main() {
   gl_PointSize = baseSize * uPixelRatio;
   gl_Position = projectionMatrix * mvPosition;
 
-  // === COLOR with TEMPERATURE SHIFTING ===
+  // === COLOR - soft, muted tones for meditation ===
   vec3 color = aColor;
 
-  // Saturation boost
+  // Slight desaturation for softer, calmer appearance
   vec3 gray = vec3(dot(color, vec3(0.299, 0.587, 0.114)));
-  color = mix(gray, color, 1.4);
+  color = mix(gray, color, 0.85);
 
-  // Temperature shift based on breath phase
-  // Cool (cyan/blue) during inhale, warm (magenta/pink) during exhale
-  vec3 coolTint = vec3(-0.05, 0.02, 0.08);   // Shift toward cyan
-  vec3 warmTint = vec3(0.08, 0.0, 0.04);     // Shift toward magenta/pink
+  // Gentle temperature shift based on breath phase
+  // Cool (soft blue) during inhale, warm (soft rose) during exhale
+  vec3 coolTint = vec3(-0.02, 0.01, 0.04);   // Subtle cyan shift
+  vec3 warmTint = vec3(0.04, 0.0, 0.02);     // Subtle rose shift
 
   vec3 tempShift = mix(coolTint, warmTint, uColorTemperature * 0.5 + 0.5);
   color += tempShift;
 
-  // During breath wave, particles in the wave get brighter
+  // Subtle breath wave glow
   if (uBreathWave > 0.01) {
     float distFromCenter = length(pos);
     float waveRadius = uBreathWave * 25.0;
-    float waveInfluence = exp(-abs(distFromCenter - waveRadius) * 0.3) * uBreathWave;
-    color += vec3(0.1, 0.15, 0.2) * waveInfluence;
+    float waveInfluence = exp(-abs(distFromCenter - waveRadius) * 0.4) * uBreathWave;
+    color += vec3(0.05, 0.08, 0.1) * waveInfluence;
   }
 
   vColor = clamp(color, 0.0, 1.0);
