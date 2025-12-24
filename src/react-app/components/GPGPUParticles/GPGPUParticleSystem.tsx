@@ -1,8 +1,9 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { useMemo, useRef } from 'react';
 import * as THREE from 'three';
+import type { EnhancedBreathData } from './GPGPUScene';
 
-// GLSL Shaders - refined for subtle, elegant motion with phase-specific behaviors
+// GLSL Shaders - refined with master craftsman attention to subtle, felt-not-seen details
 const simulationVertexShader = `
 void main() {
   gl_Position = vec4(position, 1.0);
@@ -19,6 +20,14 @@ uniform float uBreathPhase;
 uniform float uExpandedRadius;
 uniform float uContractedRadius;
 uniform int uPhaseType; // 0=inhale, 1=hold-in, 2=exhale, 3=hold-out
+
+// === NEW SUBTLE EFFECT UNIFORMS ===
+uniform float uAnticipation;      // Pre-transition gathering (0-1)
+uniform float uOvershoot;         // Post-transition settling (0-1)
+uniform float uDiaphragmDirection; // -1 down (inhale), 1 up (exhale), 0 hold
+uniform float uCrystallization;   // Hold phase stillness (0-1)
+uniform float uBreathWave;        // Radial wave intensity (0-1)
+uniform vec2 uViewOffset;         // Micro-saccade parallax
 
 // Simple smooth noise
 float hash(vec3 p) {
@@ -39,6 +48,28 @@ float noise(vec3 p) {
         mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y),
     f.z
   );
+}
+
+// === CURL NOISE for coherent organic flow ===
+// Creates streams like smoke or water - particles move together
+vec3 curlNoise(vec3 p) {
+  float e = 0.1;
+  vec3 dx = vec3(e, 0.0, 0.0);
+  vec3 dy = vec3(0.0, e, 0.0);
+  vec3 dz = vec3(0.0, 0.0, e);
+
+  float n = noise(p);
+  float ndx = noise(p + dx);
+  float ndy = noise(p + dy);
+  float ndz = noise(p + dz);
+
+  // Curl = cross product of gradient
+  vec3 curl;
+  curl.x = (noise(p + dy) - noise(p - dy)) - (noise(p + dz) - noise(p - dz));
+  curl.y = (noise(p + dz) - noise(p - dz)) - (noise(p + dx) - noise(p - dx));
+  curl.z = (noise(p + dx) - noise(p - dx)) - (noise(p + dy) - noise(p - dy));
+
+  return normalize(curl + 0.001) * 0.5;
 }
 
 void main() {
@@ -80,34 +111,38 @@ void main() {
     orbitSpeedMultiplier = 1.4;
     displacementStrength = 0.15;
     bobAmount = 0.08;
-    springStrength = 0.08; // Faster response
-    spiralStrength = 0.3;  // Inward spiral
+    springStrength = 0.08;
+    spiralStrength = 0.3;
   } else if (uPhaseType == 1) {
     // HOLD-IN: Calm settling, minimal motion, gentle pulsing
     orbitSpeedMultiplier = 0.6;
-    displacementStrength = 0.05; // Very subtle
+    displacementStrength = 0.05;
     bobAmount = 0.03;
-    springStrength = 0.04; // Slower, settled
-    // Add gentle pulsing effect
+    springStrength = 0.04;
     float pulse = sin(uTime * 2.0) * 0.02;
     particleTargetRadius *= (1.0 + pulse);
   } else if (uPhaseType == 2) {
     // EXHALE: Particles drift outward gracefully, releasing
     orbitSpeedMultiplier = 0.9;
-    displacementStrength = 0.35; // More free movement
+    displacementStrength = 0.35;
     bobAmount = 0.15;
-    springStrength = 0.05; // Slower, floaty
-    spiralStrength = -0.2; // Outward drift
+    springStrength = 0.05;
+    spiralStrength = -0.2;
   } else {
     // HOLD-OUT: Peaceful floating, dreamy drift
     orbitSpeedMultiplier = 0.5;
     displacementStrength = 0.25;
     bobAmount = 0.12;
     springStrength = 0.04;
-    // Gentle wandering motion
     float wander = noise(origPos * 0.05 + uTime * 0.1) * 0.3;
     particleTargetRadius *= (1.0 + wander * 0.05);
   }
+
+  // === CRYSTALLIZATION: Reduce motion during holds ===
+  float crystalFactor = 1.0 - uCrystallization * 0.8;
+  displacementStrength *= crystalFactor;
+  bobAmount *= crystalFactor;
+  orbitSpeedMultiplier *= (1.0 - uCrystallization * 0.5);
 
   // Apply orbital rotation with phase-specific speed
   float orbit = uTime * baseOrbitSpeed * orbitSpeedMultiplier;
@@ -124,24 +159,73 @@ void main() {
   // Apply spiral effect (inward during inhale, outward during exhale)
   if (abs(spiralStrength) > 0.01) {
     float spiralAngle = uTime * spiralStrength * (0.5 + phase * 0.5);
-    float cosSp = cos(spiralAngle);
-    float sinSp = sin(spiralAngle);
-    // Add vertical spiral component
     targetPos.y += sin(spiralAngle + phase * 6.28) * spiralStrength * 0.5;
   }
 
-  // Noise-based displacement with phase-specific strength
+  // === COHERENT CURL NOISE (organic flow) ===
+  // Particles move in streams, not randomly
+  vec3 flowField = curlNoise(origPos * 0.08 + uTime * 0.03);
+  float flowStrength = displacementStrength * 0.6 * crystalFactor;
+  targetPos += flowField * flowStrength;
+
+  // Additional noise-based displacement (reduced, curl does more work now)
   float noiseVal = noise(origPos * 0.1 + uTime * 0.05 + phase) - 0.5;
-  targetPos += dir * noiseVal * displacementStrength;
+  targetPos += dir * noiseVal * displacementStrength * 0.4;
+
+  // === DIAPHRAGMATIC VERTICAL DRIFT ===
+  // Subtle downward drift during inhale, upward during exhale
+  float diaphragmStrength = 0.4 * (1.0 - uCrystallization);
+  targetPos.y += uDiaphragmDirection * diaphragmStrength * (0.5 + phase * 0.5);
 
   // Vertical bobbing with phase-specific amplitude
   targetPos.y += sin(uTime * 0.4 + phase * 6.28) * bobAmount;
+
+  // === ANTICIPATION: Gather before transition ===
+  // Particles slightly contract toward center before phase change
+  if (uAnticipation > 0.01) {
+    float anticipationPull = uAnticipation * 0.15;
+    targetPos *= (1.0 - anticipationPull);
+    // Slight upward gathering
+    targetPos.y += uAnticipation * 0.3;
+  }
+
+  // === OVERSHOOT: Settle after transition ===
+  // Particles overshoot then return (spring bounce)
+  if (uOvershoot > 0.01) {
+    float overshootAmount = uOvershoot * 0.1;
+    // Slight outward bounce
+    targetPos *= (1.0 + overshootAmount);
+  }
+
+  // === BREATH WAVE: Radial ripple visualization ===
+  if (uBreathWave > 0.01) {
+    float waveRadius = uBreathWave * 25.0;
+    float distFromCenter = length(targetPos);
+    float waveDelta = abs(distFromCenter - waveRadius);
+    float waveInfluence = exp(-waveDelta * 0.5) * uBreathWave;
+    // Push particles outward in the wave
+    targetPos += dir * waveInfluence * 2.0;
+  }
+
+  // === MICRO-SACCADE PARALLAX ===
+  // Very subtle shift based on view/mouse position
+  targetPos.x += uViewOffset.x * (10.0 + origDist * 0.3);
+  targetPos.y += uViewOffset.y * (10.0 + origDist * 0.3);
 
   // Smooth spring interpolation with phase-specific strength
   vec3 velocity = (targetPos - pos) * springStrength;
   vec3 newPos = pos + velocity;
 
-  // Store velocity magnitude in w for trail effect (approximated)
+  // === SUB-PIXEL JITTER REMOVAL during holds ===
+  // Snap to sub-pixel grid when crystallized for true stillness
+  if (uCrystallization > 0.8) {
+    float snapStrength = (uCrystallization - 0.8) * 5.0; // 0-1 over last 20%
+    float gridSize = 0.02; // Sub-pixel precision
+    vec3 snapped = floor(newPos / gridSize + 0.5) * gridSize;
+    newPos = mix(newPos, snapped, snapStrength * 0.5);
+  }
+
+  // Store velocity magnitude in w for trail effect
   float velocityMag = length(velocity);
 
   gl_FragColor = vec4(newPos, velocityMag);
@@ -157,10 +241,17 @@ uniform float uBreathPhase;
 uniform float uPixelRatio;
 uniform int uPhaseType; // 0=inhale, 1=hold-in, 2=exhale, 3=hold-out
 
+// === NEW SUBTLE EFFECT UNIFORMS ===
+uniform float uColorTemperature;  // -1 cool to 1 warm
+uniform float uCrystallization;   // Hold stillness factor
+uniform float uBreathWave;        // Radial wave intensity
+uniform float uBirthProgress;     // Global entry animation (0-1)
+
 attribute vec2 aReference;
 attribute float aSize;
 attribute float aPhase;
 attribute vec3 aColor;
+attribute float aBirthDelay;      // Per-particle birth stagger
 
 varying vec3 vColor;
 varying vec3 vPosition;
@@ -171,17 +262,32 @@ varying float vSparkle;
 varying float vVelocity;
 varying float vDepthFactor;
 varying float vPhaseType;
+varying float vBirthAlpha;
 
 void main() {
   vec4 posData = texture2D(uPositions, aReference);
   vec3 pos = posData.xyz;
-  float velocity = posData.w; // Velocity magnitude from simulation
+  float velocity = posData.w;
 
   vPosition = pos;
   vPhase = aPhase;
   vBreathPhase = uBreathPhase;
   vVelocity = velocity;
   vPhaseType = float(uPhaseType);
+
+  // === ENTRY BIRTH ANIMATION ===
+  // Particles emerge from center during first few seconds
+  // Staggered by aBirthDelay for wave-like appearance
+  float birthTime = uBirthProgress - aBirthDelay * 0.5;
+  float birthAlpha = smoothstep(0.0, 0.3, birthTime);
+  vBirthAlpha = birthAlpha;
+
+  // During birth, particles emerge from center
+  if (birthAlpha < 1.0) {
+    float emergeFactor = birthAlpha;
+    // Slight inward pull for particles still being born
+    pos = mix(pos * 0.3, pos, emergeFactor);
+  }
 
   vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
   vDistance = -mvPosition.z;
@@ -192,13 +298,8 @@ void main() {
   float maxDepth = 70.0;
   vDepthFactor = 1.0 - smoothstep(minDepth, maxDepth, depthFromCamera);
 
-  // Smaller base size for more defined particles
   float distanceAttenuation = 180.0 / max(vDistance, 1.0);
-
-  // Front particles get size boost, back particles get reduced
-  float depthSizeMultiplier = 0.6 + vDepthFactor * 0.5; // 0.6 to 1.1 range
-
-  // Smaller overall size (0.4 instead of 0.7)
+  float depthSizeMultiplier = 0.6 + vDepthFactor * 0.5;
   float baseSize = aSize * 0.4 * distanceAttenuation * depthSizeMultiplier;
 
   // === PHASE-SPECIFIC SIZE PULSING ===
@@ -206,11 +307,14 @@ void main() {
   if (uPhaseType == 0) {
     sizePulse = 1.0 - uBreathPhase * 0.1;
   } else if (uPhaseType == 1) {
-    sizePulse = 1.0 + sin(uTime * 2.5 + aPhase * 6.28) * 0.06;
+    // During hold, pulsing is reduced by crystallization
+    float pulseAmount = 0.06 * (1.0 - uCrystallization * 0.7);
+    sizePulse = 1.0 + sin(uTime * 2.5 + aPhase * 6.28) * pulseAmount;
   } else if (uPhaseType == 2) {
     sizePulse = 1.0 + (1.0 - uBreathPhase) * 0.15;
   } else {
-    sizePulse = 1.05 + sin(uTime * 1.5 + aPhase * 6.28) * 0.04;
+    float pulseAmount = 0.04 * (1.0 - uCrystallization * 0.7);
+    sizePulse = 1.05 + sin(uTime * 1.5 + aPhase * 6.28) * pulseAmount;
   }
   baseSize *= sizePulse;
 
@@ -218,45 +322,48 @@ void main() {
   float trailStretch = 1.0 + velocity * 5.0;
   baseSize *= min(trailStretch, 1.3);
 
-  // === SPARKLE - more frequent and noticeable ===
+  // === SPARKLE ===
+  // Reduced during crystallization (holds should be calm)
+  float sparkleIntensity = 1.0 - uCrystallization * 0.6;
   float sparkleTime = uTime * 5.0 + aPhase * 100.0;
-  // Multiple frequency sparkle for more glimmer
   float sparkle1 = pow(max(0.0, sin(sparkleTime)), 12.0);
   float sparkle2 = pow(max(0.0, sin(sparkleTime * 1.7 + 1.0)), 12.0);
   float sparkle3 = pow(max(0.0, sin(sparkleTime * 2.3 + 2.0)), 12.0);
-  float sparkle = max(sparkle1, max(sparkle2, sparkle3));
+  float sparkle = max(sparkle1, max(sparkle2, sparkle3)) * sparkleIntensity;
   vSparkle = sparkle;
 
-  // Size boost during sparkle - makes them "pop"
   baseSize *= (1.0 + sparkle * 0.5);
+
+  // Birth animation: particles start smaller
+  baseSize *= birthAlpha;
 
   gl_PointSize = baseSize * uPixelRatio;
   gl_Position = projectionMatrix * mvPosition;
 
-  // === COLOR - boost saturation to prevent washout ===
+  // === COLOR with TEMPERATURE SHIFTING ===
   vec3 color = aColor;
 
-  // Increase saturation by pushing away from gray
+  // Saturation boost
   vec3 gray = vec3(dot(color, vec3(0.299, 0.587, 0.114)));
-  color = mix(gray, color, 1.4); // 1.4 = 40% more saturated
+  color = mix(gray, color, 1.4);
 
-  // Temperature shift (subtle)
-  vec3 warmShift = vec3(0.06, 0.01, -0.04);
-  vec3 coolShift = vec3(-0.02, 0.01, 0.05);
+  // Temperature shift based on breath phase
+  // Cool (cyan/blue) during inhale, warm (magenta/pink) during exhale
+  vec3 coolTint = vec3(-0.05, 0.02, 0.08);   // Shift toward cyan
+  vec3 warmTint = vec3(0.08, 0.0, 0.04);     // Shift toward magenta/pink
 
-  float warmth = 0.0;
-  if (uPhaseType == 0) {
-    warmth = -0.4;
-  } else if (uPhaseType == 1) {
-    warmth = 0.0;
-  } else if (uPhaseType == 2) {
-    warmth = 0.5;
-  } else {
-    warmth = 0.2;
+  vec3 tempShift = mix(coolTint, warmTint, uColorTemperature * 0.5 + 0.5);
+  color += tempShift;
+
+  // During breath wave, particles in the wave get brighter
+  if (uBreathWave > 0.01) {
+    float distFromCenter = length(pos);
+    float waveRadius = uBreathWave * 25.0;
+    float waveInfluence = exp(-abs(distFromCenter - waveRadius) * 0.3) * uBreathWave;
+    color += vec3(0.1, 0.15, 0.2) * waveInfluence;
   }
 
-  vec3 colorShift = warmth > 0.0 ? warmShift * warmth : coolShift * abs(warmth);
-  vColor = clamp(color + colorShift, 0.0, 1.0);
+  vColor = clamp(color, 0.0, 1.0);
 }
 `;
 
@@ -266,6 +373,7 @@ precision highp float;
 uniform float uTime;
 uniform float uBreathPhase;
 uniform int uPhaseType;
+uniform float uCrystallization;
 
 varying vec3 vColor;
 varying vec3 vPosition;
@@ -276,63 +384,60 @@ varying float vSparkle;
 varying float vVelocity;
 varying float vDepthFactor;
 varying float vPhaseType;
+varying float vBirthAlpha;
 
 void main() {
   vec2 center = gl_PointCoord - 0.5;
   float dist = length(center);
 
   // === SHARPER, MORE DEFINED PARTICLE SHAPE ===
-  // Tight core with sharp falloff - like a shiny bead
-  float coreDist = dist * 2.5; // Scaled for sharper edge
+  float coreDist = dist * 2.5;
   float alpha = 1.0 - smoothstep(0.6, 1.0, coreDist);
 
   if (alpha < 0.01) discard;
 
-  // Base color (already saturated in vertex shader)
+  // Base color
   vec3 color = vColor;
   int phaseType = int(vPhaseType + 0.5);
 
-  // === SHINY HIGHLIGHT - gem-like specular ===
-  // Bright core highlight that preserves color
+  // === SHINY HIGHLIGHT ===
   float coreHighlight = exp(-coreDist * 4.0);
-  // Boost the color itself rather than adding white
   color *= (1.0 + coreHighlight * 0.8);
 
-  // === SPARKLE/GLIMMER - sharp bright flash ===
+  // === SPARKLE/GLIMMER ===
   if (vSparkle > 0.3) {
     float sparkleIntensity = pow((vSparkle - 0.3) / 0.7, 2.0);
-    // Sharp highlight in center during sparkle
     float sparkleCore = exp(-coreDist * 6.0) * sparkleIntensity;
-    // Add white highlight only in the very center
     color += vec3(1.0) * sparkleCore * 0.8;
-    // Also boost overall brightness during sparkle
     color *= (1.0 + sparkleIntensity * 0.4);
   }
 
-  // === PHASE-SPECIFIC BRIGHTNESS (gentler to preserve color) ===
+  // === PHASE-SPECIFIC BRIGHTNESS ===
   float brightness = 1.0;
   if (phaseType == 0) {
     brightness = 0.85 + vBreathPhase * 0.15;
   } else if (phaseType == 1) {
-    brightness = 1.0 + sin(uTime * 3.0) * 0.05;
+    // During crystallization, brightness is more stable
+    float pulseAmount = 0.05 * (1.0 - uCrystallization * 0.7);
+    brightness = 1.0 + sin(uTime * 3.0) * pulseAmount;
   } else if (phaseType == 2) {
     brightness = 1.0 - vBreathPhase * 0.1;
   } else {
-    brightness = 0.9 + sin(uTime * 2.0) * 0.03;
+    float pulseAmount = 0.03 * (1.0 - uCrystallization * 0.7);
+    brightness = 0.9 + sin(uTime * 2.0) * pulseAmount;
   }
   color *= brightness;
 
-  // === DEPTH-BASED BRIGHTNESS (subtler) ===
+  // === DEPTH-BASED BRIGHTNESS ===
   float depthBrightness = 0.8 + vDepthFactor * 0.25;
   color *= depthBrightness;
 
-  // === EDGE RIM for definition ===
-  // Subtle bright rim at edge for that "shiny object" look
+  // === EDGE RIM ===
   float rimDist = abs(coreDist - 0.7);
   float rim = exp(-rimDist * 8.0) * 0.15;
-  color += vColor * rim; // Add color, not white
+  color += vColor * rim;
 
-  // === ALPHA - more opaque for solid look ===
+  // === ALPHA ===
   float baseAlpha = 0.8;
   if (phaseType == 0) {
     baseAlpha = 0.7 + vBreathPhase * 0.2;
@@ -344,18 +449,20 @@ void main() {
     baseAlpha = 0.75;
   }
 
-  // Sparkle makes particles more solid/bright
   baseAlpha = min(1.0, baseAlpha + vSparkle * 0.2);
-
   alpha *= baseAlpha;
 
-  // Depth fade (gentler)
+  // Depth fade
   float depthFade = 0.5 + vDepthFactor * 0.5;
   alpha *= depthFade;
 
   // Distance fade
   float distanceFade = 1.0 - smoothstep(40.0, 70.0, vDistance);
   alpha *= distanceFade;
+
+  // === BIRTH ANIMATION ALPHA ===
+  // Particles fade in during birth
+  alpha *= vBirthAlpha;
 
   gl_FragColor = vec4(color, alpha);
 }
@@ -415,8 +522,7 @@ void main() {
 `;
 
 interface GPGPUParticleSystemProps {
-	breathPhase: number;
-	phaseType: number;
+	breathData: EnhancedBreathData;
 	expandedRadius: number;
 	contractedRadius: number;
 }
@@ -426,8 +532,7 @@ const FBO_SIZE = 56; // ~3136 particles - slightly fewer for better performance
 const PARTICLE_COUNT = FBO_SIZE * FBO_SIZE;
 
 export function GPGPUParticleSystem({
-	breathPhase,
-	phaseType,
+	breathData,
 	expandedRadius,
 	contractedRadius,
 }: GPGPUParticleSystemProps) {
@@ -435,6 +540,7 @@ export function GPGPUParticleSystem({
 	const pointsRef = useRef<THREE.Points>(null);
 	const sphereRef = useRef<THREE.Mesh>(null);
 	const sphereMaterialRef = useRef<THREE.ShaderMaterial>(null);
+	const birthProgressRef = useRef(0); // Tracks entry animation progress
 
 	// More saturated color palette for visible, gem-like particles
 	const colorPalette = useMemo(
@@ -528,6 +634,13 @@ export function GPGPUParticleSystem({
 				uExpandedRadius: { value: expandedRadius },
 				uContractedRadius: { value: contractedRadius },
 				resolution: { value: new THREE.Vector2(FBO_SIZE, FBO_SIZE) },
+				// New subtle effect uniforms
+				uAnticipation: { value: 0 },
+				uOvershoot: { value: 0 },
+				uDiaphragmDirection: { value: 0 },
+				uCrystallization: { value: 0 },
+				uBreathWave: { value: 0 },
+				uViewOffset: { value: new THREE.Vector2(0, 0) },
 			},
 			defines: {
 				resolution: `vec2(${FBO_SIZE}.0, ${FBO_SIZE}.0)`,
@@ -560,6 +673,7 @@ export function GPGPUParticleSystem({
 		const sizes = new Float32Array(PARTICLE_COUNT);
 		const phases = new Float32Array(PARTICLE_COUNT);
 		const colors = new Float32Array(PARTICLE_COUNT * 3);
+		const birthDelays = new Float32Array(PARTICLE_COUNT); // NEW: staggered birth
 
 		for (let i = 0; i < PARTICLE_COUNT; i++) {
 			const x = (i % FBO_SIZE) / FBO_SIZE;
@@ -570,6 +684,13 @@ export function GPGPUParticleSystem({
 
 			sizes[i] = 0.8 + Math.random() * 1.2;
 			phases[i] = Math.random();
+
+			// Birth delay: particles closer to center emerge first
+			// Creates a wave-like appearance as particles "bloom" outward
+			const distFromCenter = Math.sqrt(
+				Math.pow(x - 0.5, 2) + Math.pow(y - 0.5, 2)
+			);
+			birthDelays[i] = distFromCenter * 2.0 + Math.random() * 0.3;
 
 			const color =
 				colorPalette[Math.floor(Math.random() * colorPalette.length)];
@@ -591,6 +712,10 @@ export function GPGPUParticleSystem({
 			'aColor',
 			new THREE.BufferAttribute(colors, 3),
 		);
+		particleGeometry.setAttribute(
+			'aBirthDelay',
+			new THREE.BufferAttribute(birthDelays, 1),
+		);
 
 		const positions = new Float32Array(PARTICLE_COUNT * 3);
 		particleGeometry.setAttribute(
@@ -607,6 +732,11 @@ export function GPGPUParticleSystem({
 				uBreathPhase: { value: 0 },
 				uPhaseType: { value: 0 },
 				uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+				// New subtle effect uniforms
+				uColorTemperature: { value: 0 },
+				uCrystallization: { value: 0 },
+				uBreathWave: { value: 0 },
+				uBirthProgress: { value: 0 },
 			},
 			transparent: true,
 			blending: THREE.AdditiveBlending,
@@ -638,13 +768,37 @@ export function GPGPUParticleSystem({
 	useFrame((state) => {
 		const time = state.clock.elapsedTime;
 
-		// Update simulation
-		gpgpu.simulationMaterial.uniforms.uTime.value = time;
-		gpgpu.simulationMaterial.uniforms.uBreathPhase.value = breathPhase;
-		gpgpu.simulationMaterial.uniforms.uPhaseType.value = phaseType;
-		gpgpu.simulationMaterial.uniforms.uExpandedRadius.value = expandedRadius;
-		gpgpu.simulationMaterial.uniforms.uContractedRadius.value =
-			contractedRadius;
+		// Update birth progress (ramps from 0 to 2 over first 3 seconds)
+		// This creates the "blooming" entry animation
+		birthProgressRef.current = Math.min(2, time / 1.5);
+
+		// Destructure breath data
+		const {
+			breathPhase,
+			phaseType,
+			anticipation,
+			overshoot,
+			diaphragmDirection,
+			colorTemperature,
+			crystallization,
+			breathWave,
+			viewOffset,
+		} = breathData;
+
+		// Update simulation uniforms
+		const simUniforms = gpgpu.simulationMaterial.uniforms;
+		simUniforms.uTime.value = time;
+		simUniforms.uBreathPhase.value = breathPhase;
+		simUniforms.uPhaseType.value = phaseType;
+		simUniforms.uExpandedRadius.value = expandedRadius;
+		simUniforms.uContractedRadius.value = contractedRadius;
+		// New subtle effect uniforms
+		simUniforms.uAnticipation.value = anticipation;
+		simUniforms.uOvershoot.value = overshoot;
+		simUniforms.uDiaphragmDirection.value = diaphragmDirection;
+		simUniforms.uCrystallization.value = crystallization;
+		simUniforms.uBreathWave.value = breathWave;
+		simUniforms.uViewOffset.value.set(viewOffset.x, viewOffset.y);
 
 		const readTarget =
 			gpgpu.currentTarget === 0 ? gpgpu.positionTargetA : gpgpu.positionTargetB;
@@ -662,11 +816,17 @@ export function GPGPUParticleSystem({
 
 		gpgpu.currentTarget = 1 - gpgpu.currentTarget;
 
-		// Update particle material
-		material.uniforms.uPositions.value = writeTarget.texture;
-		material.uniforms.uTime.value = time;
-		material.uniforms.uBreathPhase.value = breathPhase;
-		material.uniforms.uPhaseType.value = phaseType;
+		// Update particle material uniforms
+		const partUniforms = material.uniforms;
+		partUniforms.uPositions.value = writeTarget.texture;
+		partUniforms.uTime.value = time;
+		partUniforms.uBreathPhase.value = breathPhase;
+		partUniforms.uPhaseType.value = phaseType;
+		// New subtle effect uniforms
+		partUniforms.uColorTemperature.value = colorTemperature;
+		partUniforms.uCrystallization.value = crystallization;
+		partUniforms.uBreathWave.value = breathWave;
+		partUniforms.uBirthProgress.value = birthProgressRef.current;
 
 		// Update sphere
 		if (sphereMaterialRef.current) {
