@@ -13,7 +13,7 @@ interface BreathingOrbProps {
 
 /**
  * Main breathing visualization component
- * Uses React Three Fiber for GPU-accelerated particle rendering
+ * PS5/Apple inspired premium dark aesthetic
  */
 export function BreathingOrb({
 	breathState,
@@ -21,12 +21,28 @@ export function BreathingOrb({
 	config,
 }: BreathingOrbProps) {
 	return (
-		<div
-			className="absolute inset-0 overflow-hidden"
-			style={{
-				background: `linear-gradient(135deg, ${config.backgroundColor} 0%, ${config.backgroundColorMid} 50%, ${config.backgroundColor} 100%)`,
-			}}
-		>
+		<div className="absolute inset-0 overflow-hidden">
+			{/* Premium gradient background with subtle depth */}
+			<div
+				className="absolute inset-0"
+				style={{
+					background: `
+						radial-gradient(ellipse 80% 50% at 50% 120%, rgba(100, 180, 255, 0.08) 0%, transparent 50%),
+						radial-gradient(ellipse 60% 40% at 50% -10%, rgba(100, 180, 255, 0.04) 0%, transparent 40%),
+						linear-gradient(180deg, #050508 0%, #0a0a12 50%, #050508 100%)
+					`,
+				}}
+			/>
+
+			{/* Subtle vignette overlay */}
+			<div
+				className="absolute inset-0 pointer-events-none"
+				style={{
+					background:
+						'radial-gradient(ellipse at center, transparent 0%, rgba(0,0,0,0.4) 100%)',
+				}}
+			/>
+
 			{/* React Three Fiber scene with error boundary for GPU failures */}
 			<ErrorBoundary
 				fallback={<BreathingFallback />}
@@ -41,22 +57,25 @@ export function BreathingOrb({
 				/>
 			</ErrorBoundary>
 
-			{/* Breathing guide text with Framer Motion animations */}
-			<div className="absolute bottom-[15%] left-1/2 -translate-x-1/2 text-center text-white pointer-events-none select-none">
+			{/* Breathing guide - premium typography */}
+			<div className="breathing-guide">
 				<motion.div
 					key={breathState.phaseName}
-					initial={{ opacity: 0, y: 10 }}
-					animate={{ opacity: 0.9, y: 0 }}
-					exit={{ opacity: 0, y: -10 }}
-					transition={{ duration: 0.3 }}
-					className="text-2xl font-light tracking-[0.2em] uppercase mb-2"
+					initial={{ opacity: 0, y: 12, filter: 'blur(8px)' }}
+					animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+					exit={{ opacity: 0, y: -12, filter: 'blur(8px)' }}
+					transition={{
+						duration: 0.5,
+						ease: [0.16, 1, 0.3, 1],
+					}}
+					className="breathing-phase"
 				>
 					{breathState.phaseName}
 				</motion.div>
 
-				<div className="w-48 h-0.5 bg-white/20 rounded-sm overflow-hidden mx-auto">
+				<div className="progress-track">
 					<motion.div
-						className="h-full bg-white/60 rounded-sm"
+						className="progress-fill"
 						initial={{ width: 0 }}
 						animate={{ width: `${breathState.progress * 100}%` }}
 						transition={{

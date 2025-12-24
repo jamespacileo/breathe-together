@@ -44,17 +44,15 @@ export function IdentityPanel({
 
 	return (
 		<Dialog open onOpenChange={(open) => !open && onClose()}>
-			<DialogContent className="max-w-sm mx-4 sm:mx-auto max-h-[90vh] overflow-y-auto">
+			<DialogContent className="glass-panel max-w-sm mx-4 sm:mx-auto max-h-[90vh] overflow-y-auto">
 				<DialogHeader>
-					<DialogTitle className="text-center font-light">
-						Join the circle
-					</DialogTitle>
+					<DialogTitle className="dialog-title">Join the circle</DialogTitle>
 				</DialogHeader>
 
-				<div className="space-y-5">
+				<div className="space-y-6 px-6">
 					{/* Name input */}
-					<div className="space-y-2">
-						<Label htmlFor="name" className="text-xs uppercase tracking-wide">
+					<div className="form-section">
+						<Label htmlFor="name" className="form-label">
 							Your name
 						</Label>
 						<Input
@@ -63,14 +61,14 @@ export function IdentityPanel({
 							value={name}
 							onChange={(e) => setName(e.target.value)}
 							placeholder="Someone"
-							className="min-h-[48px] sm:min-h-0"
+							className="min-h-[52px]"
 						/>
 					</div>
 
 					{/* Avatar picker */}
-					<div className="space-y-2">
-						<Label className="text-xs uppercase tracking-wide">Avatar</Label>
-						<div className="flex gap-3 justify-center">
+					<div className="form-section">
+						<Label className="form-label">Avatar</Label>
+						<div className="avatar-grid">
 							{AVATARS.map((a) => (
 								<button
 									key={a.id}
@@ -78,12 +76,7 @@ export function IdentityPanel({
 									onClick={() => setAvatar(a.id)}
 									aria-label={`Select avatar ${a.id}`}
 									aria-pressed={avatar === a.id}
-									className={cn(
-										'w-11 h-11 sm:w-10 sm:h-10 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50',
-										avatar === a.id
-											? 'scale-110 ring-2 ring-white'
-											: 'hover:scale-105',
-									)}
+									className={cn('avatar-option', avatar === a.id && 'selected')}
 									style={{ background: getAvatarGradient(a.id) }}
 								/>
 							))}
@@ -91,23 +84,16 @@ export function IdentityPanel({
 					</div>
 
 					{/* Mood selector */}
-					<div className="space-y-2">
-						<Label className="text-xs uppercase tracking-wide">
-							What's on your mind?
-						</Label>
-						<div className="grid grid-cols-2 gap-2">
+					<div className="form-section">
+						<Label className="form-label">What's on your mind?</Label>
+						<div className="mood-grid">
 							{MOODS.map((m) => (
 								<button
 									key={m.id}
 									type="button"
 									onClick={() => setMood(m.id)}
 									aria-pressed={mood === m.id}
-									className={cn(
-										'p-3 sm:p-2 text-left text-sm rounded-lg border transition-all min-h-[48px]',
-										mood === m.id
-											? 'border-white/30 bg-white/15'
-											: 'border-white/20 bg-white/5 hover:bg-white/10',
-									)}
+									className={cn('mood-option', mood === m.id && 'selected')}
 								>
 									{m.label}
 								</button>
@@ -121,23 +107,23 @@ export function IdentityPanel({
 								value={moodDetail}
 								onChange={(e) => setMoodDetail(e.target.value)}
 								placeholder="Add detail (optional)"
-								className="mt-2 min-h-[48px] sm:min-h-0"
+								className="mt-3 min-h-[52px]"
 							/>
 						) : null}
 					</div>
 				</div>
 
-				<DialogFooter className="gap-3 flex-col-reverse sm:flex-row">
+				<DialogFooter className="dialog-footer flex-col-reverse sm:flex-row">
 					<Button
 						variant="outline"
 						onClick={onClose}
-						className="flex-1 min-h-[48px] sm:min-h-0"
+						className="glass-button flex-1 min-h-[52px]"
 					>
 						Skip
 					</Button>
 					<Button
 						onClick={handleSave}
-						className="flex-1 min-h-[48px] sm:min-h-0"
+						className="btn-primary flex-1 min-h-[52px]"
 					>
 						Join
 					</Button>
@@ -159,16 +145,16 @@ export function UserBadge({ user, onClick }: UserBadgeProps) {
 		<button
 			type="button"
 			onClick={onClick}
-			className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-white cursor-pointer hover:bg-white/15 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 min-h-[48px]"
+			className="glass-pill user-badge cursor-pointer hover:bg-white/[0.06] transition-all duration-300"
 		>
 			<div
-				className="w-8 h-8 rounded-full shrink-0"
+				className="user-avatar"
 				style={{ background: getAvatarGradient(user.avatar) }}
 			/>
-			<div className="text-left">
-				<div className="font-medium text-sm">{user.name}</div>
+			<div className="user-info">
+				<div className="user-name">{user.name}</div>
 				{mood ? (
-					<div className="text-xs text-white/70 truncate max-w-[120px] sm:max-w-none">
+					<div className="user-mood">
 						{mood.label}
 						{user.moodDetail ? ` ${user.moodDetail}` : ''}
 					</div>
@@ -184,12 +170,8 @@ interface JoinButtonProps {
 
 export function JoinButton({ onClick }: JoinButtonProps) {
 	return (
-		<Button
-			onClick={onClick}
-			variant="outline"
-			className="rounded-full px-6 py-3 h-auto min-h-[48px] backdrop-blur-sm"
-		>
+		<button onClick={onClick} className="glass-pill join-button" type="button">
 			Join the circle
-		</Button>
+		</button>
 	);
 }

@@ -9,20 +9,13 @@ interface PresenceCounterProps {
 export function PresenceCounter({ presence, className }: PresenceCounterProps) {
 	return (
 		<div
-			className={cn(
-				'text-white/80 text-center pointer-events-none select-none',
-				className,
-			)}
+			className={cn('presence-counter', className)}
 			role="status"
 			aria-live="polite"
 			aria-label={`${presence.count} people breathing together`}
 		>
-			<span className="text-lg sm:text-xl font-light tabular-nums">
-				{presence.count}
-			</span>
-			<span className="text-xs sm:text-sm ml-1 opacity-80">
-				breathing together
-			</span>
+			<span className="presence-count">{presence.count}</span>
+			<span className="presence-label">breathing together</span>
 		</div>
 	);
 }

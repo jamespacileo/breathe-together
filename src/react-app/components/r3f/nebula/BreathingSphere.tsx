@@ -94,36 +94,36 @@ function noise3D(x: number, y: number, z: number, seed: number): number {
 	return n;
 }
 
-// Generate random color in calming palette
+// Premium PS5/Apple color palette - refined, cool tones
 function generateColor(): { r: number; g: number; b: number } {
 	const c = Math.random();
-	if (c < 0.4) {
-		// Soft cyan-blue
+	if (c < 0.45) {
+		// Primary accent blue (PS5 blue) - dominant
 		return {
-			r: 0.5 + Math.random() * 0.1,
-			g: 0.75 + Math.random() * 0.15,
-			b: 0.9 + Math.random() * 0.1,
+			r: 0.39 + Math.random() * 0.08,
+			g: 0.71 + Math.random() * 0.1,
+			b: 1.0,
 		};
 	} else if (c < 0.7) {
-		// Soft purple
+		// Soft violet/purple - secondary
 		return {
-			r: 0.65 + Math.random() * 0.15,
-			g: 0.55 + Math.random() * 0.15,
-			b: 0.9 + Math.random() * 0.1,
+			r: 0.65 + Math.random() * 0.1,
+			g: 0.55 + Math.random() * 0.1,
+			b: 0.98 + Math.random() * 0.02,
 		};
-	} else if (c < 0.85) {
-		// Warm white
-		return {
-			r: 0.95,
-			g: 0.9 + Math.random() * 0.05,
-			b: 0.85 + Math.random() * 0.1,
-		};
-	} else {
-		// Soft pink
+	} else if (c < 0.88) {
+		// Cool white - highlights
 		return {
 			r: 0.9 + Math.random() * 0.1,
-			g: 0.65 + Math.random() * 0.15,
-			b: 0.75 + Math.random() * 0.15,
+			g: 0.92 + Math.random() * 0.08,
+			b: 1.0,
+		};
+	} else {
+		// Subtle warm accent - rare pops
+		return {
+			r: 0.94 + Math.random() * 0.06,
+			g: 0.75 + Math.random() * 0.1,
+			b: 0.9 + Math.random() * 0.1,
 		};
 	}
 }
