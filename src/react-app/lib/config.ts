@@ -217,10 +217,10 @@ export const DEFAULT_CONFIG: VisualizationConfig = {
 	hazeOpacity: 0.08,
 
 	// Post-processing Bloom
-	bloomEnabled: false,
-	bloomStrength: 0.3,
-	bloomThreshold: 0.6,
-	bloomRadius: 0.3,
+	bloomEnabled: true,
+	bloomStrength: 0.5,
+	bloomThreshold: 0.4,
+	bloomRadius: 0.4,
 
 	// Animation Effects
 	glowIntensity: 0.6,
