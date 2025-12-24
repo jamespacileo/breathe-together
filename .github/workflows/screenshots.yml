@@ -1,0 +1,97 @@
+name: PR Screenshots
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  screenshots:
+    name: Capture UI Screenshots
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Run screenshot tests
+        run: npm run test:screenshots
+        continue-on-error: true
+
+      - name: Upload screenshots artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-screenshots
+          path: e2e/screenshots/
+          retention-days: 30
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Find existing comment
+        uses: peter-evans/find-comment@v3
+        id: find-comment
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: 'UI Screenshots Preview'
+
+      - name: Create or update PR comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.find-comment.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          edit-mode: replace
+          body: |
+            ## UI Screenshots Preview
+
+            Screenshots have been captured for this PR showing the current state of the UI.
+
+            ### Download Screenshots
+
+            **[Download all screenshots](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts)** from the workflow artifacts.
+
+            ### Screenshots Captured
+
+            The following UI states were captured (both desktop and mobile):
+
+            | # | Screenshot | Description |
+            |---|------------|-------------|
+            | 1 | `01-default-view` | Main breathing orb visualization |
+            | 2 | `02-settings-panel` | Settings panel open |
+            | 3 | `03-identity-panel` | Join dialog modal |
+            | 4 | `04-identity-filled` | Join dialog with selections |
+            | 5 | `05-pattern-box` | Box breathing pattern |
+            | 6 | `06-pattern-relaxation` | 4-7-8 relaxation pattern |
+            | 7 | `07-user-badge` | User badge after joining |
+            | 8 | `08-settings-custom-color` | Custom color theme |
+            | 9-11 | `breathing-state-*` | Different breathing animation states |
+
+            ### How to View
+
+            1. Click the **Download all screenshots** link above
+            2. Download the `pr-screenshots` artifact
+            3. Extract and view the PNG files
+
+            Or view the **[Playwright Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts)** for detailed test results.
+
+            ---
+            *Captured on ${{ github.event.pull_request.head.sha }} at $(date -u '+%Y-%m-%d %H:%M UTC')*
