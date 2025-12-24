@@ -5,8 +5,15 @@ import { cn } from '../../lib/utils';
 export interface ButtonProps
 	extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 	asChild?: boolean;
-	variant?: 'default' | 'outline' | 'ghost' | 'link' | 'cosmic' | 'aurora';
-	size?: 'default' | 'sm' | 'lg' | 'icon';
+	variant?:
+		| 'default'
+		| 'outline'
+		| 'ghost'
+		| 'link'
+		| 'cosmic'
+		| 'aurora'
+		| 'minimal';
+	size?: 'default' | 'sm' | 'lg' | 'icon' | 'touch';
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -48,6 +55,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 						// Aurora: Bright accent button
 						'rounded-full bg-gradient-to-r from-aurora-deep via-aurora to-aurora-bright text-void-deep font-medium shadow-glow-aurora hover:shadow-[0_0_50px_rgba(34,211,238,0.5)] hover:scale-[1.02] active:scale-[0.98]':
 							variant === 'aurora',
+						// Minimal: Clean, game-like mobile button
+						'rounded-xl bg-stellar-ghost/50 text-stellar-soft border border-stellar-ghost hover:bg-stellar-ghost hover:text-stellar hover:border-stellar-faint active:scale-[0.97] backdrop-blur-sm':
+							variant === 'minimal',
 					},
 					// Sizes
 					{
@@ -55,6 +65,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 						'h-8 px-4 text-xs': size === 'sm',
 						'h-12 px-8 text-base': size === 'lg',
 						'h-10 w-10 p-0': size === 'icon',
+						// Touch-friendly size for mobile
+						'h-12 min-h-[48px] px-5 py-3 text-sm': size === 'touch',
 					},
 					className,
 				)}

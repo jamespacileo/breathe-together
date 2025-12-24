@@ -6,6 +6,7 @@ import {
 	JoinButton,
 	UserBadge,
 } from './components/IdentityPanel';
+import { BottomBar, ScreenLayout, TopBar } from './components/layout';
 import { PatternSelector } from './components/PatternSelector';
 import { PresenceCounter } from './components/PresenceCounter';
 import { SettingsPanel } from './components/SettingsPanel';
@@ -31,6 +32,91 @@ function CosmicBackground() {
 	);
 }
 
+/**
+ * Settings/Debug Control
+ * Renders either the SettingsPanel or DebugPanel based on dev mode
+ */
+function SettingsControl({
+	isDevMode,
+	setIsDevMode,
+}: {
+	isDevMode: boolean;
+	setIsDevMode: (v: boolean) => void;
+}) {
+	const {
+		config,
+		setConfig,
+		showDebug,
+		setShowDebug,
+		simulationConfig,
+		updateSimulationConfig,
+	} = useAppStore();
+
+	const breathState = useBreathSync(useAppStore((s) => s.pattern));
+
+	const {
+		snapshot,
+		isRunning,
+		start,
+		stop,
+		reset,
+		updateConfig: updateSimConfig,
+	} = useSimulation(simulationConfig);
+
+	const presence = usePresence({
+		simulated: simulationConfig.enabled,
+		simulationSnapshot: snapshot,
+	});
+
+	if (isDevMode) {
+		return (
+			<DebugPanel
+				config={config}
+				setConfig={setConfig}
+				breathState={breathState}
+				presence={presence}
+				isOpen={showDebug}
+				setIsOpen={setShowDebug}
+				simulationControls={{
+					simulationConfig,
+					updateSimulationConfig: (updates) => {
+						updateSimulationConfig(updates);
+						updateSimConfig(updates);
+					},
+					isSimulationRunning: isRunning,
+					onStart: start,
+					onStop: stop,
+					onReset: reset,
+				}}
+			/>
+		);
+	}
+
+	return (
+		<SettingsPanel
+			config={config}
+			setConfig={setConfig}
+			isOpen={showDebug}
+			setIsOpen={setShowDebug}
+			onEnableDevMode={() => setIsDevMode(true)}
+		/>
+	);
+}
+
+/**
+ * User Identity Control
+ * Renders either the UserBadge or JoinButton based on user state
+ */
+function UserControl() {
+	const { user, setShowIdentity } = useAppStore();
+
+	if (user) {
+		return <UserBadge user={user} onClick={() => setShowIdentity(true)} />;
+	}
+
+	return <JoinButton onClick={() => setShowIdentity(true)} />;
+}
+
 function App() {
 	// Dev mode toggle (Cmd/Ctrl + Shift + D)
 	const [isDevMode, setIsDevMode] = useState(false);
@@ -51,28 +137,17 @@ function App() {
 		user,
 		setUser,
 		config,
-		setConfig,
 		pattern,
 		setPattern,
-		showDebug,
-		setShowDebug,
 		showIdentity,
 		setShowIdentity,
 		simulationConfig,
-		updateSimulationConfig,
 	} = useAppStore();
 
 	const breathState = useBreathSync(pattern);
 
 	// Simulation controls
-	const {
-		snapshot,
-		isRunning,
-		start,
-		stop,
-		reset,
-		updateConfig: updateSimConfig,
-	} = useSimulation(simulationConfig);
+	const { snapshot } = useSimulation(simulationConfig);
 
 	// Presence data (uses simulation snapshot when simulated)
 	const presence = usePresence({
@@ -85,68 +160,32 @@ function App() {
 	};
 
 	return (
-		<div className="fixed inset-0 overflow-hidden bg-void">
-			{/* Cosmic background layers */}
-			<CosmicBackground />
-
+		<ScreenLayout
+			background={<CosmicBackground />}
+			topBar={
+				<TopBar
+					left={
+						<SettingsControl
+							isDevMode={isDevMode}
+							setIsDevMode={setIsDevMode}
+						/>
+					}
+					center={<PresenceCounter presence={presence} />}
+					right={<PatternSelector pattern={pattern} onChange={setPattern} />}
+				/>
+			}
+			bottomBar={
+				<BottomBar>
+					<UserControl />
+				</BottomBar>
+			}
+		>
 			{/* Main breathing visualization */}
 			<BreathingOrb
 				breathState={breathState}
 				presence={presence}
 				config={config}
 			/>
-
-			{/* Settings/Debug panel - top left */}
-			<div className="absolute top-4 left-4 sm:top-5 sm:left-5 z-50">
-				{isDevMode ? (
-					<DebugPanel
-						config={config}
-						setConfig={setConfig}
-						breathState={breathState}
-						presence={presence}
-						isOpen={showDebug}
-						setIsOpen={setShowDebug}
-						simulationControls={{
-							simulationConfig,
-							updateSimulationConfig: (updates) => {
-								updateSimulationConfig(updates);
-								updateSimConfig(updates);
-							},
-							isSimulationRunning: isRunning,
-							onStart: start,
-							onStop: stop,
-							onReset: reset,
-						}}
-					/>
-				) : (
-					<SettingsPanel
-						config={config}
-						setConfig={setConfig}
-						isOpen={showDebug}
-						setIsOpen={setShowDebug}
-						onEnableDevMode={() => setIsDevMode(true)}
-					/>
-				)}
-			</div>
-
-			{/* Presence counter - top center */}
-			<div className="absolute top-5 sm:top-8 left-1/2 -translate-x-1/2 z-10">
-				<PresenceCounter presence={presence} />
-			</div>
-
-			{/* Pattern selector - top right */}
-			<div className="absolute top-4 right-4 sm:top-5 sm:right-5 z-10">
-				<PatternSelector pattern={pattern} onChange={setPattern} />
-			</div>
-
-			{/* User badge or join button - bottom center */}
-			<div className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 z-10">
-				{user ? (
-					<UserBadge user={user} onClick={() => setShowIdentity(true)} />
-				) : (
-					<JoinButton onClick={() => setShowIdentity(true)} />
-				)}
-			</div>
 
 			{/* Identity panel modal */}
 			{showIdentity ? (
@@ -156,7 +195,7 @@ function App() {
 					onClose={() => setShowIdentity(false)}
 				/>
 			) : null}
-		</div>
+		</ScreenLayout>
 	);
 }
 
