@@ -1,5 +1,4 @@
 import { ChevronRight, Palette, Settings, X } from 'lucide-react';
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import type { VisualizationConfig } from '../lib/config';
 import { IconButton } from './ui/icon-button';
 
