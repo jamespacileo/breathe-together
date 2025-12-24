@@ -26,6 +26,7 @@
 		"clsx": "^2.1.1",
 		"framer-motion": "^12.23.26",
 		"hono": "4.11.1",
+		"leva": "^0.10.1",
 		"lucide-react": "^0.562.0",
 		"poisson-process": "^1.0.1",
 		"postprocessing": "^6.38.2",
