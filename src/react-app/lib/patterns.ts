@@ -19,7 +19,7 @@ export interface Pattern {
 	totalDuration: number; // computed sum of all phase durations
 }
 
-export const PATTERNS: Record<string, Pattern> = {
+export const PATTERNS = {
 	box: {
 		id: 'box',
 		name: 'Box Breathing',
@@ -43,7 +43,7 @@ export const PATTERNS: Record<string, Pattern> = {
 		],
 		totalDuration: 19,
 	},
-};
+} satisfies Record<string, Pattern>;
 
 export type PatternId = keyof typeof PATTERNS;
 

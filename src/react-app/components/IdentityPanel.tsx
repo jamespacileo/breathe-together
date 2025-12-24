@@ -88,7 +88,11 @@ export function IdentityPanel({
 											? 'scale-110 ring-2 ring-white shadow-glow-sm'
 											: 'opacity-60 hover:opacity-100 hover:scale-105',
 									)}
-									style={{ background: getAvatarGradient(a.id) }}
+									style={{
+										background: getAvatarGradient(a.id),
+										boxShadow:
+											avatar === a.id ? `0 0 25px ${a.colors[0]}60` : undefined,
+									}}
 								/>
 							))}
 						</div>

@@ -57,7 +57,7 @@ export default {
 				'glow-md': '0 0 20px rgba(0, 212, 255, 0.4)',
 				'glow-lg': '0 0 30px rgba(0, 212, 255, 0.5)',
 				'inner-glow': 'inset 0 1px 1px rgba(255, 255, 255, 0.1)',
-				'glass': '0 8px 32px rgba(0, 0, 0, 0.4)',
+				glass: '0 8px 32px rgba(0, 0, 0, 0.4)',
 			},
 			animation: {
 				'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',

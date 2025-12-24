@@ -1,12 +1,17 @@
 @import "tailwindcss";
 
+/* ═══════════════════════════════════════════════════════════════
+   PLAYSTATION + APPLE DESIGN SYSTEM
+   A breathing meditation interface with premium minimal aesthetics
+   ═══════════════════════════════════════════════════════════════ */
+
 :root {
 	/* SF Pro inspired font stack */
 	font-family:
 		-apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto,
 		"Helvetica Neue", sans-serif;
 	line-height: 1.5;
-	font-weight: 400;
+	font-weight: 300;
 
 	/* Dark theme */
 	color-scheme: dark;
@@ -37,6 +42,19 @@ button {
 	font-family: inherit;
 }
 
+a {
+	font-weight: 400;
+	color: var(--color-primary);
+	text-decoration: none;
+	transition: all 0.3s ease;
+}
+
+a:hover {
+	color: var(--color-primary-soft);
+	text-shadow: 0 0 20px var(--color-primary);
+}
+
+/* Base body styles */
 body {
 	margin: 0;
 	min-width: 320px;
