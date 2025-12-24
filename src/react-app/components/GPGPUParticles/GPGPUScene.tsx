@@ -22,25 +22,34 @@ const easeInOutSine = (t: number) => -(Math.cos(Math.PI * t) - 1) / 2;
 function getBreathData(state: BreathState): {
 	breathPhase: number;
 	phaseType: number;
+	phaseProgress: number;
 } {
 	const { phase, progress } = state;
 
 	switch (phase) {
 		case 'in':
-			return { breathPhase: easeInOutSine(progress), phaseType: 0 };
+			return {
+				breathPhase: easeInOutSine(progress),
+				phaseType: 0,
+				phaseProgress: progress,
+			};
 		case 'hold-in':
-			return { breathPhase: 1, phaseType: 1 };
+			return { breathPhase: 1, phaseType: 1, phaseProgress: progress };
 		case 'out':
-			return { breathPhase: 1 - easeInOutSine(progress), phaseType: 2 };
+			return {
+				breathPhase: 1 - easeInOutSine(progress),
+				phaseType: 2,
+				phaseProgress: progress,
+			};
 		case 'hold-out':
-			return { breathPhase: 0, phaseType: 3 };
+			return { breathPhase: 0, phaseType: 3, phaseProgress: progress };
 		default:
-			return { breathPhase: 0, phaseType: 0 };
+			return { breathPhase: 0, phaseType: 0, phaseProgress: 0 };
 	}
 }
 
 function InnerScene({ breathState, config }: GPGPUSceneProps) {
-	const { breathPhase, phaseType } = useMemo(
+	const { breathPhase, phaseType, phaseProgress } = useMemo(
 		() => getBreathData(breathState),
 		[breathState],
 	);
@@ -58,6 +67,7 @@ function InnerScene({ breathState, config }: GPGPUSceneProps) {
 			<GPGPUParticleSystem
 				breathPhase={breathPhase}
 				phaseType={phaseType}
+				phaseProgress={phaseProgress}
 				expandedRadius={expandedRadius}
 				contractedRadius={contractedRadius}
 			/>

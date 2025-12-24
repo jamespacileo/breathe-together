@@ -128,9 +128,10 @@ void main() {
   vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
   vDistance = -mvPosition.z;
 
-  // Consistent small size - fine particles
+  // Size increases slightly when expanded for better visibility
+  float expandedBoost = 1.0 + (1.0 - uBreathPhase) * 0.3;
   float distanceAttenuation = 250.0 / max(vDistance, 1.0);
-  float baseSize = aSize * 0.7 * distanceAttenuation;
+  float baseSize = aSize * 0.8 * distanceAttenuation * expandedBoost;
 
   // Very subtle sparkle - random bright moments
   float sparkleTime = uTime * 3.0 + aPhase * 100.0;
@@ -158,6 +159,60 @@ varying float vPhase;
 varying float vBreathPhase;
 varying float vSparkle;
 
+// RGB to HSL
+vec3 rgb2hsl(vec3 c) {
+  float maxC = max(max(c.r, c.g), c.b);
+  float minC = min(min(c.r, c.g), c.b);
+  float l = (maxC + minC) / 2.0;
+  float s = 0.0;
+  float h = 0.0;
+
+  if (maxC != minC) {
+    float d = maxC - minC;
+    s = l > 0.5 ? d / (2.0 - maxC - minC) : d / (maxC + minC);
+
+    if (maxC == c.r) {
+      h = (c.g - c.b) / d + (c.g < c.b ? 6.0 : 0.0);
+    } else if (maxC == c.g) {
+      h = (c.b - c.r) / d + 2.0;
+    } else {
+      h = (c.r - c.g) / d + 4.0;
+    }
+    h /= 6.0;
+  }
+
+  return vec3(h, s, l);
+}
+
+// HSL to RGB
+float hue2rgb(float p, float q, float t) {
+  if (t < 0.0) t += 1.0;
+  if (t > 1.0) t -= 1.0;
+  if (t < 1.0/6.0) return p + (q - p) * 6.0 * t;
+  if (t < 1.0/2.0) return q;
+  if (t < 2.0/3.0) return p + (q - p) * (2.0/3.0 - t) * 6.0;
+  return p;
+}
+
+vec3 hsl2rgb(vec3 hsl) {
+  float h = hsl.x;
+  float s = hsl.y;
+  float l = hsl.z;
+
+  if (s == 0.0) {
+    return vec3(l);
+  }
+
+  float q = l < 0.5 ? l * (1.0 + s) : l + s - l * s;
+  float p = 2.0 * l - q;
+
+  return vec3(
+    hue2rgb(p, q, h + 1.0/3.0),
+    hue2rgb(p, q, h),
+    hue2rgb(p, q, h - 1.0/3.0)
+  );
+}
+
 void main() {
   vec2 center = gl_PointCoord - 0.5;
   float dist = length(center);
@@ -167,25 +222,36 @@ void main() {
 
   if (alpha < 0.01) discard;
 
-  // Base color with subtle breathing modulation
-  vec3 color = vColor;
+  // Convert to HSL to boost saturation when expanded
+  vec3 hsl = rgb2hsl(vColor);
 
-  // Gentle brightness variation - NOT too bright
-  float brightness = 0.7 + vBreathPhase * 0.15;
+  // Boost saturation when expanded (breathPhase = 0)
+  // More vivid colors when particles are spread out
+  float saturationBoost = mix(0.35, 0.0, vBreathPhase); // +35% saturation when expanded
+  hsl.y = clamp(hsl.y + saturationBoost, 0.0, 1.0);
+
+  // Slight lightness boost when expanded
+  float lightnessBoost = mix(0.1, 0.0, vBreathPhase);
+  hsl.z = clamp(hsl.z + lightnessBoost, 0.0, 0.85);
+
+  vec3 color = hsl2rgb(hsl);
+
+  // Brightness - more visible when expanded
+  float brightness = mix(1.0, 0.8, vBreathPhase);
   color *= brightness;
 
-  // Very subtle sparkle glint - barely noticeable white highlight
+  // Very subtle sparkle glint
   if (vSparkle > 0.5) {
     float sparkleIntensity = (vSparkle - 0.5) * 2.0;
     color = mix(color, vec3(1.0, 0.98, 0.95), sparkleIntensity * 0.4);
   }
 
   // Soft center glow
-  float centerBright = exp(-dist * 6.0) * 0.2;
+  float centerBright = exp(-dist * 6.0) * 0.15;
   color += vec3(1.0, 0.95, 0.9) * centerBright;
 
-  // Moderate base alpha - particles should be visible but not overwhelming
-  float baseAlpha = 0.5 + vBreathPhase * 0.2;
+  // Alpha - more visible when expanded
+  float baseAlpha = mix(0.75, 0.5, vBreathPhase);
   alpha *= baseAlpha;
 
   // Distance fade for depth
@@ -196,16 +262,19 @@ void main() {
 }
 `;
 
-// Central sphere shader
+// Central sphere shader with phase-based color transitions
 const sphereVertexShader = `
 varying vec3 vNormal;
 varying vec3 vPosition;
 varying vec2 vUv;
+varying vec3 vWorldPosition;
 
 void main() {
   vNormal = normalize(normalMatrix * normal);
   vPosition = position;
   vUv = uv;
+  vec4 worldPos = modelMatrix * vec4(position, 1.0);
+  vWorldPosition = worldPos.xyz;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }
 `;
@@ -215,35 +284,66 @@ precision highp float;
 
 uniform float uTime;
 uniform float uBreathPhase;
-uniform vec3 uColor1;
-uniform vec3 uColor2;
+uniform float uPhaseType; // 0=in, 1=hold-in, 2=out, 3=hold-out
+uniform float uPhaseProgress; // 0-1 progress within current phase
+
+// Phase colors
+uniform vec3 uColorInhale;    // Warm, energizing
+uniform vec3 uColorHoldIn;    // Bright, full
+uniform vec3 uColorExhale;    // Cool, calming
+uniform vec3 uColorHoldOut;   // Deep, restful
 
 varying vec3 vNormal;
 varying vec3 vPosition;
 varying vec2 vUv;
+varying vec3 vWorldPosition;
 
 void main() {
   // Fresnel effect for ethereal edge glow
-  vec3 viewDir = normalize(cameraPosition - vPosition);
+  vec3 viewDir = normalize(cameraPosition - vWorldPosition);
   float fresnel = pow(1.0 - max(0.0, dot(viewDir, vNormal)), 2.5);
 
-  // Gradient based on vertical position
-  float gradient = vPosition.y * 0.5 + 0.5;
-  vec3 baseColor = mix(uColor1, uColor2, gradient);
+  // Determine current and next color based on phase
+  vec3 currentColor;
+  vec3 nextColor;
+  float blend = uPhaseProgress;
 
-  // Subtle breathing color shift
-  baseColor = mix(baseColor, uColor2, uBreathPhase * 0.2);
+  if (uPhaseType < 0.5) {
+    // Inhale: transition from hold-out to inhale color
+    currentColor = uColorHoldOut;
+    nextColor = uColorInhale;
+  } else if (uPhaseType < 1.5) {
+    // Hold-in: transition from inhale to hold-in color
+    currentColor = uColorInhale;
+    nextColor = uColorHoldIn;
+  } else if (uPhaseType < 2.5) {
+    // Exhale: transition from hold-in to exhale color
+    currentColor = uColorHoldIn;
+    nextColor = uColorExhale;
+  } else {
+    // Hold-out: transition from exhale to hold-out color
+    currentColor = uColorExhale;
+    nextColor = uColorHoldOut;
+  }
 
-  // Edge glow
-  vec3 edgeColor = vec3(0.6, 0.8, 0.9);
-  vec3 color = mix(baseColor, edgeColor, fresnel * 0.6);
+  // Smooth eased blend between colors
+  float easedBlend = blend * blend * (3.0 - 2.0 * blend);
+  vec3 baseColor = mix(currentColor, nextColor, easedBlend);
+
+  // Add vertical gradient
+  float gradient = vPosition.y * 0.3 + 0.5;
+  baseColor = mix(baseColor * 0.8, baseColor * 1.1, gradient);
+
+  // Edge glow with phase-tinted color
+  vec3 edgeColor = mix(baseColor, vec3(0.7, 0.85, 0.95), 0.5);
+  vec3 color = mix(baseColor, edgeColor, fresnel * 0.5);
 
   // Very subtle surface shimmer
-  float shimmer = sin(vPosition.x * 20.0 + uTime) * sin(vPosition.y * 20.0 + uTime * 1.3) * 0.02;
+  float shimmer = sin(vPosition.x * 15.0 + uTime * 0.8) * sin(vPosition.y * 15.0 + uTime) * 0.015;
   color += shimmer;
 
-  // Soft alpha with fresnel
-  float alpha = 0.15 + fresnel * 0.25 + uBreathPhase * 0.1;
+  // Soft alpha with fresnel - slightly more visible
+  float alpha = 0.18 + fresnel * 0.3 + uBreathPhase * 0.08;
 
   gl_FragColor = vec4(color, alpha);
 }
@@ -252,17 +352,27 @@ void main() {
 interface GPGPUParticleSystemProps {
 	breathPhase: number;
 	phaseType: number;
+	phaseProgress: number;
 	expandedRadius: number;
 	contractedRadius: number;
 }
 
 // FBO size - number of particles = size^2
-const FBO_SIZE = 56; // ~3136 particles - slightly fewer for better performance
+const FBO_SIZE = 56; // ~3136 particles
 const PARTICLE_COUNT = FBO_SIZE * FBO_SIZE;
+
+// Phase colors for the sphere
+const PHASE_COLORS = {
+	inhale: new THREE.Color(0x4a7c8a), // Warm teal - energizing
+	holdIn: new THREE.Color(0x6a8fa0), // Bright blue-gray - full, peaceful
+	exhale: new THREE.Color(0x3d5a6a), // Cool blue - calming
+	holdOut: new THREE.Color(0x2a3d4a), // Deep blue-gray - restful
+};
 
 export function GPGPUParticleSystem({
 	breathPhase,
-	phaseType: _phaseType,
+	phaseType,
+	phaseProgress,
 	expandedRadius,
 	contractedRadius,
 }: GPGPUParticleSystemProps) {
@@ -271,17 +381,21 @@ export function GPGPUParticleSystem({
 	const sphereRef = useRef<THREE.Mesh>(null);
 	const sphereMaterialRef = useRef<THREE.ShaderMaterial>(null);
 
-	// Softer, more cohesive color palette
+	// More vibrant color palette for mood visibility
 	const colorPalette = useMemo(
 		() => [
-			new THREE.Color(0x7ec8d9), // Soft teal
-			new THREE.Color(0xb8d4e3), // Pale blue
-			new THREE.Color(0xd4c4e3), // Soft lavender
-			new THREE.Color(0xe3d4d4), // Blush
-			new THREE.Color(0xc9e4de), // Mint
-			new THREE.Color(0xe8dfd8), // Cream
-			new THREE.Color(0xd1e3dd), // Sage
-			new THREE.Color(0xdde3f0), // Periwinkle
+			new THREE.Color(0x4ecdc4), // Teal - calm
+			new THREE.Color(0x45b7aa), // Deep teal
+			new THREE.Color(0x9b7ed9), // Purple - processing
+			new THREE.Color(0xb8a0e8), // Light purple
+			new THREE.Color(0xe88a8a), // Coral - anxious
+			new THREE.Color(0xf5a0a0), // Light coral
+			new THREE.Color(0x7eb87e), // Green - grateful
+			new THREE.Color(0x98d898), // Light green
+			new THREE.Color(0xd4a574), // Amber - celebrating
+			new THREE.Color(0xe8c49a), // Light amber
+			new THREE.Color(0x7eb5c8), // Sky blue - here
+			new THREE.Color(0xa8d4e6), // Light sky blue
 		],
 		[],
 	);
@@ -450,7 +564,7 @@ export function GPGPUParticleSystem({
 		return { geometry: particleGeometry, material: particleMaterial };
 	}, [gpgpu, colorPalette]);
 
-	// Sphere material
+	// Sphere material with phase colors
 	const sphereMaterial = useMemo(() => {
 		return new THREE.ShaderMaterial({
 			vertexShader: sphereVertexShader,
@@ -458,8 +572,12 @@ export function GPGPUParticleSystem({
 			uniforms: {
 				uTime: { value: 0 },
 				uBreathPhase: { value: 0 },
-				uColor1: { value: new THREE.Color(0x1a2a3a) },
-				uColor2: { value: new THREE.Color(0x2a3a4a) },
+				uPhaseType: { value: 0 },
+				uPhaseProgress: { value: 0 },
+				uColorInhale: { value: PHASE_COLORS.inhale },
+				uColorHoldIn: { value: PHASE_COLORS.holdIn },
+				uColorExhale: { value: PHASE_COLORS.exhale },
+				uColorHoldOut: { value: PHASE_COLORS.holdOut },
 			},
 			transparent: true,
 			side: THREE.FrontSide,
@@ -499,10 +617,12 @@ export function GPGPUParticleSystem({
 		material.uniforms.uTime.value = time;
 		material.uniforms.uBreathPhase.value = breathPhase;
 
-		// Update sphere
+		// Update sphere with phase information
 		if (sphereMaterialRef.current) {
 			sphereMaterialRef.current.uniforms.uTime.value = time;
 			sphereMaterialRef.current.uniforms.uBreathPhase.value = breathPhase;
+			sphereMaterialRef.current.uniforms.uPhaseType.value = phaseType;
+			sphereMaterialRef.current.uniforms.uPhaseProgress.value = phaseProgress;
 		}
 
 		// Scale sphere with breathing
