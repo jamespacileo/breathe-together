@@ -94,7 +94,7 @@ export function SettingsPanel({
 				</section>
 
 				{/* Advanced Mode Toggle */}
-				{onEnableDevMode && (
+				{onEnableDevMode != null && (
 					<button
 						type="button"
 						onClick={onEnableDevMode}

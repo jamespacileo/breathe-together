@@ -207,7 +207,7 @@ export function DebugPanel({
 				</section>
 
 				{/* Simulation Controls */}
-				{simulationControls && (
+				{simulationControls != null && (
 					<section>
 						<Label className="text-xs uppercase tracking-wide text-white/50 mb-2 block">
 							Simulation
