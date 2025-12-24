@@ -28,6 +28,7 @@ uniform float uDiaphragmDirection; // -1 down (inhale), 1 up (exhale), 0 hold
 uniform float uCrystallization;   // Hold phase stillness (0-1)
 uniform float uBreathWave;        // Radial wave intensity (0-1)
 uniform vec2 uViewOffset;         // Micro-saccade parallax
+uniform float uPhaseTransitionBlend; // 0-1, smooths parameter changes at phase boundaries
 
 // Simple smooth noise
 float hash(vec3 p) {
@@ -96,47 +97,78 @@ void main() {
   // Calculate base orbital position
   vec3 targetPos = dir * particleTargetRadius;
 
-  // === PHASE-SPECIFIC BEHAVIORS ===
+  // === PHASE-SPECIFIC BEHAVIORS with SMOOTH TRANSITIONS ===
+  //
+  // To avoid jarring changes at phase boundaries, we:
+  // 1. Define target values for current phase
+  // 2. Use a "transitional" baseline that's a gentle average
+  // 3. Blend from baseline to target using uPhaseTransitionBlend
+  // This means at the start of each phase (blend=0), parameters are closer
+  // to neutral values, then smoothly ramp to phase-specific values.
 
-  // Base orbit speed varies by phase
   float baseOrbitSpeed = 0.15 + phase * 0.05;
-  float orbitSpeedMultiplier = 1.0;
-  float displacementStrength = 0.2;
-  float bobAmount = 0.1;
-  float springStrength = 0.06;
-  float spiralStrength = 0.0;
+
+  // Baseline (transitional) values - neutral middle ground
+  float baselineOrbitMult = 0.85;
+  float baselineDisplacement = 0.2;
+  float baselineBob = 0.1;
+  float baselineSpring = 0.055;
+  float baselineSpiral = 0.0;
+  float radiusModifier = 0.0;
+
+  // Target values for current phase
+  float targetOrbitMult = 1.0;
+  float targetDisplacement = 0.2;
+  float targetBob = 0.1;
+  float targetSpring = 0.06;
+  float targetSpiral = 0.0;
 
   if (uPhaseType == 0) {
     // INHALE: Particles spiral inward with faster orbit, gathering energy
-    orbitSpeedMultiplier = 1.4;
-    displacementStrength = 0.15;
-    bobAmount = 0.08;
-    springStrength = 0.08;
-    spiralStrength = 0.3;
+    targetOrbitMult = 1.4;
+    targetDisplacement = 0.15;
+    targetBob = 0.08;
+    targetSpring = 0.08;
+    targetSpiral = 0.3;
   } else if (uPhaseType == 1) {
     // HOLD-IN: Calm settling, minimal motion, gentle pulsing
-    orbitSpeedMultiplier = 0.6;
-    displacementStrength = 0.05;
-    bobAmount = 0.03;
-    springStrength = 0.04;
+    targetOrbitMult = 0.6;
+    targetDisplacement = 0.05;
+    targetBob = 0.03;
+    targetSpring = 0.04;
+    // Gentle pulse effect
     float pulse = sin(uTime * 2.0) * 0.02;
-    particleTargetRadius *= (1.0 + pulse);
+    radiusModifier = pulse;
   } else if (uPhaseType == 2) {
     // EXHALE: Particles drift outward gracefully, releasing
-    orbitSpeedMultiplier = 0.9;
-    displacementStrength = 0.35;
-    bobAmount = 0.15;
-    springStrength = 0.05;
-    spiralStrength = -0.2;
+    targetOrbitMult = 0.9;
+    targetDisplacement = 0.35;
+    targetBob = 0.15;
+    targetSpring = 0.05;
+    targetSpiral = -0.2;
   } else {
     // HOLD-OUT: Peaceful floating, dreamy drift
-    orbitSpeedMultiplier = 0.5;
-    displacementStrength = 0.25;
-    bobAmount = 0.12;
-    springStrength = 0.04;
+    targetOrbitMult = 0.5;
+    targetDisplacement = 0.25;
+    targetBob = 0.12;
+    targetSpring = 0.04;
+    // Wandering effect
     float wander = noise(origPos * 0.05 + uTime * 0.1) * 0.3;
-    particleTargetRadius *= (1.0 + wander * 0.05);
+    radiusModifier = wander * 0.05;
   }
+
+  // Smooth blend from baseline to target values
+  // At phase start (blend=0): use mostly baseline values
+  // As phase progresses (blend→1): use full target values
+  float blend = uPhaseTransitionBlend;
+  float orbitSpeedMultiplier = mix(baselineOrbitMult, targetOrbitMult, blend);
+  float displacementStrength = mix(baselineDisplacement, targetDisplacement, blend);
+  float bobAmount = mix(baselineBob, targetBob, blend);
+  float springStrength = mix(baselineSpring, targetSpring, blend);
+  float spiralStrength = mix(baselineSpiral, targetSpiral, blend);
+
+  // Apply radius modifier (pulse/wander effects) with blend
+  particleTargetRadius *= (1.0 + radiusModifier * blend);
 
   // === CRYSTALLIZATION: Reduce motion during holds ===
   float crystalFactor = 1.0 - uCrystallization * 0.8;
@@ -693,6 +725,7 @@ export function GPGPUParticleSystem({
 				uCrystallization: { value: 0 },
 				uBreathWave: { value: 0 },
 				uViewOffset: { value: new THREE.Vector2(0, 0) },
+				uPhaseTransitionBlend: { value: 1 },
 			},
 			defines: {
 				resolution: `vec2(${FBO_SIZE}.0, ${FBO_SIZE}.0)`,
@@ -836,6 +869,7 @@ export function GPGPUParticleSystem({
 			crystallization,
 			breathWave,
 			viewOffset,
+			phaseTransitionBlend,
 		} = breathData;
 
 		// Update simulation uniforms
@@ -852,6 +886,7 @@ export function GPGPUParticleSystem({
 		simUniforms.uCrystallization.value = crystallization;
 		simUniforms.uBreathWave.value = breathWave;
 		simUniforms.uViewOffset.value.set(viewOffset.x, viewOffset.y);
+		simUniforms.uPhaseTransitionBlend.value = phaseTransitionBlend;
 
 		const readTarget =
 			gpgpu.currentTarget === 0 ? gpgpu.positionTargetA : gpgpu.positionTargetB;

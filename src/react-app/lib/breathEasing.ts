@@ -70,23 +70,38 @@ export function applyBreathEasing(
 /**
  * Calculate anticipation factor (peaks in final 5-8% of phase)
  * Used to prepare particles for upcoming transition
+ * Reduced intensity to avoid jarring pre-transition movements
  */
 export function getAnticipationFactor(progress: number): number {
-	if (progress < 0.92) return 0;
-	// Smooth ramp up in final 8%
-	const t = (progress - 0.92) / 0.08;
-	return t * t * (3 - 2 * t); // Smooth step
+	if (progress < 0.94) return 0;
+	// Smooth ramp up in final 6% - gentler than before
+	const t = (progress - 0.94) / 0.06;
+	return t * t * (3 - 2 * t) * 0.5; // Halved intensity
 }
 
 /**
  * Calculate overshoot factor (peaks in first 5-8% of phase)
  * Creates natural "settling" after transition
+ * Reduced intensity for smoother transitions
  */
 export function getOvershootFactor(progress: number): number {
-	if (progress > 0.15) return 0;
-	// Quick peak then decay
-	const t = progress / 0.15;
-	return Math.sin(t * Math.PI) * 0.3;
+	if (progress > 0.12) return 0;
+	// Gentler peak then decay
+	const t = progress / 0.12;
+	return Math.sin(t * Math.PI) * 0.15; // Halved intensity
+}
+
+/**
+ * Get phase transition blend factor
+ * Returns 0-1 where 0 = just entered phase, 1 = fully settled
+ * Used to smoothly interpolate between phase-specific behaviors
+ */
+export function getPhaseTransitionBlend(progress: number): number {
+	// Blend over the first 20% of each phase
+	if (progress >= 0.2) return 1;
+	// Smooth step for natural feel
+	const t = progress / 0.2;
+	return t * t * (3 - 2 * t);
 }
 
 /**

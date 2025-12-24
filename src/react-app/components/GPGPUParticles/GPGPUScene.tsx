@@ -11,6 +11,7 @@ import {
 	getCrystallizationFactor,
 	getDiaphragmDirection,
 	getOvershootFactor,
+	getPhaseTransitionBlend,
 } from '../../lib/breathEasing';
 import type { VisualizationConfig } from '../../lib/config';
 import { GPGPUParticleSystem } from './GPGPUParticleSystem';
@@ -37,6 +38,7 @@ export interface EnhancedBreathData {
 	colorTemperature: number;
 	crystallization: number;
 	breathWave: number;
+	phaseTransitionBlend: number; // 0-1, smooths parameter changes at phase boundaries
 	viewOffset: { x: number; y: number };
 }
 
@@ -67,6 +69,9 @@ function getEnhancedBreathData(
 
 	// Breath wave visualization
 	const breathWave = getBreathWaveIntensity(progress, phase);
+
+	// Phase transition blend (smooths parameter changes at phase boundaries)
+	const phaseTransitionBlend = getPhaseTransitionBlend(progress);
 
 	// Calculate breathPhase (0-1 where 1 = fully inhaled/contracted)
 	let breathPhase: number;
@@ -105,6 +110,7 @@ function getEnhancedBreathData(
 		colorTemperature,
 		crystallization,
 		breathWave,
+		phaseTransitionBlend,
 		viewOffset,
 	};
 }
