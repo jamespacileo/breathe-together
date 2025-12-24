@@ -230,7 +230,7 @@ export function DebugPanel({
 							)}
 							<Button
 								onClick={simulationControls.onReset}
-								variant="outline"
+								variant="ghost"
 								size="sm"
 								className="flex-1 gap-2"
 							>
@@ -275,7 +275,7 @@ export function DebugPanel({
 				<Section title="Export" defaultOpen={false}>
 					<Button
 						onClick={exportConfig}
-						variant="outline"
+						variant="ghost"
 						className="w-full text-xs gap-2"
 					>
 						<Copy className="h-3 w-3" />

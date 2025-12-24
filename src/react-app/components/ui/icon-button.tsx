@@ -5,7 +5,7 @@ export interface IconButtonProps
 	extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 	'aria-label': string;
 	size?: 'sm' | 'md' | 'lg';
-	variant?: 'default' | 'cosmic' | 'ghost';
+	variant?: 'default' | 'ghost' | 'glow';
 }
 
 const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
@@ -14,27 +14,29 @@ const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
 			<button
 				type="button"
 				className={cn(
-					// Base styles
+					// Base styles - minimal and touch-friendly
 					'inline-flex items-center justify-center rounded-full',
-					'transition-all duration-300 ease-out',
-					'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aurora/50',
+					'transition-all duration-200 ease-out',
+					'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aurora/40',
 					'disabled:pointer-events-none disabled:opacity-40',
-					// Variants
+					// Active state feedback for mobile
+					'active:scale-[0.95] active:opacity-80',
+					// Variants - simplified for mobile/game UI
 					{
-						// Default: cosmic glass
-						'bg-gradient-to-br from-void-light/80 to-nebula-deep/20 backdrop-blur-md border border-stellar-faint text-stellar-soft hover:text-stellar hover:border-nebula-glow/40 hover:shadow-glow-sm':
+						// Default: Subtle glass button
+						'bg-void-light/50 backdrop-blur-md border border-stellar-faint/40 text-stellar-soft hover:text-stellar hover:bg-void-light/70 hover:border-stellar-dim':
 							variant === 'default',
-						// Cosmic: full glow effect
-						'bg-gradient-to-r from-nebula/30 to-aurora/20 backdrop-blur-md border border-nebula-glow/30 text-stellar hover:shadow-glow hover:border-nebula-glow/60':
-							variant === 'cosmic',
-						// Ghost: minimal
-						'bg-transparent text-stellar-muted hover:text-stellar hover:bg-stellar-ghost':
+						// Ghost: Nearly invisible
+						'bg-transparent text-stellar-muted hover:text-stellar hover:bg-stellar-ghost/30':
 							variant === 'ghost',
+						// Glow: Soft accent glow
+						'bg-void-light/60 backdrop-blur-md border border-aurora/20 text-stellar shadow-[0_0_15px_rgba(34,211,238,0.1)] hover:shadow-[0_0_20px_rgba(34,211,238,0.2)] hover:border-aurora/30':
+							variant === 'glow',
 					},
-					// Sizes (with touch-friendly minimums)
+					// Sizes - all touch-friendly (min 44px)
 					{
-						'h-9 w-9 min-h-[44px] min-w-[44px]': size === 'sm',
-						'h-11 w-11 min-h-[44px] min-w-[44px]': size === 'md',
+						'h-11 w-11': size === 'sm',
+						'h-12 w-12': size === 'md',
 						'h-14 w-14': size === 'lg',
 					},
 					className,
