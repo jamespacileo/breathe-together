@@ -62,19 +62,35 @@ export function useBreathingSpring(
 		restDelta: 0.001,
 	});
 
+	// Destructure values used in the effect for proper dependency tracking
+	const { phase, progress } = breathState;
+	const {
+		breatheInScale,
+		breatheOutScale,
+		holdOscillation,
+		holdOscillationSpeed,
+	} = config;
+
 	// Update target when breath state changes
-	// Only depend on specific config properties used by calculateTargetScale
-	// Note: targetValue is stable (MotionValue) so excluded from deps
 	useEffect(() => {
-		const targetScale = calculateTargetScale(breathState, config);
+		const targetScale = calculateTargetScale(
+			{ phase, progress } as BreathState,
+			{
+				breatheInScale,
+				breatheOutScale,
+				holdOscillation,
+				holdOscillationSpeed,
+			} as VisualizationConfig,
+		);
 		targetValue.set(targetScale);
 	}, [
-		breathState.phase,
-		breathState.progress,
-		config.breatheInScale,
-		config.breatheOutScale,
-		config.holdOscillation,
-		config.holdOscillationSpeed,
+		phase,
+		progress,
+		breatheInScale,
+		breatheOutScale,
+		holdOscillation,
+		holdOscillationSpeed,
+		targetValue,
 	]);
 
 	return scale;

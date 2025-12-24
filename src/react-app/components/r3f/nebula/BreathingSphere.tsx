@@ -104,7 +104,10 @@ function createStarTexture(): THREE.CanvasTexture {
 	const canvas = document.createElement('canvas');
 	canvas.width = 64;
 	canvas.height = 64;
-	const ctx = canvas.getContext('2d')!;
+	const ctx = canvas.getContext('2d');
+	if (!ctx) {
+		throw new Error('Failed to get 2D canvas context');
+	}
 	const cx = 32;
 	const cy = 32;
 
@@ -226,7 +229,7 @@ export function BreathingSphere({
 
 	// Initialize particle state and GPU buffers once
 	const { particles, buffers } = useMemo(() => {
-		const particles: Particle[] = [];
+		const particleList: Particle[] = [];
 		const positions = new Float32Array(MAX_PARTICLES * 3);
 		const alphas = new Float32Array(MAX_PARTICLES);
 		const sizes = new Float32Array(MAX_PARTICLES);
@@ -245,7 +248,7 @@ export function BreathingSphere({
 			const color = generateParticleColor();
 
 			// Create particle with physics state
-			particles.push({
+			particleList.push({
 				homeX,
 				homeY,
 				homeZ,
@@ -271,13 +274,16 @@ export function BreathingSphere({
 			positions[i * 3 + 1] = homeY;
 			positions[i * 3 + 2] = homeZ;
 			alphas[i] = 0;
-			sizes[i] = particles[i].size;
+			sizes[i] = particleList[i].size;
 			colors[i * 3] = color.r;
 			colors[i * 3 + 1] = color.g;
 			colors[i * 3 + 2] = color.b;
 		}
 
-		return { particles, buffers: { positions, alphas, sizes, colors } };
+		return {
+			particles: particleList,
+			buffers: { positions, alphas, sizes, colors },
+		};
 	}, [expandedRadius]);
 
 	// Handle spawn/despawn when userCount changes
