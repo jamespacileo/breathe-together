@@ -44,14 +44,14 @@ export function IdentityPanel({
 
 	return (
 		<Dialog open onOpenChange={(open) => !open && onClose()}>
-			<DialogContent className="mx-4 sm:mx-auto max-h-[85vh] overflow-y-auto">
+			<DialogContent className="mx-5 sm:mx-auto max-h-[85vh] overflow-y-auto">
 				<DialogHeader>
 					<DialogTitle>Join the circle</DialogTitle>
 				</DialogHeader>
 
-				<div className="space-y-6">
+				<div className="space-y-7">
 					{/* Name input */}
-					<div className="space-y-2">
+					<div className="space-y-3">
 						<Label
 							htmlFor="name"
 							className="text-2xs uppercase tracking-widest-plus text-white/40"
@@ -68,11 +68,11 @@ export function IdentityPanel({
 					</div>
 
 					{/* Avatar picker */}
-					<div className="space-y-3">
+					<div className="space-y-4">
 						<Label className="text-2xs uppercase tracking-widest-plus text-white/40">
 							Avatar
 						</Label>
-						<div className="flex gap-3 justify-center">
+						<div className="flex gap-4 justify-center py-1">
 							{AVATARS.map((a) => (
 								<button
 									key={a.id}
@@ -81,7 +81,7 @@ export function IdentityPanel({
 									aria-label={`Select ${a.id} avatar`}
 									aria-pressed={avatar === a.id}
 									className={cn(
-										'w-11 h-11 rounded-full',
+										'w-12 h-12 rounded-full',
 										'transition-all duration-200 ease-out',
 										'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF]/50',
 										avatar === a.id
@@ -95,11 +95,11 @@ export function IdentityPanel({
 					</div>
 
 					{/* Mood selector */}
-					<div className="space-y-3">
+					<div className="space-y-4">
 						<Label className="text-2xs uppercase tracking-widest-plus text-white/40">
 							What's on your mind?
 						</Label>
-						<div className="grid grid-cols-2 gap-2">
+						<div className="grid grid-cols-2 gap-3">
 							{MOODS.map((m) => (
 								<button
 									key={m.id}
@@ -107,8 +107,8 @@ export function IdentityPanel({
 									onClick={() => setMood(m.id)}
 									aria-pressed={mood === m.id}
 									className={cn(
-										'p-3 text-left text-sm rounded-xl',
-										'border transition-all duration-200 min-h-[48px]',
+										'p-4 text-left text-sm rounded-xl',
+										'border transition-all duration-200 min-h-[52px]',
 										'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF]/50',
 										mood === m.id
 											? 'border-[#00D4FF]/40 bg-[#00D4FF]/10 text-white'
@@ -127,7 +127,7 @@ export function IdentityPanel({
 								value={moodDetail}
 								onChange={(e) => setMoodDetail(e.target.value)}
 								placeholder="Add detail (optional)"
-								className="mt-3"
+								className="mt-4"
 							/>
 						) : null}
 					</div>
@@ -137,14 +137,14 @@ export function IdentityPanel({
 					<Button
 						variant="ghost"
 						onClick={onClose}
-						className="flex-1 sm:flex-none min-h-[48px] sm:min-h-0"
+						className="flex-1 sm:flex-none min-h-[52px] sm:min-h-0"
 					>
 						Skip
 					</Button>
 					<Button
 						variant="primary"
 						onClick={handleSave}
-						className="flex-1 sm:flex-none min-h-[48px] sm:min-h-0"
+						className="flex-1 sm:flex-none min-h-[52px] sm:min-h-0"
 					>
 						Join
 					</Button>
@@ -167,8 +167,8 @@ export function UserBadge({ user, onClick }: UserBadgeProps) {
 			type="button"
 			onClick={onClick}
 			className={cn(
-				'flex items-center gap-3 px-4 py-2.5',
-				'rounded-full min-h-[52px]',
+				'flex items-center gap-3.5 px-5 py-3',
+				'rounded-full min-h-[56px]',
 				'glass-panel',
 				'text-white cursor-pointer',
 				'transition-all duration-200 ease-out',
@@ -180,15 +180,15 @@ export function UserBadge({ user, onClick }: UserBadgeProps) {
 		>
 			{/* Avatar with glow */}
 			<div
-				className="w-8 h-8 rounded-full shrink-0 shadow-glow-sm"
+				className="w-9 h-9 rounded-full shrink-0 shadow-glow-sm"
 				style={{ background: getAvatarGradient(user.avatar) }}
 			/>
 
 			{/* Name and mood */}
-			<div className="text-left">
+			<div className="text-left pr-1">
 				<div className="font-medium text-sm tracking-wide">{user.name}</div>
 				{mood ? (
-					<div className="text-xs text-white/50 truncate max-w-[140px]">
+					<div className="text-xs text-white/50 truncate max-w-[160px]">
 						{mood.label}
 						{user.moodDetail ? ` · ${user.moodDetail}` : ''}
 					</div>
@@ -208,7 +208,7 @@ export function JoinButton({ onClick }: JoinButtonProps) {
 			onClick={onClick}
 			variant="primary"
 			size="lg"
-			className="animate-fade-in-up min-h-[52px]"
+			className="animate-fade-in-up min-h-[56px]"
 		>
 			Join the circle
 		</Button>

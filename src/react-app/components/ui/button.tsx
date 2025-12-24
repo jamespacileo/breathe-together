@@ -47,12 +47,12 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 						'text-white/80 underline-offset-4 hover:underline hover:text-white':
 							variant === 'link',
 					},
-					// Sizes
+					// Sizes - generous horizontal padding for better proportions
 					{
-						'h-10 px-5 py-2': size === 'default',
-						'h-8 px-4 text-xs': size === 'sm',
-						'h-12 px-8 text-base': size === 'lg',
-						'h-10 w-10 p-0': size === 'icon',
+						'h-11 px-6 py-2.5': size === 'default',
+						'h-9 px-5 text-xs': size === 'sm',
+						'h-13 px-10 text-base': size === 'lg',
+						'h-11 w-11 p-0': size === 'icon',
 					},
 					className,
 				)}

@@ -57,8 +57,8 @@ const ConfigSlider = memo(function ConfigSliderInner({
 	}, []);
 
 	return (
-		<div className="mb-4">
-			<div className="flex justify-between text-xs mb-2">
+		<div className="mb-5">
+			<div className="flex justify-between text-xs mb-3">
 				<span className="text-white/50 font-medium tracking-wide">{label}</span>
 				<span className="font-mono text-white/70 tabular-nums">
 					{typeof localValue === 'number'
@@ -85,7 +85,7 @@ interface ColorPickerProps {
 
 function ColorPicker({ label, value, onChange }: ColorPickerProps) {
 	return (
-		<div className="mb-4 flex items-center justify-between">
+		<div className="mb-5 flex items-center justify-between py-1">
 			<span className="text-xs text-white/50 font-medium tracking-wide">
 				{label}
 			</span>
@@ -98,7 +98,7 @@ function ColorPicker({ label, value, onChange }: ColorPickerProps) {
 						type="color"
 						value={value}
 						onChange={(e) => onChange(e.target.value)}
-						className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-0 p-0"
+						className="w-9 h-9 rounded-lg cursor-pointer bg-transparent border-0 p-0"
 					/>
 					{/* Overlay border */}
 					<div className="absolute inset-0 rounded-lg border border-white/15 pointer-events-none" />
@@ -146,15 +146,15 @@ export function SettingsPanel({
 	return (
 		<div
 			className={cn(
-				'w-[calc(100vw-1.5rem)] sm:w-72',
+				'w-[calc(100vw-2.5rem)] sm:w-80',
 				'max-h-[85vh] sm:max-h-[90vh] overflow-y-auto',
-				'glass-panel rounded-2xl',
+				'glass-panel rounded-3xl',
 				'text-white text-sm',
 				'animate-scale-in',
 			)}
 		>
 			{/* Header */}
-			<div className="sticky top-0 z-10 bg-black/80 backdrop-blur-md px-4 py-3 border-b border-white/8 flex justify-between items-center">
+			<div className="sticky top-0 z-10 bg-black/80 backdrop-blur-md px-5 py-4 border-b border-white/8 flex justify-between items-center">
 				<span className="font-medium tracking-wide">Settings</span>
 				<IconButton
 					onClick={() => setIsOpen(false)}
@@ -166,10 +166,10 @@ export function SettingsPanel({
 				</IconButton>
 			</div>
 
-			<div className="p-4 space-y-6">
+			<div className="p-5 space-y-7">
 				{/* Theme Section */}
 				<section>
-					<div className="flex items-center gap-2 text-2xs uppercase tracking-widest-plus text-white/40 mb-4">
+					<div className="flex items-center gap-2.5 text-2xs uppercase tracking-widest-plus text-white/40 mb-5">
 						<Palette className="h-3.5 w-3.5" />
 						Theme
 					</div>
@@ -187,7 +187,7 @@ export function SettingsPanel({
 
 				{/* Animation Section */}
 				<section>
-					<div className="flex items-center gap-2 text-2xs uppercase tracking-widest-plus text-white/40 mb-4">
+					<div className="flex items-center gap-2.5 text-2xs uppercase tracking-widest-plus text-white/40 mb-5">
 						<Sparkles className="h-3.5 w-3.5" />
 						Animation
 					</div>
@@ -207,7 +207,7 @@ export function SettingsPanel({
 						onClick={onEnableDevMode}
 						className={cn(
 							'w-full flex items-center justify-between',
-							'p-3 -mx-1 rounded-xl',
+							'p-4 rounded-xl',
 							'text-xs text-white/30 hover:text-white/50',
 							'hover:bg-white/5',
 							'transition-all duration-200',

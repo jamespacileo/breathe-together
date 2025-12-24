@@ -39,10 +39,11 @@ const DialogContent = React.forwardRef<
 			ref={ref}
 			className={cn(
 				'fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%]',
-				'w-full max-w-sm',
-				'grid gap-5 p-6',
+				'w-full max-w-[380px]',
+				// Generous padding for content breathing room
+				'grid gap-6 p-7 sm:p-8',
 				// Glass panel styling
-				'glass-panel rounded-2xl',
+				'glass-panel rounded-3xl',
 				// Animations
 				'duration-300 ease-out',
 				'data-[state=open]:animate-in data-[state=closed]:animate-out',
@@ -57,8 +58,8 @@ const DialogContent = React.forwardRef<
 			{children}
 			<DialogPrimitive.Close
 				className={cn(
-					'absolute right-4 top-4',
-					'h-8 w-8 rounded-full',
+					'absolute right-5 top-5',
+					'h-9 w-9 rounded-full',
 					'inline-flex items-center justify-center',
 					'text-white/40 hover:text-white/80',
 					'hover:bg-white/10',
@@ -91,7 +92,8 @@ const DialogFooter = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
 	<div
 		className={cn(
-			'flex flex-col-reverse gap-3 sm:flex-row sm:justify-center pt-2',
+			'flex flex-col-reverse gap-3 sm:flex-row sm:justify-center',
+			'pt-4 mt-2',
 			className,
 		)}
 		{...props}

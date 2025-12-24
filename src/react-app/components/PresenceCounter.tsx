@@ -18,8 +18,8 @@ export function PresenceCounter({ presence, className }: PresenceCounterProps) {
 			aria-live="polite"
 			aria-label={`${presence.count} people breathing together`}
 		>
-			{/* Elegant pill container */}
-			<div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black/40 backdrop-blur-md border border-white/8">
+			{/* Elegant pill container with generous padding */}
+			<div className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-black/40 backdrop-blur-md border border-white/8">
 				{/* Breathing indicator dot */}
 				<span className="relative flex h-2 w-2">
 					<span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#00D4FF] opacity-50" />
@@ -31,8 +31,8 @@ export function PresenceCounter({ presence, className }: PresenceCounterProps) {
 					{presence.count.toLocaleString()}
 				</span>
 
-				{/* Label */}
-				<span className="text-xs font-light tracking-wide text-white/50">
+				{/* Label with slight separation */}
+				<span className="text-xs font-light tracking-wide text-white/50 ml-0.5">
 					breathing together
 				</span>
 			</div>

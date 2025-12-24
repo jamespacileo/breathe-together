@@ -25,7 +25,8 @@ const ToggleGroup = React.forwardRef<
 			ref={ref}
 			className={cn(
 				'inline-flex items-center justify-center',
-				'rounded-full p-1 gap-0.5',
+				// Improved padding and gap for better visual balance
+				'rounded-full p-1.5 gap-1',
 				'bg-black/40 backdrop-blur-md border border-white/8',
 				className,
 			)}
@@ -65,12 +66,12 @@ const ToggleGroupItem = React.forwardRef<
 					'border border-transparent bg-transparent text-white/50 hover:text-white/70 data-[state=on]:border-[#00D4FF]/30 data-[state=on]:bg-[#00D4FF]/10 data-[state=on]:text-white':
 						(variant || context.variant) === 'outline',
 				},
-				// Sizes
+				// Sizes - generous horizontal padding for touch targets
 				{
-					'h-8 px-3 min-h-[44px] sm:min-h-0':
+					'h-9 px-4 min-h-[44px] sm:min-h-0':
 						(size || context.size) === 'default',
-					'h-7 px-2.5 text-2xs': (size || context.size) === 'sm',
-					'h-10 px-4 text-sm': (size || context.size) === 'lg',
+					'h-8 px-3 text-2xs': (size || context.size) === 'sm',
+					'h-11 px-5 text-sm': (size || context.size) === 'lg',
 				},
 				className,
 			)}
