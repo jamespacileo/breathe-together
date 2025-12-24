@@ -85,8 +85,8 @@ function App() {
 			{/* Cosmic background layers */}
 			<CosmicBackground />
 
-			{/* Main breathing visualization */}
-			<BreathingOrb breathState={breathState} config={config} />
+			{/* Main breathing visualization - using new 50K particle WebGL system */}
+			<BreathingOrb breathState={breathState} config={config} use50KParticles />
 
 			{/* Presence counter - top center */}
 			<div className="absolute top-5 sm:top-8 left-1/2 -translate-x-1/2 z-10">

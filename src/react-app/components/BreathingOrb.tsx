@@ -1,19 +1,26 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import type { BreathState } from '../hooks/useBreathSync';
 import type { VisualizationConfig } from '../lib/config';
+import { ParticleScene } from '../scene';
 import { BreathingFallback, ErrorBoundary } from './ErrorBoundary';
 import { GPGPUScene } from './GPGPUParticles';
 
 interface BreathingOrbProps {
 	breathState: BreathState;
 	config: VisualizationConfig;
+	/** Use new 50K particle WebGL system (default: false for backward compatibility) */
+	use50KParticles?: boolean;
 }
 
 /**
  * Main breathing visualization component
  * Uses Three.js for GPU-accelerated particle rendering
  */
-export function BreathingOrb({ breathState, config }: BreathingOrbProps) {
+export function BreathingOrb({
+	breathState,
+	config,
+	use50KParticles = false,
+}: BreathingOrbProps) {
 	return (
 		<div className="absolute inset-0 overflow-hidden">
 			{/* Three.js GPGPU particle scene with error boundary for GPU failures */}
@@ -23,7 +30,11 @@ export function BreathingOrb({ breathState, config }: BreathingOrbProps) {
 					console.error('WebGL error:', error.message);
 				}}
 			>
-				<GPGPUScene breathState={breathState} config={config} />
+				{use50KParticles ? (
+					<ParticleScene breathState={breathState} config={config} />
+				) : (
+					<GPGPUScene breathState={breathState} config={config} />
+				)}
 			</ErrorBoundary>
 
 			{/* Breathing guide text with cosmic styling */}
