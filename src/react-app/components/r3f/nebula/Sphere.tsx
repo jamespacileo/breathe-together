@@ -2,8 +2,8 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import type { BreathState } from '../../../hooks/useBreathSync';
-import { getBreathValue } from '../../../lib/breathUtils';
-import type { VisualizationConfig } from '../../../lib/config';
+import { getBreathValue } from '../../../lib/breathPatterns';
+import type { VisualizationConfig } from '../../../lib/visualConfig';
 
 // Maximum particles - buffers allocated once at this size
 const MAX_PARTICLES = 500;
@@ -203,17 +203,13 @@ function lerp(a: number, b: number, t: number): number {
 	return a + (b - a) * t;
 }
 
-interface BreathingSphereProps {
+interface SphereProps {
 	breathState: BreathState;
 	config: VisualizationConfig;
 	userCount: number;
 }
 
-export function BreathingSphere({
-	breathState,
-	config,
-	userCount,
-}: BreathingSphereProps) {
+export function Sphere({ breathState, config, userCount }: SphereProps) {
 	const materialRef = useRef<THREE.ShaderMaterial>(null);
 	const geometryRef = useRef<THREE.BufferGeometry>(null);
 	const breathStateRef = useRef(breathState);
@@ -428,3 +424,6 @@ export function BreathingSphere({
 		</points>
 	);
 }
+
+// Also export with old name for backwards compatibility
+export { Sphere as BreathingSphere };

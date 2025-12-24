@@ -5,10 +5,10 @@ import { Suspense, useEffect, useMemo, useState } from 'react';
 import * as THREE from 'three';
 import type { BreathState } from '../../hooks/useBreathSync';
 import type { PresenceData } from '../../hooks/usePresence';
-import type { VisualizationConfig } from '../../lib/config';
-import { BreathingSphere, ConnectionLines, HazeLayer } from './nebula';
+import type { VisualizationConfig } from '../../lib/visualConfig';
+import { Haze, Lines, Sphere } from './nebula';
 
-interface BreathingSceneProps {
+interface SceneProps {
 	breathState: BreathState;
 	presence: PresenceData;
 	config: VisualizationConfig;
@@ -82,23 +82,15 @@ function BreathingSphereSystem({
 		<>
 			{/* Background haze layer */}
 			{config.hazeEnabled ? (
-				<HazeLayer
-					breathState={breathState}
-					config={config}
-					userCount={userCount}
-				/>
+				<Haze breathState={breathState} config={config} userCount={userCount} />
 			) : null}
 
 			{/* Main breathing sphere */}
-			<BreathingSphere
-				breathState={breathState}
-				config={config}
-				userCount={userCount}
-			/>
+			<Sphere breathState={breathState} config={config} userCount={userCount} />
 
 			{/* Connection lines between nearby particles */}
 			{config.connectionEnabled && userCount > 1 && (
-				<ConnectionLines
+				<Lines
 					breathState={breathState}
 					config={config}
 					particlePositions={particlePositionsRef}
@@ -113,11 +105,7 @@ function BreathingSphereSystem({
  * React Three Fiber canvas wrapper for the breathing visualization
  * Renders the 3D breathing sphere with particles representing users
  */
-export function BreathingScene({
-	breathState,
-	presence,
-	config,
-}: BreathingSceneProps) {
+export function Scene({ breathState, presence, config }: SceneProps) {
 	const [dpr, setDpr] = useState(1.5);
 
 	// Camera settings for 3D sphere view
@@ -180,3 +168,6 @@ export function BreathingScene({
 		</Canvas>
 	);
 }
+
+// Also export with old name for backwards compatibility
+export { Scene as BreathingScene };

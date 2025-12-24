@@ -1,17 +1,17 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import {
-	DEFAULT_CONFIG,
-	updateConfig,
-	type VisualizationConfig,
-} from '../lib/config';
-import type { PatternId } from '../lib/patterns';
+import type { PatternId } from '../lib/breathPatterns';
 import {
 	DEFAULT_SIMULATION_CONFIG,
 	type MoodDistribution,
 	type MoodId,
 	type SimulationConfig,
-} from '../lib/simulationConfig';
+} from '../lib/simulation';
+import {
+	DEFAULT_CONFIG,
+	updateConfig,
+	type VisualizationConfig,
+} from '../lib/visualConfig';
 
 export interface UserIdentity {
 	name: string;

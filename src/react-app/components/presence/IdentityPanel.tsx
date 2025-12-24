@@ -1,19 +1,19 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
-import { AVATARS, getAvatarGradient, MOODS } from '../lib/colors';
-import type { MoodId } from '../lib/simulationConfig';
-import { cn } from '../lib/utils';
-import type { UserIdentity } from '../stores/appStore';
-import { Button } from './ui/button';
+import { AVATARS, getAvatarGradient, MOODS } from '../../lib/colors';
+import type { MoodId } from '../../lib/simulation';
+import { cn } from '../../lib/utils';
+import type { UserIdentity } from '../../stores/appStore';
+import { Button } from '../ui/button';
 import {
 	Dialog,
 	DialogContent,
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
-} from './ui/dialog';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
+} from '../ui/dialog';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
 
 interface IdentityPanelProps {
 	user: UserIdentity;

@@ -1,14 +1,12 @@
 import { useEffect, useState } from 'react';
-import { BreathingOrb } from './components/BreathingOrb';
-import { DebugPanel } from './components/DebugPanel';
+import { BreathingOrb, PatternSelector } from './components/breathing';
+import { DebugPanel, SettingsPanel } from './components/controls';
 import {
 	IdentityPanel,
 	JoinButton,
+	PresenceCounter,
 	UserBadge,
-} from './components/IdentityPanel';
-import { PatternSelector } from './components/PatternSelector';
-import { PresenceCounter } from './components/PresenceCounter';
-import { SettingsPanel } from './components/SettingsPanel';
+} from './components/presence';
 import { useBreathSync } from './hooks/useBreathSync';
 import { usePresence } from './hooks/usePresence';
 import { useSimulation } from './hooks/useSimulation';

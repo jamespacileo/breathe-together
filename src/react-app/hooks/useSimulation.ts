@@ -1,14 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+	DEFAULT_SIMULATION_CONFIG,
 	getSimulationEngine,
 	type PopulationSnapshot,
 	resetSimulationEngine,
+	type SimulationConfig,
 	type SimulationEngine,
 } from '../lib/simulation';
-import {
-	DEFAULT_SIMULATION_CONFIG,
-	type SimulationConfig,
-} from '../lib/simulationConfig';
 
 /**
  * Hook result interface

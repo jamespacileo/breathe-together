@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getCurrentPhase, PATTERNS } from './patterns';
+import { getCurrentPhase, PATTERNS } from './breathPatterns';
 
 describe('PATTERNS', () => {
 	it('should have box breathing pattern with correct total duration', () => {

@@ -1,9 +1,9 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import type { BreathState } from '../hooks/useBreathSync';
-import type { PresenceData } from '../hooks/usePresence';
-import type { VisualizationConfig } from '../lib/config';
-import { BreathingFallback, ErrorBoundary } from './ErrorBoundary';
-import { GPGPUScene } from './GPGPUParticles';
+import type { BreathState } from '../../hooks/useBreathSync';
+import type { PresenceData } from '../../hooks/usePresence';
+import type { VisualizationConfig } from '../../lib/visualConfig';
+import { BreathingFallback, ErrorBoundary } from '../ErrorBoundary';
+import { GPGPUScene } from '../GPGPUParticles';
 
 interface BreathingOrbProps {
 	breathState: BreathState;

@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { PatternId } from '../lib/patterns';
+import type { PatternId } from '../lib/breathPatterns';
 import { useBreathSync } from './useBreathSync';
 
 describe('useBreathSync', () => {

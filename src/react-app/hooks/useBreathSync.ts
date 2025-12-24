@@ -4,7 +4,7 @@ import {
 	PATTERNS,
 	type PatternId,
 	type PhaseType,
-} from '../lib/patterns';
+} from '../lib/breathPatterns';
 
 export interface BreathState {
 	phase: PhaseType;

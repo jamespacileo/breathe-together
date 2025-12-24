@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
-import type { PresenceData } from '../hooks/usePresence';
-import { cn } from '../lib/utils';
+import type { PresenceData } from '../../hooks/usePresence';
+import { cn } from '../../lib/utils';
 
 interface PresenceCounterProps {
 	presence: PresenceData;

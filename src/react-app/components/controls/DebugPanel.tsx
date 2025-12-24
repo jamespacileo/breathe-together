@@ -1,6 +1,4 @@
 import {
-	ChevronDown,
-	ChevronUp,
 	Copy,
 	Play,
 	RefreshCw,
@@ -9,166 +7,21 @@ import {
 	Square,
 	X,
 } from 'lucide-react';
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import type { BreathState } from '../hooks/useBreathSync';
-import type { PresenceData } from '../hooks/usePresence';
-import { getMoodColor, MOODS } from '../lib/colors';
-import { DEFAULT_CONFIG, type VisualizationConfig } from '../lib/config';
-import { MOOD_IDS, type SimulationConfig } from '../lib/simulationConfig';
-import { Button } from './ui/button';
+import type { BreathState } from '../../hooks/useBreathSync';
+import type { PresenceData } from '../../hooks/usePresence';
+import { getMoodColor, MOODS } from '../../lib/colors';
+import { MOOD_IDS, type SimulationConfig } from '../../lib/simulation';
 import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from './ui/collapsible';
-import { IconButton } from './ui/icon-button';
-import { Label } from './ui/label';
-import { Slider } from './ui/slider';
-
-interface ConfigSliderProps {
-	label: string;
-	value: number;
-	onChange: (value: number) => void;
-	min: number;
-	max: number;
-	step?: number;
-}
-
-/**
- * Memoized slider component with local state for smoother interaction.
- */
-const ConfigSlider = memo(
-	({ label, value, onChange, min, max, step = 0.01 }: ConfigSliderProps) => {
-		const [localValue, setLocalValue] = useState(value);
-		const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-		const isInteractingRef = useRef(false);
-
-		useEffect(() => {
-			if (!isInteractingRef.current) {
-				setLocalValue(value);
-			}
-		}, [value]);
-
-		const handleChange = useCallback(
-			(newValue: number) => {
-				isInteractingRef.current = true;
-				setLocalValue(newValue);
-
-				if (debounceRef.current) {
-					clearTimeout(debounceRef.current);
-				}
-				debounceRef.current = setTimeout(() => {
-					onChange(newValue);
-					isInteractingRef.current = false;
-				}, 16);
-			},
-			[onChange],
-		);
-
-		useEffect(() => {
-			return () => {
-				if (debounceRef.current) {
-					clearTimeout(debounceRef.current);
-				}
-			};
-		}, []);
-
-		return (
-			<div className="mb-2">
-				<div className="flex justify-between text-xs mb-1">
-					<span className="text-white/70">{label}</span>
-					<span className="font-mono text-white/90">
-						{typeof localValue === 'number'
-							? localValue.toFixed(step < 1 ? 2 : 0)
-							: String(localValue)}
-					</span>
-				</div>
-				<Slider
-					value={[localValue]}
-					onValueChange={([v]) => handleChange(v)}
-					min={min}
-					max={max}
-					step={step}
-				/>
-			</div>
-		);
-	},
-);
-
-interface ConfigToggleProps {
-	label: string;
-	value: boolean;
-	onChange: (value: boolean) => void;
-}
-
-const ConfigToggle = memo(({ label, value, onChange }: ConfigToggleProps) => {
-	return (
-		<div className="mb-2 flex items-center justify-between">
-			<span className="text-xs text-white/70">{label}</span>
-			<button
-				type="button"
-				onClick={() => onChange(!value)}
-				className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-					value ? 'bg-blue-500' : 'bg-white/20'
-				}`}
-			>
-				<span
-					className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-						value ? 'translate-x-4.5' : 'translate-x-0.5'
-					}`}
-					style={{ transform: value ? 'translateX(18px)' : 'translateX(2px)' }}
-				/>
-			</button>
-		</div>
-	);
-});
-
-interface ColorPickerProps {
-	label: string;
-	value: string;
-	onChange: (value: string) => void;
-}
-
-const ColorPicker = memo(({ label, value, onChange }: ColorPickerProps) => {
-	return (
-		<div className="mb-2 flex items-center justify-between">
-			<span className="text-xs text-white/70">{label}</span>
-			<div className="flex items-center gap-2">
-				<span className="text-xs font-mono text-white/90">{value}</span>
-				<input
-					type="color"
-					value={value}
-					onChange={(e) => onChange(e.target.value)}
-					className="w-6 h-6 rounded cursor-pointer bg-transparent border border-white/20"
-				/>
-			</div>
-		</div>
-	);
-});
-
-interface SectionProps {
-	title: string;
-	children: React.ReactNode;
-	defaultOpen?: boolean;
-}
-
-function Section({ title, children, defaultOpen = true }: SectionProps) {
-	const [open, setOpen] = useState(defaultOpen);
-
-	return (
-		<Collapsible open={open} onOpenChange={setOpen} className="mb-3">
-			<CollapsibleTrigger className="w-full flex items-center justify-between text-xs uppercase tracking-wide text-white/70 hover:text-white/90 transition-colors mb-2 min-h-[44px]">
-				<span>{title}</span>
-				{open ? (
-					<ChevronUp className="h-4 w-4" />
-				) : (
-					<ChevronDown className="h-4 w-4" />
-				)}
-			</CollapsibleTrigger>
-			<CollapsibleContent className="pl-1">{children}</CollapsibleContent>
-		</Collapsible>
-	);
-}
+	DEFAULT_CONFIG,
+	type VisualizationConfig,
+} from '../../lib/visualConfig';
+import { Button } from '../ui/button';
+import { IconButton } from '../ui/icon-button';
+import { Label } from '../ui/label';
+import { ColorPicker } from './ColorPicker';
+import { ConfigSlider } from './ConfigSlider';
+import { ConfigToggle } from './ConfigToggle';
+import { Section } from './Section';
 
 interface SimulationControlsProps {
 	simulationConfig: SimulationConfig;

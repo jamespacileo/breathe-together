@@ -1,116 +1,9 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronRight, Palette, Settings, Sparkles, X } from 'lucide-react';
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import type { VisualizationConfig } from '../lib/config';
-import { IconButton } from './ui/icon-button';
-import { Slider } from './ui/slider';
-
-interface ConfigSliderProps {
-	label: string;
-	value: number;
-	onChange: (value: number) => void;
-	min: number;
-	max: number;
-	step?: number;
-}
-
-const ConfigSlider = memo(function ConfigSliderInner({
-	label,
-	value,
-	onChange,
-	min,
-	max,
-	step = 0.01,
-}: ConfigSliderProps) {
-	const [localValue, setLocalValue] = useState(value);
-	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-	const isInteractingRef = useRef(false);
-
-	useEffect(() => {
-		if (!isInteractingRef.current) {
-			setLocalValue(value);
-		}
-	}, [value]);
-
-	const handleChange = useCallback(
-		(newValue: number) => {
-			isInteractingRef.current = true;
-			setLocalValue(newValue);
-
-			if (debounceRef.current) {
-				clearTimeout(debounceRef.current);
-			}
-			debounceRef.current = setTimeout(() => {
-				onChange(newValue);
-				isInteractingRef.current = false;
-			}, 16);
-		},
-		[onChange],
-	);
-
-	useEffect(() => {
-		return () => {
-			if (debounceRef.current) {
-				clearTimeout(debounceRef.current);
-			}
-		};
-	}, []);
-
-	return (
-		<div className="mb-4">
-			<div className="flex justify-between text-xs mb-2">
-				<span className="text-stellar-muted font-light tracking-wide">
-					{label}
-				</span>
-				<span className="font-mono text-aurora-bright text-[11px]">
-					{localValue.toFixed(step < 1 ? 2 : 0)}
-				</span>
-			</div>
-			<Slider
-				value={[localValue]}
-				onValueChange={([v]) => handleChange(v)}
-				min={min}
-				max={max}
-				step={step}
-			/>
-		</div>
-	);
-});
-
-interface ColorPickerProps {
-	label: string;
-	value: string;
-	onChange: (value: string) => void;
-}
-
-function ColorPicker({ label, value, onChange }: ColorPickerProps) {
-	return (
-		<div className="mb-4 flex items-center justify-between">
-			<span className="text-xs text-stellar-muted font-light tracking-wide">
-				{label}
-			</span>
-			<div className="flex items-center gap-3">
-				<span className="text-[11px] font-mono text-stellar-dim">{value}</span>
-				<div className="relative">
-					<input
-						type="color"
-						value={value}
-						onChange={(e) => onChange(e.target.value)}
-						className="w-9 h-9 rounded-full cursor-pointer bg-transparent border-2 border-stellar-faint hover:border-aurora/50 transition-colors appearance-none"
-						style={{
-							boxShadow: `0 0 20px ${value}40`,
-						}}
-					/>
-					{/* Glow effect */}
-					<div
-						className="absolute inset-0 rounded-full opacity-40 pointer-events-none blur-md"
-						style={{ backgroundColor: value }}
-					/>
-				</div>
-			</div>
-		</div>
-	);
-}
+import type { VisualizationConfig } from '../../lib/visualConfig';
+import { IconButton } from '../ui/icon-button';
+import { ColorPicker } from './ColorPicker';
+import { ConfigSlider } from './ConfigSlider';
 
 interface SettingsPanelProps {
 	config: VisualizationConfig;
@@ -187,11 +80,13 @@ export function SettingsPanel({
 							label="Accent Color"
 							value={config.primaryColor}
 							onChange={(v) => updateConfig('primaryColor', v)}
+							variant="cosmic"
 						/>
 						<ColorPicker
 							label="Background"
 							value={config.backgroundColor}
 							onChange={(v) => updateConfig('backgroundColor', v)}
+							variant="cosmic"
 						/>
 					</section>
 
@@ -207,6 +102,7 @@ export function SettingsPanel({
 							onChange={(v) => updateConfig('bloomStrength', v)}
 							min={0}
 							max={3}
+							variant="cosmic"
 						/>
 					</section>
 

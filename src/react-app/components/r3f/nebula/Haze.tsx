@@ -2,8 +2,8 @@ import { useFrame } from '@react-three/fiber';
 import { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import type { BreathState } from '../../../hooks/useBreathSync';
-import { getBreathValue } from '../../../lib/breathUtils';
-import type { VisualizationConfig } from '../../../lib/config';
+import { getBreathValue } from '../../../lib/breathPatterns';
+import type { VisualizationConfig } from '../../../lib/visualConfig';
 
 // Simple vertex shader for haze particles
 const VERTEX_SHADER = `
@@ -51,13 +51,13 @@ interface HazeParticle {
 	driftOffset: number;
 }
 
-interface HazeLayerProps {
+interface HazeProps {
 	breathState: BreathState;
 	config: VisualizationConfig;
 	userCount: number;
 }
 
-export function HazeLayer({ breathState, config, userCount }: HazeLayerProps) {
+export function Haze({ breathState, config, userCount }: HazeProps) {
 	const pointsRef = useRef<THREE.Points>(null);
 	const startTimeRef = useRef(Date.now());
 	const breathStateRef = useRef(breathState);
@@ -179,3 +179,6 @@ export function HazeLayer({ breathState, config, userCount }: HazeLayerProps) {
 		</points>
 	);
 }
+
+// Also export with old name for backwards compatibility
+export { Haze as HazeLayer };

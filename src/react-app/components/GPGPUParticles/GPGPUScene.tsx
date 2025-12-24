@@ -3,7 +3,7 @@ import { EffectComposer, Noise, Vignette } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
 import { Suspense, useMemo } from 'react';
 import type { BreathState } from '../../hooks/useBreathSync';
-import type { VisualizationConfig } from '../../lib/config';
+import type { VisualizationConfig } from '../../lib/visualConfig';
 import { GPGPUParticleSystem } from './GPGPUParticleSystem';
 import { StarField } from './StarField';
 

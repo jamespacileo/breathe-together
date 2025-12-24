@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 /**
- * Mood IDs matching the MOODS array in colors.ts
+ * Mood IDs matching the MOODS array in identity.ts
  */
 export const MOOD_IDS = [
 	'moment',
@@ -15,7 +15,7 @@ export const MOOD_IDS = [
 export type MoodId = (typeof MOOD_IDS)[number];
 
 /**
- * Avatar IDs matching the AVATARS array in colors.ts
+ * Avatar IDs matching the AVATARS array in identity.ts
  */
 export const AVATAR_IDS = [
 	'teal',

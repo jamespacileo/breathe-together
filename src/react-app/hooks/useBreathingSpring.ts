@@ -1,6 +1,6 @@
 import { type MotionValue, useMotionValue, useSpring } from 'framer-motion';
 import { useEffect } from 'react';
-import type { VisualizationConfig } from '../lib/config';
+import type { VisualizationConfig } from '../lib/visualConfig';
 import type { BreathState } from './useBreathSync';
 
 export interface BreathingSpringConfig {
