@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { UserPlus } from 'lucide-react';
 import { useState } from 'react';
 import { AVATARS, getAvatarGradient, MOODS } from '../lib/colors';
 import type { MoodId } from '../lib/simulationConfig';
@@ -158,45 +159,25 @@ interface UserBadgeProps {
 }
 
 export function UserBadge({ user, onClick }: UserBadgeProps) {
-	const mood = MOODS.find((m) => m.id === user.mood);
-
 	return (
 		<motion.button
 			type="button"
 			onClick={onClick}
-			initial={{ opacity: 0, y: 20 }}
+			initial={{ opacity: 0, y: 10 }}
 			animate={{ opacity: 1, y: 0 }}
-			transition={{ duration: 0.5, delay: 0.3 }}
+			transition={{ duration: 0.3, delay: 0.2 }}
+			aria-label={`${user.name} - tap to edit`}
 			className={cn(
-				'flex items-center gap-3 px-4 py-2.5',
-				'bg-gradient-to-r from-void-light/80 via-nebula-deep/20 to-void-light/80',
-				'backdrop-blur-md',
-				'border border-stellar-faint hover:border-nebula-glow/40',
-				'rounded-full text-stellar',
-				'cursor-pointer',
-				'transition-all duration-300',
-				'hover:shadow-glow-sm',
-				'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aurora/50',
-				'min-h-[48px]',
+				'h-12 w-12 rounded-full',
+				'transition-all duration-200 ease-out',
+				'active:scale-[0.95]',
+				'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aurora/40',
+				'shadow-[0_0_20px_rgba(168,85,247,0.2)]',
 			)}
-		>
-			<div
-				className="w-9 h-9 rounded-full shrink-0 shadow-glow-sm"
-				style={{
-					background: getAvatarGradient(user.avatar),
-					boxShadow: '0 0 15px rgba(168, 85, 247, 0.3)',
-				}}
-			/>
-			<div className="text-left">
-				<div className="font-light text-sm tracking-wide">{user.name}</div>
-				{mood ? (
-					<div className="text-xs text-stellar-muted truncate max-w-[120px] sm:max-w-none">
-						{mood.label}
-						{user.moodDetail ? ` ${user.moodDetail}` : ''}
-					</div>
-				) : null}
-			</div>
-		</motion.button>
+			style={{
+				background: getAvatarGradient(user.avatar),
+			}}
+		/>
 	);
 }
 
@@ -206,19 +187,26 @@ interface JoinButtonProps {
 
 export function JoinButton({ onClick }: JoinButtonProps) {
 	return (
-		<motion.div
-			initial={{ opacity: 0, y: 20 }}
+		<motion.button
+			type="button"
+			onClick={onClick}
+			initial={{ opacity: 0, y: 10 }}
 			animate={{ opacity: 1, y: 0 }}
-			transition={{ duration: 0.5, delay: 0.3 }}
+			transition={{ duration: 0.3, delay: 0.2 }}
+			aria-label="Join the circle"
+			className={cn(
+				'h-12 w-12 rounded-full flex items-center justify-center',
+				'bg-void-light/60 backdrop-blur-md',
+				'border border-aurora/20',
+				'text-stellar',
+				'transition-all duration-200 ease-out',
+				'active:scale-[0.95]',
+				'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aurora/40',
+				'shadow-[0_0_20px_rgba(34,211,238,0.15)]',
+				'hover:shadow-[0_0_25px_rgba(34,211,238,0.25)] hover:border-aurora/40',
+			)}
 		>
-			<Button
-				onClick={onClick}
-				variant="primary"
-				size="lg"
-				className="px-8 font-serif tracking-wide"
-			>
-				Join the circle
-			</Button>
-		</motion.div>
+			<UserPlus className="h-5 w-5" />
+		</motion.button>
 	);
 }
