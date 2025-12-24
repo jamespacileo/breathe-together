@@ -5,14 +5,14 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
+import {
+	GPUComputationRenderer,
+	type Variable,
+} from 'three/examples/jsm/misc/GPUComputationRenderer.js';
 import type { BreathState } from '../../../hooks/useBreathSync';
 import { getBreathValue } from '../../../lib/breathUtils';
 import type { VisualizationConfig } from '../../../lib/config';
 import type { PhaseType } from '../../../lib/patterns';
-import {
-	GPUComputationRenderer,
-	type GPUVariable,
-} from './GPUComputationRenderer';
 import {
 	PARTICLE_FRAGMENT_SHADER,
 	PARTICLE_VERTEX_SHADER,
@@ -154,8 +154,8 @@ export function GPUBreathingSphere({
 	const { gl } = useThree();
 	const pointsRef = useRef<THREE.Points>(null);
 	const gpuComputeRef = useRef<GPUComputationRenderer | null>(null);
-	const positionVariableRef = useRef<GPUVariable | null>(null);
-	const velocityVariableRef = useRef<GPUVariable | null>(null);
+	const positionVariableRef = useRef<Variable | null>(null);
+	const velocityVariableRef = useRef<Variable | null>(null);
 	const originalTextureRef = useRef<THREE.DataTexture | null>(null);
 	const materialRef = useRef<THREE.ShaderMaterial | null>(null);
 	const breathStateRef = useRef(breathState);

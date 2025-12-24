@@ -7,8 +7,7 @@ import { COMMON_UNIFORMS, NOISE_FUNCTIONS } from './noise.glsl';
 export const POSITION_COMPUTE_SHADER = /* glsl */ `
 ${COMMON_UNIFORMS}
 
-uniform sampler2D texturePosition;
-uniform sampler2D textureVelocity;
+// texturePosition and textureVelocity are auto-injected by GPUComputationRenderer
 uniform sampler2D textureOriginal;
 uniform float uActiveCount;
 

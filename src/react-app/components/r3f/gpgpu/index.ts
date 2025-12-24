@@ -4,4 +4,3 @@
 
 export { CentralHalo, InnerGlow } from './CentralHalo';
 export { GPUBreathingSphere } from './GPUBreathingSphere';
-export { GPUComputationRenderer } from './GPUComputationRenderer';

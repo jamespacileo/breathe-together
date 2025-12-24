@@ -1,4 +1,2 @@
-// 3D Breathing Sphere components (matches HTML example)
-export { BreathingSphere } from './BreathingSphere';
-export { ConnectionLines } from './ConnectionLines';
+// 3D Breathing visualization effects
 export { HazeLayer } from './HazeLayer';
