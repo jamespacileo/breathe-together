@@ -41,7 +41,8 @@ export function ConnectionLines({
 		};
 	}, [maxConnections]);
 
-	// Animation loop
+	// Animation loop - complexity is inherent to the particle connection algorithm
+	// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: Spatial partitioning algorithm requires nested loops
 	useFrame(() => {
 		if (!(lineSegmentsRef.current && groupRef.current && buffersRef.current))
 			return;

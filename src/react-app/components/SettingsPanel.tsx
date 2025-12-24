@@ -13,68 +13,63 @@ interface ConfigSliderProps {
 	step?: number;
 }
 
-const ConfigSlider = memo(function ConfigSlider({
-	label,
-	value,
-	onChange,
-	min,
-	max,
-	step = 0.01,
-}: ConfigSliderProps) {
-	const [localValue, setLocalValue] = useState(value);
-	const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-	const isInteractingRef = useRef(false);
+const ConfigSlider = memo(
+	({ label, value, onChange, min, max, step = 0.01 }: ConfigSliderProps) => {
+		const [localValue, setLocalValue] = useState(value);
+		const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+		const isInteractingRef = useRef(false);
 
-	useEffect(() => {
-		if (!isInteractingRef.current) {
-			setLocalValue(value);
-		}
-	}, [value]);
-
-	const handleChange = useCallback(
-		(newValue: number) => {
-			isInteractingRef.current = true;
-			setLocalValue(newValue);
-
-			if (debounceRef.current) {
-				clearTimeout(debounceRef.current);
+		useEffect(() => {
+			if (!isInteractingRef.current) {
+				setLocalValue(value);
 			}
-			debounceRef.current = setTimeout(() => {
-				onChange(newValue);
-				isInteractingRef.current = false;
-			}, 16);
-		},
-		[onChange],
-	);
+		}, [value]);
 
-	useEffect(() => {
-		return () => {
-			if (debounceRef.current) {
-				clearTimeout(debounceRef.current);
-			}
-		};
-	}, []);
+		const handleChange = useCallback(
+			(newValue: number) => {
+				isInteractingRef.current = true;
+				setLocalValue(newValue);
 
-	return (
-		<div className="mb-3">
-			<div className="flex justify-between text-xs mb-1.5">
-				<span className="text-white/70">{label}</span>
-				<span className="font-mono text-white/90">
-					{typeof localValue === 'number'
-						? localValue.toFixed(step < 1 ? 2 : 0)
-						: localValue}
-				</span>
+				if (debounceRef.current) {
+					clearTimeout(debounceRef.current);
+				}
+				debounceRef.current = setTimeout(() => {
+					onChange(newValue);
+					isInteractingRef.current = false;
+				}, 16);
+			},
+			[onChange],
+		);
+
+		useEffect(() => {
+			return () => {
+				if (debounceRef.current) {
+					clearTimeout(debounceRef.current);
+				}
+			};
+		}, []);
+
+		return (
+			<div className="mb-3">
+				<div className="flex justify-between text-xs mb-1.5">
+					<span className="text-white/70">{label}</span>
+					<span className="font-mono text-white/90">
+						{typeof localValue === 'number'
+							? localValue.toFixed(step < 1 ? 2 : 0)
+							: String(localValue)}
+					</span>
+				</div>
+				<Slider
+					value={[localValue]}
+					onValueChange={([v]) => handleChange(v)}
+					min={min}
+					max={max}
+					step={step}
+				/>
 			</div>
-			<Slider
-				value={[localValue]}
-				onValueChange={([v]) => handleChange(v)}
-				min={min}
-				max={max}
-				step={step}
-			/>
-		</div>
-	);
-});
+		);
+	},
+);
 
 interface ColorPickerProps {
 	label: string;
@@ -183,7 +178,7 @@ export function SettingsPanel({
 				</section>
 
 				{/* Advanced Mode Toggle */}
-				{onEnableDevMode && (
+				{onEnableDevMode ? (
 					<button
 						type="button"
 						onClick={onEnableDevMode}
@@ -192,7 +187,7 @@ export function SettingsPanel({
 						<span>Advanced Settings</span>
 						<ChevronRight className="h-4 w-4" />
 					</button>
-				)}
+				) : null}
 			</div>
 		</div>
 	);

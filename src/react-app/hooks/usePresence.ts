@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PopulationSnapshot } from '../lib/simulation';
 import type { MoodId } from '../lib/simulationConfig';
 import type { SimulatedUser } from '../lib/userGenerator';
@@ -115,31 +115,44 @@ export interface HeartbeatState {
  * - Exponential backoff on failures
  * - Tracks consecutive failures for UI feedback
  * - Automatically recovers when connection is restored
+ * - Adaptive interval that increases on failures
  */
 export function useHeartbeat(
 	sessionId: string | null,
 	mood?: string,
 ): HeartbeatState {
 	const queryClient = useQueryClient();
-	const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-	const consecutiveFailuresRef = useRef(0);
-	const isErrorRef = useRef(false);
+	const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	// Use state instead of refs so changes trigger re-renders
+	const [heartbeatState, setHeartbeatState] = useState<HeartbeatState>({
+		isError: false,
+		consecutiveFailures: 0,
+	});
+
+	// Calculate interval based on failure count
+	const getInterval = useCallback((failures: number) => {
+		const baseInterval = 30000; // 30s
+		const backoffMultiplier = Math.min(failures, 4);
+		return baseInterval * (1 + backoffMultiplier * 0.5); // Max 90s interval
+	}, []);
 
 	const { mutate } = useMutation({
 		mutationFn: (params: { sid: string; m?: string }) =>
 			sendHeartbeat(params.sid, params.m),
 		onSuccess: () => {
-			// Reset failure count on success
-			consecutiveFailuresRef.current = 0;
-			isErrorRef.current = false;
+			// Reset failure count on success and update state
+			setHeartbeatState({ isError: false, consecutiveFailures: 0 });
 			// Invalidate presence data after successful heartbeat
 			queryClient.invalidateQueries({ queryKey: ['presence'] });
 		},
 		onError: (error) => {
-			consecutiveFailuresRef.current += 1;
-			isErrorRef.current = true;
+			setHeartbeatState((prev) => ({
+				isError: true,
+				consecutiveFailures: prev.consecutiveFailures + 1,
+			}));
 			console.warn(
-				`Heartbeat failed (attempt ${consecutiveFailuresRef.current}):`,
+				'Heartbeat failed:',
 				error instanceof Error ? error.message : 'Unknown error',
 			);
 		},
@@ -154,37 +167,50 @@ export function useHeartbeat(
 		const currentSessionId = sessionId;
 		const currentMood = mood;
 
-		// Send initial heartbeat
-		mutate({ sid: currentSessionId, m: currentMood });
-
-		// Set up interval for recurring heartbeats
-		// Use longer interval after failures to reduce server load
-		const getInterval = () => {
-			const baseInterval = 30000; // 30s
-			const backoffMultiplier = Math.min(consecutiveFailuresRef.current, 4);
-			return baseInterval * (1 + backoffMultiplier * 0.5); // Max 90s interval
-		};
-
-		const scheduleNextHeartbeat = () => {
-			if (intervalRef.current) {
-				clearInterval(intervalRef.current);
+		// Schedule next heartbeat with adaptive interval
+		const scheduleNextHeartbeat = (failures: number) => {
+			if (timeoutRef.current) {
+				clearTimeout(timeoutRef.current);
 			}
-			intervalRef.current = setInterval(() => {
-				mutate({ sid: currentSessionId, m: currentMood });
-			}, getInterval());
+
+			const interval = getInterval(failures);
+			timeoutRef.current = setTimeout(() => {
+				mutate(
+					{ sid: currentSessionId, m: currentMood },
+					{
+						onSettled: () => {
+							// Schedule next heartbeat after this one completes
+							// Read current failure count from state
+							setHeartbeatState((current) => {
+								scheduleNextHeartbeat(current.consecutiveFailures);
+								return current;
+							});
+						},
+					},
+				);
+			}, interval);
 		};
 
-		scheduleNextHeartbeat();
+		// Send initial heartbeat immediately
+		mutate(
+			{ sid: currentSessionId, m: currentMood },
+			{
+				onSettled: () => {
+					// Schedule next heartbeat after initial completes
+					setHeartbeatState((current) => {
+						scheduleNextHeartbeat(current.consecutiveFailures);
+						return current;
+					});
+				},
+			},
+		);
 
 		return () => {
-			if (intervalRef.current) {
-				clearInterval(intervalRef.current);
+			if (timeoutRef.current) {
+				clearTimeout(timeoutRef.current);
 			}
 		};
-	}, [sessionId, mood, mutate]);
+	}, [sessionId, mood, mutate, getInterval]);
 
-	return {
-		isError: isErrorRef.current,
-		consecutiveFailures: consecutiveFailuresRef.current,
-	};
+	return heartbeatState;
 }

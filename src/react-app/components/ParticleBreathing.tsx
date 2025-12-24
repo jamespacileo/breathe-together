@@ -12,9 +12,12 @@ interface ParticleBreathingProps {
  * Three.js particle breathing visualization
  * Uses UTC-synchronized breathing from useBreathSync hook
  */
+// Scale factor to convert config sphere radius to particle system units
+const PARTICLE_RADIUS_SCALE = 10;
+
 export function ParticleBreathing({
 	breathState,
-	config: _config,
+	config,
 }: ParticleBreathingProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const animationRef = useRef<number | null>(null);
@@ -31,6 +34,12 @@ export function ParticleBreathing({
 		phases: Float32Array;
 	} | null>(null);
 	const breathStateRef = useRef(breathState);
+	const configRef = useRef(config);
+
+	// Keep refs updated for animation loop
+	useEffect(() => {
+		configRef.current = config;
+	}, [config]);
 
 	// Keep breath state ref updated for animation loop
 	useEffect(() => {
@@ -348,9 +357,11 @@ export function ParticleBreathing({
 			refs.material.uniforms.breathPhase.value = breathPhase;
 			refs.material.uniforms.phaseType.value = phaseType;
 
-			// Compression settings - much tighter sphere on inhale
-			const expandedRadius = 22; // Exhaled - spread out
-			const compressedRadius = 4; // Inhaled - tight sphere
+			// Compression settings from config - much tighter sphere on inhale
+			const expandedRadius =
+				configRef.current.sphereExpandedRadius * PARTICLE_RADIUS_SCALE;
+			const compressedRadius =
+				configRef.current.sphereContractedRadius * PARTICLE_RADIUS_SCALE;
 
 			const positionAttribute = refs.geometry.getAttribute('position');
 			const posArray = positionAttribute.array as Float32Array;
