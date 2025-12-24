@@ -79,7 +79,7 @@ export function IdentityPanel({
 									animate={{ opacity: 1, scale: 1 }}
 									transition={{ delay: index * 0.05, duration: 0.3 }}
 									className={cn(
-										'w-12 h-12 sm:w-11 sm:h-11 rounded-full transition-all duration-300',
+										'w-12 h-12 min-w-[48px] min-h-[48px] rounded-full transition-all duration-300',
 										'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aurora/50',
 										avatar === a.id
 											? 'scale-110 ring-2 ring-aurora shadow-glow-aurora'

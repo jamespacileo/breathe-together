@@ -38,7 +38,7 @@ export function PatternSelector({
 						value={key}
 						aria-label={`${cfg.name} breathing pattern`}
 						className={cn(
-							'min-h-[44px] sm:min-h-0 px-4 py-2.5 sm:py-2',
+							'min-h-[48px] px-5 py-2.5',
 							'font-light tracking-wide',
 						)}
 					>

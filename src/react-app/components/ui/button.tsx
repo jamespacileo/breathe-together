@@ -49,12 +49,12 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 						'rounded-full bg-gradient-to-r from-aurora-deep via-aurora to-aurora-bright text-void-deep font-medium shadow-glow-aurora hover:shadow-[0_0_50px_rgba(34,211,238,0.5)] hover:scale-[1.02] active:scale-[0.98]':
 							variant === 'aurora',
 					},
-					// Sizes
+					// Sizes (with generous touch targets for mobile)
 					{
-						'h-10 px-6 py-2': size === 'default',
-						'h-8 px-4 text-xs': size === 'sm',
-						'h-12 px-8 text-base': size === 'lg',
-						'h-10 w-10 p-0': size === 'icon',
+						'h-11 min-h-[48px] px-6 py-2': size === 'default',
+						'h-9 min-h-[44px] px-4 text-xs': size === 'sm',
+						'h-13 min-h-[52px] px-8 text-base': size === 'lg',
+						'h-11 w-11 min-h-[48px] min-w-[48px] p-0': size === 'icon',
 					},
 					className,
 				)}

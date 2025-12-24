@@ -31,11 +31,11 @@ const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
 						'bg-transparent text-stellar-muted hover:text-stellar hover:bg-stellar-ghost':
 							variant === 'ghost',
 					},
-					// Sizes (with touch-friendly minimums)
+					// Sizes (with generous touch-friendly minimums for better mobile UX)
 					{
-						'h-9 w-9 min-h-[44px] min-w-[44px]': size === 'sm',
-						'h-11 w-11 min-h-[44px] min-w-[44px]': size === 'md',
-						'h-14 w-14': size === 'lg',
+						'h-10 w-10 min-h-[48px] min-w-[48px]': size === 'sm',
+						'h-12 w-12 min-h-[48px] min-w-[48px]': size === 'md',
+						'h-14 w-14 min-h-[52px] min-w-[52px]': size === 'lg',
 					},
 					className,
 				)}

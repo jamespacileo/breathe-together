@@ -75,13 +75,13 @@ body {
 	background: var(--void);
 }
 
-/* Serif display headings - celestial elegance */
+/* Serif display headings - geometric ethereal elegance */
 h1,
 h2,
 h3 {
-	font-family: "Cormorant Garamond", Georgia, serif;
+	font-family: "Spectral", Georgia, serif;
 	font-weight: 300;
-	letter-spacing: 0.02em;
+	letter-spacing: 0.03em;
 }
 
 h1 {
