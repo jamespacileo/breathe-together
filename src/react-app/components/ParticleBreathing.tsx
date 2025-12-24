@@ -127,17 +127,20 @@ export function ParticleBreathing({
       attribute vec3 color;
 
       uniform float breathPhase;
+      uniform float phaseType; // 0=in, 1=hold-in, 2=out, 3=hold-out
 
       varying vec3 vColor;
       varying float vAlpha;
       varying float vBreathPhase;
+      varying float vPhaseType;
 
       void main() {
         vColor = color;
         vBreathPhase = breathPhase;
+        vPhaseType = phaseType;
 
         // Brighter on inhale (breathPhase = 1), more transparent on exhale (breathPhase = 0)
-        vAlpha = 0.3 + breathPhase * 0.6;
+        vAlpha = 0.4 + breathPhase * 0.5;
 
         vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
         gl_PointSize = size * (300.0 / -mvPosition.z);
@@ -149,6 +152,61 @@ export function ParticleBreathing({
       varying vec3 vColor;
       varying float vAlpha;
       varying float vBreathPhase;
+      varying float vPhaseType;
+
+      // RGB to HSL conversion
+      vec3 rgb2hsl(vec3 c) {
+        float maxC = max(max(c.r, c.g), c.b);
+        float minC = min(min(c.r, c.g), c.b);
+        float l = (maxC + minC) / 2.0;
+        float s = 0.0;
+        float h = 0.0;
+
+        if (maxC != minC) {
+          float d = maxC - minC;
+          s = l > 0.5 ? d / (2.0 - maxC - minC) : d / (maxC + minC);
+
+          if (maxC == c.r) {
+            h = (c.g - c.b) / d + (c.g < c.b ? 6.0 : 0.0);
+          } else if (maxC == c.g) {
+            h = (c.b - c.r) / d + 2.0;
+          } else {
+            h = (c.r - c.g) / d + 4.0;
+          }
+          h /= 6.0;
+        }
+
+        return vec3(h, s, l);
+      }
+
+      // HSL to RGB conversion
+      float hue2rgb(float p, float q, float t) {
+        if (t < 0.0) t += 1.0;
+        if (t > 1.0) t -= 1.0;
+        if (t < 1.0/6.0) return p + (q - p) * 6.0 * t;
+        if (t < 1.0/2.0) return q;
+        if (t < 2.0/3.0) return p + (q - p) * (2.0/3.0 - t) * 6.0;
+        return p;
+      }
+
+      vec3 hsl2rgb(vec3 hsl) {
+        float h = hsl.x;
+        float s = hsl.y;
+        float l = hsl.z;
+
+        if (s == 0.0) {
+          return vec3(l);
+        }
+
+        float q = l < 0.5 ? l * (1.0 + s) : l + s - l * s;
+        float p = 2.0 * l - q;
+
+        return vec3(
+          hue2rgb(p, q, h + 1.0/3.0),
+          hue2rgb(p, q, h),
+          hue2rgb(p, q, h - 1.0/3.0)
+        );
+      }
 
       void main() {
         float dist = length(gl_PointCoord - vec2(0.5));
@@ -156,12 +214,38 @@ export function ParticleBreathing({
 
         float alpha = smoothstep(0.5, 0.1, dist) * vAlpha;
 
+        // Convert to HSL for subtle hue shifting
+        vec3 hsl = rgb2hsl(vColor);
+
+        // Subtle hue shifts based on breathing phase (barely noticeable)
+        // Inhale (phaseType 0): slight warm shift (+0.02 hue, toward yellow/orange)
+        // Hold-in (phaseType 1): slight golden warmth (+0.01 hue)
+        // Exhale (phaseType 2): slight cool shift (-0.02 hue, toward blue/purple)
+        // Hold-out (phaseType 3): slight deep cool (-0.01 hue)
+        float hueShift = 0.0;
+        if (vPhaseType < 0.5) {
+          hueShift = 0.015; // inhale - warm
+        } else if (vPhaseType < 1.5) {
+          hueShift = 0.008; // hold-in - gentle warm
+        } else if (vPhaseType < 2.5) {
+          hueShift = -0.015; // exhale - cool
+        } else {
+          hueShift = -0.008; // hold-out - gentle cool
+        }
+
+        hsl.x = mod(hsl.x + hueShift, 1.0);
+
+        // Subtle saturation boost during inhale, slight desaturation during exhale
+        hsl.y = clamp(hsl.y + (vBreathPhase - 0.5) * 0.08, 0.0, 1.0);
+
+        vec3 color = hsl2rgb(hsl);
+
         // Add brightness boost on inhale
-        float brightness = 1.0 + vBreathPhase * 0.5;
-        vec3 color = vColor * brightness;
+        float brightness = 1.0 + vBreathPhase * 0.4;
+        color *= brightness;
 
         // Add slight glow in center
-        color += vec3(0.15) * (1.0 - dist * 2.0) * vBreathPhase;
+        color += vec3(0.1) * (1.0 - dist * 2.0) * vBreathPhase;
 
         gl_FragColor = vec4(color, alpha);
       }
@@ -175,20 +259,24 @@ export function ParticleBreathing({
 			depthWrite: false,
 			uniforms: {
 				breathPhase: { value: 0 },
+				phaseType: { value: 0 },
 			},
 		});
 
 		const particles = new THREE.Points(geometry, material);
 		scene.add(particles);
 
-		// Add ambient glow sphere
+		// Add ambient glow sphere with additive blending (won't occlude particles)
 		const glowGeometry = new THREE.SphereGeometry(3, 32, 32);
 		const glowMaterial = new THREE.MeshBasicMaterial({
-			color: 0xffffff,
+			color: 0x4080a0,
 			transparent: true,
-			opacity: 0.05,
+			opacity: 0.03,
+			blending: THREE.AdditiveBlending,
+			depthWrite: false,
 		});
 		const glowSphere = new THREE.Mesh(glowGeometry, glowMaterial);
+		glowSphere.renderOrder = -1; // Render behind particles
 		scene.add(glowSphere);
 
 		// Store refs
@@ -221,7 +309,8 @@ export function ParticleBreathing({
 		const easeInOutSine = (t: number) => -(Math.cos(Math.PI * t) - 1) / 2;
 
 		// Get breath phase from useBreathSync state (0 = fully exhaled, 1 = fully inhaled)
-		const getBreathPhase = (): number => {
+		// Also returns phaseType: 0=in, 1=hold-in, 2=out, 3=hold-out
+		const getBreathData = (): { breathPhase: number; phaseType: number } => {
 			const state = breathStateRef.current;
 			const { phase, progress } = state;
 
@@ -230,15 +319,15 @@ export function ParticleBreathing({
 			// 'out' = exhaling (1 -> 0), 'hold-out' = holding at empty (0)
 			switch (phase) {
 				case 'in':
-					return easeInOutSine(progress);
+					return { breathPhase: easeInOutSine(progress), phaseType: 0 };
 				case 'hold-in':
-					return 1;
+					return { breathPhase: 1, phaseType: 1 };
 				case 'out':
-					return 1 - easeInOutSine(progress);
+					return { breathPhase: 1 - easeInOutSine(progress), phaseType: 2 };
 				case 'hold-out':
-					return 0;
+					return { breathPhase: 0, phaseType: 3 };
 				default:
-					return 0;
+					return { breathPhase: 0, phaseType: 0 };
 			}
 		};
 
@@ -253,10 +342,11 @@ export function ParticleBreathing({
 
 			const elapsed = Date.now() - startTime;
 			const time = elapsed * 0.001;
-			const breathPhase = getBreathPhase();
+			const { breathPhase, phaseType } = getBreathData();
 
-			// Update shader uniform
+			// Update shader uniforms
 			refs.material.uniforms.breathPhase.value = breathPhase;
+			refs.material.uniforms.phaseType.value = phaseType;
 
 			// Compression settings - much tighter sphere on inhale
 			const expandedRadius = 22; // Exhaled - spread out
@@ -343,10 +433,11 @@ export function ParticleBreathing({
 			refs.particles.rotation.y += 0.002;
 			refs.particles.rotation.x = Math.sin(time * 0.1) * 0.1;
 
-			// Update glow sphere - grows brighter and slightly larger when inhaled
-			const glowScale = 2 + breathPhase * 2;
+			// Update glow sphere - subtle ambient glow that follows compression
+			// Much smaller scale to stay inside the particle sphere
+			const glowScale = 1 + breathPhase * 1.5;
 			refs.glowSphere.scale.set(glowScale, glowScale, glowScale);
-			refs.glowMaterial.opacity = 0.02 + breathPhase * 0.08;
+			refs.glowMaterial.opacity = 0.015 + breathPhase * 0.025;
 
 			refs.renderer.render(refs.scene, refs.camera);
 		};
