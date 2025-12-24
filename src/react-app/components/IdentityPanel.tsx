@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { AVATARS, getAvatarGradient, MOODS } from '../lib/colors';
 import type { MoodId } from '../lib/simulationConfig';
@@ -45,45 +44,49 @@ export function IdentityPanel({
 
 	return (
 		<Dialog open onOpenChange={(open) => !open && onClose()}>
-			<DialogContent className="max-w-sm mx-4 sm:mx-auto max-h-[90vh] overflow-y-auto">
+			<DialogContent className="mx-5 sm:mx-auto max-h-[85vh] overflow-y-auto">
 				<DialogHeader>
-					<DialogTitle className="text-center">Join the circle</DialogTitle>
+					<DialogTitle>Join the circle</DialogTitle>
 				</DialogHeader>
 
-				<div className="space-y-6">
+				<div className="space-y-7">
 					{/* Name input */}
 					<div className="space-y-3">
-						<Label htmlFor="name">Your name</Label>
+						<Label
+							htmlFor="name"
+							className="text-2xs uppercase tracking-widest-plus text-white/40"
+						>
+							Your name
+						</Label>
 						<Input
 							id="name"
 							type="text"
 							value={name}
 							onChange={(e) => setName(e.target.value)}
 							placeholder="Someone"
-							className="min-h-[48px] sm:min-h-0"
 						/>
 					</div>
 
 					{/* Avatar picker */}
-					<div className="space-y-3">
-						<Label>Avatar</Label>
-						<div className="flex gap-3 justify-center">
-							{AVATARS.map((a, index) => (
-								<motion.button
+					<div className="space-y-4">
+						<Label className="text-2xs uppercase tracking-widest-plus text-white/40">
+							Avatar
+						</Label>
+						<div className="flex gap-4 justify-center py-1">
+							{AVATARS.map((a) => (
+								<button
 									key={a.id}
 									type="button"
 									onClick={() => setAvatar(a.id)}
-									aria-label={`Select avatar ${a.id}`}
+									aria-label={`Select ${a.id} avatar`}
 									aria-pressed={avatar === a.id}
-									initial={{ opacity: 0, scale: 0.8 }}
-									animate={{ opacity: 1, scale: 1 }}
-									transition={{ delay: index * 0.05, duration: 0.3 }}
 									className={cn(
-										'w-12 h-12 sm:w-11 sm:h-11 rounded-full transition-all duration-300',
-										'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aurora/50',
+										'w-12 h-12 rounded-full',
+										'transition-all duration-200 ease-out',
+										'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF]/50',
 										avatar === a.id
-											? 'scale-110 ring-2 ring-aurora shadow-glow-aurora'
-											: 'hover:scale-105 opacity-70 hover:opacity-100',
+											? 'scale-110 ring-2 ring-white shadow-glow-sm'
+											: 'opacity-60 hover:opacity-100 hover:scale-105',
 									)}
 									style={{
 										background: getAvatarGradient(a.id),
@@ -96,61 +99,56 @@ export function IdentityPanel({
 					</div>
 
 					{/* Mood selector */}
-					<div className="space-y-3">
-						<Label>What's on your mind?</Label>
-						<div className="grid grid-cols-2 gap-2">
-							{MOODS.map((m, index) => (
-								<motion.button
+					<div className="space-y-4">
+						<Label className="text-2xs uppercase tracking-widest-plus text-white/40">
+							What's on your mind?
+						</Label>
+						<div className="grid grid-cols-2 gap-3">
+							{MOODS.map((m) => (
+								<button
 									key={m.id}
 									type="button"
 									onClick={() => setMood(m.id)}
 									aria-pressed={mood === m.id}
-									initial={{ opacity: 0, y: 10 }}
-									animate={{ opacity: 1, y: 0 }}
-									transition={{ delay: 0.1 + index * 0.03, duration: 0.3 }}
 									className={cn(
-										'p-3 sm:p-2.5 text-left text-sm font-light rounded-xl border transition-all duration-300 min-h-[48px]',
+										'p-4 text-left text-sm rounded-xl',
+										'border transition-all duration-200 min-h-[52px]',
+										'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF]/50',
 										mood === m.id
-											? 'border-aurora/40 bg-gradient-to-r from-nebula/20 to-aurora/15 text-stellar shadow-glow-sm'
-											: 'border-stellar-faint bg-stellar-ghost text-stellar-muted hover:text-stellar hover:bg-stellar-faint hover:border-stellar-dim',
+											? 'border-[#00D4FF]/40 bg-[#00D4FF]/10 text-white'
+											: 'border-white/8 bg-white/5 text-white/60 hover:bg-white/8 hover:text-white/80',
 									)}
 								>
 									{m.label}
-								</motion.button>
+								</button>
 							))}
 						</div>
 
 						{/* Mood detail input */}
 						{selectedMood?.hasDetail ? (
-							<motion.div
-								initial={{ opacity: 0, height: 0 }}
-								animate={{ opacity: 1, height: 'auto' }}
-								exit={{ opacity: 0, height: 0 }}
-							>
-								<Input
-									type="text"
-									value={moodDetail}
-									onChange={(e) => setMoodDetail(e.target.value)}
-									placeholder="Add detail (optional)"
-									className="mt-2 min-h-[48px] sm:min-h-0"
-								/>
-							</motion.div>
+							<Input
+								type="text"
+								value={moodDetail}
+								onChange={(e) => setMoodDetail(e.target.value)}
+								placeholder="Add detail (optional)"
+								className="mt-4"
+							/>
 						) : null}
 					</div>
 				</div>
 
-				<DialogFooter className="gap-3 flex-col-reverse sm:flex-row pt-4">
+				<DialogFooter>
 					<Button
 						variant="ghost"
 						onClick={onClose}
-						className="flex-1 min-h-[48px] sm:min-h-0"
+						className="flex-1 sm:flex-none min-h-[52px] sm:min-h-0"
 					>
 						Skip
 					</Button>
 					<Button
-						variant="cosmic"
+						variant="primary"
 						onClick={handleSave}
-						className="flex-1 min-h-[48px] sm:min-h-0"
+						className="flex-1 sm:flex-none min-h-[52px] sm:min-h-0"
 					>
 						Join
 					</Button>
@@ -169,42 +167,38 @@ export function UserBadge({ user, onClick }: UserBadgeProps) {
 	const mood = MOODS.find((m) => m.id === user.mood);
 
 	return (
-		<motion.button
+		<button
 			type="button"
 			onClick={onClick}
-			initial={{ opacity: 0, y: 20 }}
-			animate={{ opacity: 1, y: 0 }}
-			transition={{ duration: 0.5, delay: 0.3 }}
 			className={cn(
-				'flex items-center gap-3 px-4 py-2.5',
-				'bg-gradient-to-r from-void-light/80 via-nebula-deep/20 to-void-light/80',
-				'backdrop-blur-md',
-				'border border-stellar-faint hover:border-nebula-glow/40',
-				'rounded-full text-stellar',
-				'cursor-pointer',
-				'transition-all duration-300',
-				'hover:shadow-glow-sm',
-				'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aurora/50',
-				'min-h-[48px]',
+				'flex items-center gap-3.5 px-5 py-3',
+				'rounded-full min-h-[56px]',
+				'glass-panel',
+				'text-white cursor-pointer',
+				'transition-all duration-200 ease-out',
+				'hover:bg-white/8 hover:border-white/15',
+				'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF]/50',
+				'active:scale-[0.98]',
+				'animate-fade-in-up',
 			)}
 		>
+			{/* Avatar with glow */}
 			<div
 				className="w-9 h-9 rounded-full shrink-0 shadow-glow-sm"
-				style={{
-					background: getAvatarGradient(user.avatar),
-					boxShadow: '0 0 15px rgba(168, 85, 247, 0.3)',
-				}}
+				style={{ background: getAvatarGradient(user.avatar) }}
 			/>
-			<div className="text-left">
-				<div className="font-light text-sm tracking-wide">{user.name}</div>
+
+			{/* Name and mood */}
+			<div className="text-left pr-1">
+				<div className="font-medium text-sm tracking-wide">{user.name}</div>
 				{mood ? (
-					<div className="text-xs text-stellar-muted truncate max-w-[120px] sm:max-w-none">
+					<div className="text-xs text-white/50 truncate max-w-[160px]">
 						{mood.label}
-						{user.moodDetail ? ` ${user.moodDetail}` : ''}
+						{user.moodDetail ? ` · ${user.moodDetail}` : ''}
 					</div>
 				) : null}
 			</div>
-		</motion.button>
+		</button>
 	);
 }
 
@@ -214,19 +208,13 @@ interface JoinButtonProps {
 
 export function JoinButton({ onClick }: JoinButtonProps) {
 	return (
-		<motion.div
-			initial={{ opacity: 0, y: 20 }}
-			animate={{ opacity: 1, y: 0 }}
-			transition={{ duration: 0.5, delay: 0.3 }}
+		<Button
+			onClick={onClick}
+			variant="primary"
+			size="lg"
+			className="animate-fade-in-up min-h-[56px]"
 		>
-			<Button
-				onClick={onClick}
-				variant="default"
-				size="lg"
-				className="px-8 font-serif text-base tracking-wide"
-			>
-				Join the circle
-			</Button>
-		</motion.div>
+			Join the circle
+		</Button>
 	);
 }

@@ -4,7 +4,7 @@ import { cn } from '../../lib/utils';
 
 const ToggleGroupContext = React.createContext<{
 	size?: 'default' | 'sm' | 'lg';
-	variant?: 'default' | 'outline' | 'cosmic';
+	variant?: 'default' | 'outline';
 }>({
 	size: 'default',
 	variant: 'default',
@@ -13,7 +13,7 @@ const ToggleGroupContext = React.createContext<{
 const ToggleGroup = React.forwardRef<
 	React.ElementRef<typeof ToggleGroupPrimitive.Root>,
 	React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Root> & {
-		variant?: 'default' | 'outline' | 'cosmic';
+		variant?: 'default' | 'outline';
 		size?: 'default' | 'sm' | 'lg';
 	}
 >(
@@ -24,12 +24,10 @@ const ToggleGroup = React.forwardRef<
 		<ToggleGroupPrimitive.Root
 			ref={ref}
 			className={cn(
-				// Cosmic glass container
-				'inline-flex items-center justify-center gap-1 p-1.5',
-				'rounded-full',
-				'bg-gradient-to-r from-void-light/60 via-nebula-deep/10 to-void-light/60',
-				'backdrop-blur-md',
-				'border border-stellar-ghost',
+				'inline-flex items-center justify-center',
+				// Improved padding and gap for better visual balance
+				'rounded-full p-1.5 gap-1',
+				'bg-black/40 backdrop-blur-md border border-white/8',
 				className,
 			)}
 			{...props}
@@ -46,7 +44,7 @@ ToggleGroup.displayName = ToggleGroupPrimitive.Root.displayName;
 const ToggleGroupItem = React.forwardRef<
 	React.ElementRef<typeof ToggleGroupPrimitive.Item>,
 	React.ComponentPropsWithoutRef<typeof ToggleGroupPrimitive.Item> & {
-		variant?: 'default' | 'outline' | 'cosmic';
+		variant?: 'default' | 'outline';
 		size?: 'default' | 'sm' | 'lg';
 	}
 >(({ className, children, variant, size, ...props }, ref) => {
@@ -56,29 +54,24 @@ const ToggleGroupItem = React.forwardRef<
 		<ToggleGroupPrimitive.Item
 			ref={ref}
 			className={cn(
-				// Base styles
-				'inline-flex items-center justify-center whitespace-nowrap rounded-full',
-				'text-sm font-light tracking-wide',
-				'transition-all duration-300 ease-out',
-				'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aurora/40',
+				'inline-flex items-center justify-center whitespace-nowrap',
+				'rounded-full text-xs font-medium tracking-wide',
+				'transition-all duration-200 ease-out',
+				'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF]/50',
 				'disabled:pointer-events-none disabled:opacity-40',
-				// Variant styles
+				// Default variant styling
 				{
-					// Default: subtle cosmic
-					'text-stellar-muted hover:text-stellar hover:bg-stellar-ghost data-[state=on]:bg-gradient-to-r data-[state=on]:from-nebula/30 data-[state=on]:to-aurora/20 data-[state=on]:text-stellar data-[state=on]:shadow-glow-sm':
+					'bg-transparent text-white/50 hover:text-white/70 data-[state=on]:bg-white/12 data-[state=on]:text-white data-[state=on]:shadow-sm':
 						(variant || context.variant) === 'default',
-					// Outline: border accent
-					'border border-transparent text-stellar-muted hover:text-stellar hover:border-stellar-faint data-[state=on]:border-aurora/40 data-[state=on]:text-stellar data-[state=on]:bg-aurora/10':
+					'border border-transparent bg-transparent text-white/50 hover:text-white/70 data-[state=on]:border-[#00D4FF]/30 data-[state=on]:bg-[#00D4FF]/10 data-[state=on]:text-white':
 						(variant || context.variant) === 'outline',
-					// Cosmic: full glow
-					'text-stellar-muted hover:text-stellar data-[state=on]:bg-gradient-to-r data-[state=on]:from-nebula data-[state=on]:via-nebula-glow data-[state=on]:to-aurora data-[state=on]:text-white data-[state=on]:shadow-glow':
-						(variant || context.variant) === 'cosmic',
 				},
-				// Size variants
+				// Sizes - generous horizontal padding for touch targets
 				{
-					'h-9 px-4': (size || context.size) === 'default',
-					'h-7 px-3 text-xs': (size || context.size) === 'sm',
-					'h-11 px-5': (size || context.size) === 'lg',
+					'h-9 px-4 min-h-[44px] sm:min-h-0':
+						(size || context.size) === 'default',
+					'h-8 px-3 text-2xs': (size || context.size) === 'sm',
+					'h-11 px-5 text-sm': (size || context.size) === 'lg',
 				},
 				className,
 			)}

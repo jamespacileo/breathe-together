@@ -15,22 +15,6 @@ import { useSimulation } from './hooks/useSimulation';
 import { type UserIdentity, useAppStore } from './stores/appStore';
 import './App.css';
 
-/**
- * Cosmic Background Component
- * Renders starfield and nebula atmospheric layers
- */
-function CosmicBackground() {
-	return (
-		<>
-			{/* Starfield layer - subtle twinkling stars */}
-			<div className="starfield" aria-hidden="true" />
-
-			{/* Nebula glow layer - atmospheric depth */}
-			<div className="nebula-layer" aria-hidden="true" />
-		</>
-	);
-}
-
 function App() {
 	// Dev mode toggle (Cmd/Ctrl + Shift + D)
 	const [isDevMode, setIsDevMode] = useState(false);
@@ -85,10 +69,7 @@ function App() {
 	};
 
 	return (
-		<div className="fixed inset-0 overflow-hidden bg-void">
-			{/* Cosmic background layers */}
-			<CosmicBackground />
-
+		<div className="fixed inset-0 overflow-hidden bg-background">
 			{/* Main breathing visualization */}
 			<BreathingOrb
 				breathState={breathState}
@@ -96,56 +77,62 @@ function App() {
 				config={config}
 			/>
 
-			{/* Settings/Debug panel - top left */}
-			<div className="absolute top-4 left-4 sm:top-5 sm:left-5 z-50">
-				{isDevMode ? (
-					<DebugPanel
-						config={config}
-						setConfig={setConfig}
-						breathState={breathState}
-						presence={presence}
-						isOpen={showDebug}
-						setIsOpen={setShowDebug}
-						simulationControls={{
-							simulationConfig,
-							updateSimulationConfig: (updates) => {
-								updateSimulationConfig(updates);
-								updateSimConfig(updates);
-							},
-							isSimulationRunning: isRunning,
-							onStart: start,
-							onStop: stop,
-							onReset: reset,
-						}}
-					/>
-				) : (
-					<SettingsPanel
-						config={config}
-						setConfig={setConfig}
-						isOpen={showDebug}
-						setIsOpen={setShowDebug}
-						onEnableDevMode={() => setIsDevMode(true)}
-					/>
-				)}
-			</div>
+			{/* HUD Layer - Game-inspired minimal overlay */}
+			<div className="absolute inset-0 pointer-events-none">
+				{/* Top bar - generous padding for breathing room */}
+				<div className="absolute top-0 left-0 right-0 p-5 sm:p-8 flex justify-between items-start pointer-events-auto">
+					{/* Settings - top left */}
+					<div className="z-50">
+						{isDevMode ? (
+							<DebugPanel
+								config={config}
+								setConfig={setConfig}
+								breathState={breathState}
+								presence={presence}
+								isOpen={showDebug}
+								setIsOpen={setShowDebug}
+								simulationControls={{
+									simulationConfig,
+									updateSimulationConfig: (updates) => {
+										updateSimulationConfig(updates);
+										updateSimConfig(updates);
+									},
+									isSimulationRunning: isRunning,
+									onStart: start,
+									onStop: stop,
+									onReset: reset,
+								}}
+							/>
+						) : (
+							<SettingsPanel
+								config={config}
+								setConfig={setConfig}
+								isOpen={showDebug}
+								setIsOpen={setShowDebug}
+								onEnableDevMode={() => setIsDevMode(true)}
+							/>
+						)}
+					</div>
 
-			{/* Presence counter - top center */}
-			<div className="absolute top-5 sm:top-8 left-1/2 -translate-x-1/2 z-10">
-				<PresenceCounter presence={presence} />
-			</div>
+					{/* Pattern selector - top right */}
+					<div className="z-10">
+						<PatternSelector pattern={pattern} onChange={setPattern} />
+					</div>
+				</div>
 
-			{/* Pattern selector - top right */}
-			<div className="absolute top-4 right-4 sm:top-5 sm:right-5 z-10">
-				<PatternSelector pattern={pattern} onChange={setPattern} />
-			</div>
+				{/* Presence counter - top center */}
+				<div className="absolute top-5 sm:top-8 left-1/2 -translate-x-1/2 z-10 pointer-events-auto">
+					<PresenceCounter presence={presence} />
+				</div>
 
-			{/* User badge or join button - bottom center */}
-			<div className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 z-10">
-				{user ? (
-					<UserBadge user={user} onClick={() => setShowIdentity(true)} />
-				) : (
-					<JoinButton onClick={() => setShowIdentity(true)} />
-				)}
+				{/* Bottom bar - centered user action with safe area padding */}
+				<div className="absolute bottom-0 left-0 right-0 pb-8 sm:pb-10 flex justify-center pointer-events-auto">
+					{user ? (
+						<UserBadge user={user} onClick={() => setShowIdentity(true)} />
+					) : (
+						<JoinButton onClick={() => setShowIdentity(true)} />
+					)}
+				</div>
 			</div>
 
 			{/* Identity panel modal */}

@@ -5,7 +5,7 @@ import { cn } from '../../lib/utils';
 export interface ButtonProps
 	extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 	asChild?: boolean;
-	variant?: 'default' | 'outline' | 'ghost' | 'link' | 'cosmic' | 'aurora';
+	variant?: 'default' | 'primary' | 'outline' | 'ghost' | 'link';
 	size?: 'default' | 'sm' | 'lg' | 'icon';
 }
 
@@ -25,36 +25,34 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 			<Comp
 				className={cn(
 					// Base styles
-					'inline-flex items-center justify-center whitespace-nowrap text-sm font-light tracking-wide transition-all duration-300 ease-out',
-					'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-aurora/50 focus-visible:ring-offset-2 focus-visible:ring-offset-void',
+					'inline-flex items-center justify-center whitespace-nowrap rounded-full',
+					'text-sm font-medium tracking-wide',
+					'transition-all duration-200 ease-out',
+					'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-transparent',
 					'disabled:pointer-events-none disabled:opacity-40',
+					'active:scale-[0.98]',
 					// Variants
 					{
-						// Default: Subtle cosmic glass
-						'rounded-full bg-gradient-to-r from-nebula/20 via-nebula-glow/10 to-aurora/10 text-stellar backdrop-blur-md border border-stellar-faint hover:border-nebula-glow/50 hover:shadow-glow-sm hover:from-nebula/30 hover:to-aurora/20':
+						// Default: subtle glass button
+						'bg-white/8 text-white/90 border border-white/10 hover:bg-white/12 hover:border-white/20':
 							variant === 'default',
-						// Outline: Ethereal border
-						'rounded-full border border-stellar-dim bg-transparent text-stellar-soft hover:text-stellar hover:border-aurora/50 hover:bg-aurora/5 hover:shadow-glow-aurora':
-							variant === 'outline',
-						// Ghost: Minimal presence
-						'rounded-lg text-stellar-muted hover:text-stellar hover:bg-stellar-ghost':
+						// Primary: PlayStation-style glowing CTA
+						'cta-button text-white font-medium': variant === 'primary',
+						// Outline: refined border button
+						'glow-button text-white/90': variant === 'outline',
+						// Ghost: minimal hover state
+						'text-white/70 hover:text-white hover:bg-white/8':
 							variant === 'ghost',
-						// Link: Aurora accent
-						'text-aurora-bright underline-offset-4 hover:underline hover:text-aurora decoration-aurora/50':
+						// Link: underline style
+						'text-white/80 underline-offset-4 hover:underline hover:text-white':
 							variant === 'link',
-						// Cosmic: Full nebula effect
-						'rounded-full bg-gradient-to-r from-nebula via-nebula-glow to-aurora text-white font-normal shadow-glow hover:shadow-glow-lg hover:scale-[1.02] active:scale-[0.98]':
-							variant === 'cosmic',
-						// Aurora: Bright accent button
-						'rounded-full bg-gradient-to-r from-aurora-deep via-aurora to-aurora-bright text-void-deep font-medium shadow-glow-aurora hover:shadow-[0_0_50px_rgba(34,211,238,0.5)] hover:scale-[1.02] active:scale-[0.98]':
-							variant === 'aurora',
 					},
-					// Sizes
+					// Sizes - generous horizontal padding for better proportions
 					{
-						'h-10 px-6 py-2': size === 'default',
-						'h-8 px-4 text-xs': size === 'sm',
-						'h-12 px-8 text-base': size === 'lg',
-						'h-10 w-10 p-0': size === 'icon',
+						'h-11 px-6 py-2.5': size === 'default',
+						'h-9 px-5 text-xs': size === 'sm',
+						'h-13 px-10 text-base': size === 'lg',
+						'h-11 w-11 p-0': size === 'icon',
 					},
 					className,
 				)}

@@ -1,4 +1,5 @@
 import * as DialogPrimitive from '@radix-ui/react-dialog';
+import { X } from 'lucide-react';
 import * as React from 'react';
 import { cn } from '../../lib/utils';
 
@@ -17,11 +18,8 @@ const DialogOverlay = React.forwardRef<
 	<DialogPrimitive.Overlay
 		ref={ref}
 		className={cn(
-			// Cosmic void overlay with nebula tint
 			'fixed inset-0 z-50',
-			'bg-gradient-to-br from-void-deep/95 via-nebula-deep/30 to-void-deep/95',
-			'backdrop-blur-sm',
-			// Animations
+			'bg-black/70 backdrop-blur-sm',
 			'data-[state=open]:animate-in data-[state=closed]:animate-out',
 			'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
 			className,
@@ -40,17 +38,14 @@ const DialogContent = React.forwardRef<
 		<DialogPrimitive.Content
 			ref={ref}
 			className={cn(
-				// Positioning
-				'fixed left-[50%] top-[50%] z-50 grid w-full max-w-md translate-x-[-50%] translate-y-[-50%] gap-5 p-8',
-				// Cosmic glass morphism
-				'bg-gradient-to-br from-void-light/90 via-nebula-deep/20 to-void-light/90',
-				'backdrop-blur-xl',
-				'border border-nebula-glow/20',
-				'rounded-2xl',
-				// Cosmic shadows
-				'shadow-[0_0_80px_rgba(107,33,168,0.15),0_25px_60px_rgba(0,0,0,0.5)]',
+				'fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%]',
+				'w-full max-w-[380px]',
+				// Generous padding for content breathing room
+				'grid gap-6 p-7 sm:p-8',
+				// Glass panel styling
+				'glass-panel rounded-3xl',
 				// Animations
-				'duration-300',
+				'duration-300 ease-out',
 				'data-[state=open]:animate-in data-[state=closed]:animate-out',
 				'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
 				'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
@@ -61,31 +56,18 @@ const DialogContent = React.forwardRef<
 			{...props}
 		>
 			{children}
-			{/* Close button with cosmic styling */}
 			<DialogPrimitive.Close
 				className={cn(
-					'absolute right-4 top-4 rounded-full p-2',
-					'text-stellar-muted hover:text-stellar',
-					'hover:bg-stellar-ghost',
+					'absolute right-5 top-5',
+					'h-9 w-9 rounded-full',
+					'inline-flex items-center justify-center',
+					'text-white/40 hover:text-white/80',
+					'hover:bg-white/10',
 					'transition-all duration-200',
-					'focus:outline-none focus:ring-2 focus:ring-aurora/30',
-					'disabled:pointer-events-none',
+					'focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00D4FF]/50',
 				)}
 			>
-				<svg
-					xmlns="http://www.w3.org/2000/svg"
-					width="18"
-					height="18"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					strokeWidth="1.5"
-					strokeLinecap="round"
-					strokeLinejoin="round"
-				>
-					<path d="M18 6 6 18" />
-					<path d="m6 6 12 12" />
-				</svg>
+				<X className="h-4 w-4" />
 				<span className="sr-only">Close</span>
 			</DialogPrimitive.Close>
 		</DialogPrimitive.Content>
@@ -110,7 +92,8 @@ const DialogFooter = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
 	<div
 		className={cn(
-			'flex flex-col-reverse gap-3 sm:flex-row sm:justify-center pt-2',
+			'flex flex-col-reverse gap-3 sm:flex-row sm:justify-center',
+			'pt-4 mt-2',
 			className,
 		)}
 		{...props}
@@ -124,11 +107,7 @@ const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
 	<DialogPrimitive.Title
 		ref={ref}
-		className={cn(
-			// Elegant serif title
-			'font-serif text-2xl font-light tracking-wide text-stellar',
-			className,
-		)}
+		className={cn('text-xl font-light tracking-tight text-white', className)}
 		{...props}
 	/>
 ));
@@ -140,7 +119,7 @@ const DialogDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
 	<DialogPrimitive.Description
 		ref={ref}
-		className={cn('text-sm text-stellar-muted font-light', className)}
+		className={cn('text-sm text-white/50', className)}
 		{...props}
 	/>
 ));

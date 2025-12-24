@@ -9,11 +9,8 @@ const Label = React.forwardRef<
 	<LabelPrimitive.Root
 		ref={ref}
 		className={cn(
-			// Cosmic label styling
-			'text-xs font-light tracking-[0.15em] uppercase',
-			'text-stellar-muted',
-			'leading-none',
-			'peer-disabled:cursor-not-allowed peer-disabled:opacity-50',
+			'text-xs font-medium text-white/60 leading-none',
+			'peer-disabled:cursor-not-allowed peer-disabled:opacity-40',
 			className,
 		)}
 		{...props}
