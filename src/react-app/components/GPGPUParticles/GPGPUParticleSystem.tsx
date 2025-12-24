@@ -186,74 +186,77 @@ void main() {
   vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
   vDistance = -mvPosition.z;
 
-  // === ENHANCED DEPTH-BASED SIZE VARIATION ===
-  // Particles closer to camera are larger and more prominent
+  // === DEPTH-BASED SIZE VARIATION ===
   float depthFromCamera = vDistance;
   float minDepth = 30.0;
   float maxDepth = 70.0;
   vDepthFactor = 1.0 - smoothstep(minDepth, maxDepth, depthFromCamera);
 
-  // Enhanced distance attenuation with stronger depth effect
-  float distanceAttenuation = 280.0 / max(vDistance, 1.0);
+  // Smaller base size for more defined particles
+  float distanceAttenuation = 180.0 / max(vDistance, 1.0);
 
   // Front particles get size boost, back particles get reduced
-  float depthSizeMultiplier = 0.7 + vDepthFactor * 0.6; // 0.7 to 1.3 range
+  float depthSizeMultiplier = 0.6 + vDepthFactor * 0.5; // 0.6 to 1.1 range
 
-  float baseSize = aSize * 0.7 * distanceAttenuation * depthSizeMultiplier;
+  // Smaller overall size (0.4 instead of 0.7)
+  float baseSize = aSize * 0.4 * distanceAttenuation * depthSizeMultiplier;
 
   // === PHASE-SPECIFIC SIZE PULSING ===
   float sizePulse = 1.0;
   if (uPhaseType == 0) {
-    // Inhale: particles slightly shrink as they gather
-    sizePulse = 1.0 - uBreathPhase * 0.15;
+    sizePulse = 1.0 - uBreathPhase * 0.1;
   } else if (uPhaseType == 1) {
-    // Hold-in: gentle size pulsing
-    sizePulse = 1.0 + sin(uTime * 2.5 + aPhase * 6.28) * 0.08;
+    sizePulse = 1.0 + sin(uTime * 2.5 + aPhase * 6.28) * 0.06;
   } else if (uPhaseType == 2) {
-    // Exhale: particles grow as they release
-    sizePulse = 1.0 + (1.0 - uBreathPhase) * 0.2;
+    sizePulse = 1.0 + (1.0 - uBreathPhase) * 0.15;
   } else {
-    // Hold-out: relaxed, slightly larger
-    sizePulse = 1.1 + sin(uTime * 1.5 + aPhase * 6.28) * 0.05;
+    sizePulse = 1.05 + sin(uTime * 1.5 + aPhase * 6.28) * 0.04;
   }
   baseSize *= sizePulse;
 
-  // === TRAIL EFFECT: Stretch particles based on velocity ===
-  // Higher velocity = slightly larger particles (motion blur simulation)
-  float trailStretch = 1.0 + velocity * 8.0; // Velocity-based size increase
-  baseSize *= min(trailStretch, 1.5); // Cap at 1.5x
+  // === TRAIL EFFECT ===
+  float trailStretch = 1.0 + velocity * 5.0;
+  baseSize *= min(trailStretch, 1.3);
 
-  // Very subtle sparkle - random bright moments (increased frequency)
-  float sparkleTime = uTime * 4.0 + aPhase * 100.0;
-  float sparkle = pow(max(0.0, sin(sparkleTime) * sin(sparkleTime * 1.7) * sin(sparkleTime * 2.3)), 6.0);
+  // === SPARKLE - more frequent and noticeable ===
+  float sparkleTime = uTime * 5.0 + aPhase * 100.0;
+  // Multiple frequency sparkle for more glimmer
+  float sparkle1 = pow(max(0.0, sin(sparkleTime)), 12.0);
+  float sparkle2 = pow(max(0.0, sin(sparkleTime * 1.7 + 1.0)), 12.0);
+  float sparkle3 = pow(max(0.0, sin(sparkleTime * 2.3 + 2.0)), 12.0);
+  float sparkle = max(sparkle1, max(sparkle2, sparkle3));
   vSparkle = sparkle;
 
-  // Slight size boost during sparkle
-  baseSize *= (1.0 + sparkle * 0.35);
+  // Size boost during sparkle - makes them "pop"
+  baseSize *= (1.0 + sparkle * 0.5);
 
   gl_PointSize = baseSize * uPixelRatio;
   gl_Position = projectionMatrix * mvPosition;
 
-  // === COLOR TEMPERATURE SHIFT ===
-  // Apply warm/cool shift to base color
-  vec3 warmShift = vec3(0.08, 0.02, -0.05); // Warmer: more red/yellow, less blue
-  vec3 coolShift = vec3(-0.03, 0.02, 0.06); // Cooler: more blue, less red
+  // === COLOR - boost saturation to prevent washout ===
+  vec3 color = aColor;
 
-  // Inhale = cooler (energizing), Exhale = warmer (relaxing)
+  // Increase saturation by pushing away from gray
+  vec3 gray = vec3(dot(color, vec3(0.299, 0.587, 0.114)));
+  color = mix(gray, color, 1.4); // 1.4 = 40% more saturated
+
+  // Temperature shift (subtle)
+  vec3 warmShift = vec3(0.06, 0.01, -0.04);
+  vec3 coolShift = vec3(-0.02, 0.01, 0.05);
+
   float warmth = 0.0;
   if (uPhaseType == 0) {
-    warmth = -0.5; // Cool during inhale
+    warmth = -0.4;
   } else if (uPhaseType == 1) {
-    warmth = 0.0; // Neutral during hold-in
+    warmth = 0.0;
   } else if (uPhaseType == 2) {
-    warmth = 0.7; // Warm during exhale
+    warmth = 0.5;
   } else {
-    warmth = 0.3; // Slightly warm during hold-out (relaxed)
+    warmth = 0.2;
   }
 
   vec3 colorShift = warmth > 0.0 ? warmShift * warmth : coolShift * abs(warmth);
-  vColor = aColor + colorShift;
-  vColor = clamp(vColor, 0.0, 1.0);
+  vColor = clamp(color + colorShift, 0.0, 1.0);
 }
 `;
 
@@ -278,93 +281,80 @@ void main() {
   vec2 center = gl_PointCoord - 0.5;
   float dist = length(center);
 
-  // === TRAIL EFFECT: Elongate particles based on velocity ===
-  // Create motion blur by stretching the circle into an ellipse
-  float trailAmount = min(vVelocity * 5.0, 0.4);
-  // Stretch vertically for upward/downward motion feel
-  vec2 stretchedCoord = center;
-  stretchedCoord.y *= (1.0 - trailAmount * 0.3);
-  float stretchedDist = length(stretchedCoord);
-
-  // Sharp circle with soft edge (using stretched coordinates for trail)
-  float alpha = 1.0 - smoothstep(0.3, 0.5, stretchedDist);
+  // === SHARPER, MORE DEFINED PARTICLE SHAPE ===
+  // Tight core with sharp falloff - like a shiny bead
+  float coreDist = dist * 2.5; // Scaled for sharper edge
+  float alpha = 1.0 - smoothstep(0.6, 1.0, coreDist);
 
   if (alpha < 0.01) discard;
 
-  // Base color (already shifted by temperature in vertex shader)
+  // Base color (already saturated in vertex shader)
   vec3 color = vColor;
-
-  // === PHASE-SPECIFIC BRIGHTNESS ===
-  float brightness = 0.7;
   int phaseType = int(vPhaseType + 0.5);
 
-  if (phaseType == 0) {
-    // Inhale: gradually brighten as energy gathers
-    brightness = 0.65 + vBreathPhase * 0.25;
-  } else if (phaseType == 1) {
-    // Hold-in: peak brightness with gentle pulse
-    brightness = 0.85 + sin(uTime * 3.0) * 0.05;
-  } else if (phaseType == 2) {
-    // Exhale: warm glow that softens
-    brightness = 0.9 - vBreathPhase * 0.15;
-  } else {
-    // Hold-out: soft, relaxed brightness
-    brightness = 0.7 + sin(uTime * 2.0) * 0.03;
+  // === SHINY HIGHLIGHT - gem-like specular ===
+  // Bright core highlight that preserves color
+  float coreHighlight = exp(-coreDist * 4.0);
+  // Boost the color itself rather than adding white
+  color *= (1.0 + coreHighlight * 0.8);
+
+  // === SPARKLE/GLIMMER - sharp bright flash ===
+  if (vSparkle > 0.3) {
+    float sparkleIntensity = pow((vSparkle - 0.3) / 0.7, 2.0);
+    // Sharp highlight in center during sparkle
+    float sparkleCore = exp(-coreDist * 6.0) * sparkleIntensity;
+    // Add white highlight only in the very center
+    color += vec3(1.0) * sparkleCore * 0.8;
+    // Also boost overall brightness during sparkle
+    color *= (1.0 + sparkleIntensity * 0.4);
   }
 
+  // === PHASE-SPECIFIC BRIGHTNESS (gentler to preserve color) ===
+  float brightness = 1.0;
+  if (phaseType == 0) {
+    brightness = 0.85 + vBreathPhase * 0.15;
+  } else if (phaseType == 1) {
+    brightness = 1.0 + sin(uTime * 3.0) * 0.05;
+  } else if (phaseType == 2) {
+    brightness = 1.0 - vBreathPhase * 0.1;
+  } else {
+    brightness = 0.9 + sin(uTime * 2.0) * 0.03;
+  }
   color *= brightness;
 
-  // === ENHANCED DEPTH-BASED BRIGHTNESS ===
-  // Front particles are brighter, back particles are dimmer
-  float depthBrightness = 0.7 + vDepthFactor * 0.4; // 0.7 to 1.1 range
+  // === DEPTH-BASED BRIGHTNESS (subtler) ===
+  float depthBrightness = 0.8 + vDepthFactor * 0.25;
   color *= depthBrightness;
 
-  // === MOTION TRAIL GLOW ===
-  // Add subtle glow trail during movement
-  if (vVelocity > 0.01) {
-    float trailGlow = vVelocity * 3.0;
-    // Add warm trail color during exhale, cool during inhale
-    vec3 trailColor = phaseType == 2 ? vec3(1.0, 0.9, 0.8) : vec3(0.8, 0.9, 1.0);
-    color = mix(color, trailColor, trailGlow * 0.15);
-  }
+  // === EDGE RIM for definition ===
+  // Subtle bright rim at edge for that "shiny object" look
+  float rimDist = abs(coreDist - 0.7);
+  float rim = exp(-rimDist * 8.0) * 0.15;
+  color += vColor * rim; // Add color, not white
 
-  // Very subtle sparkle glint - slightly more noticeable
-  if (vSparkle > 0.4) {
-    float sparkleIntensity = (vSparkle - 0.4) * 1.67;
-    vec3 sparkleColor = vec3(1.0, 0.98, 0.95);
-    // Warmer sparkle during exhale
-    if (phaseType == 2 || phaseType == 3) {
-      sparkleColor = vec3(1.0, 0.95, 0.88);
-    }
-    color = mix(color, sparkleColor, sparkleIntensity * 0.5);
-  }
-
-  // Soft center glow (warmer during exhale)
-  float centerBright = exp(-dist * 6.0) * 0.25;
-  vec3 glowColor = phaseType == 2 ? vec3(1.0, 0.92, 0.85) : vec3(1.0, 0.95, 0.9);
-  color += glowColor * centerBright;
-
-  // === ALPHA MODULATION ===
-  // Base alpha varies by phase
-  float baseAlpha = 0.55;
+  // === ALPHA - more opaque for solid look ===
+  float baseAlpha = 0.8;
   if (phaseType == 0) {
-    baseAlpha = 0.5 + vBreathPhase * 0.25; // Become more solid during inhale
+    baseAlpha = 0.7 + vBreathPhase * 0.2;
   } else if (phaseType == 1) {
-    baseAlpha = 0.75; // Most solid during hold-in
+    baseAlpha = 0.9;
   } else if (phaseType == 2) {
-    baseAlpha = 0.7 - vBreathPhase * 0.15; // Fade during exhale
+    baseAlpha = 0.85 - vBreathPhase * 0.1;
   } else {
-    baseAlpha = 0.55; // Soft during hold-out
+    baseAlpha = 0.75;
   }
+
+  // Sparkle makes particles more solid/bright
+  baseAlpha = min(1.0, baseAlpha + vSparkle * 0.2);
+
   alpha *= baseAlpha;
 
-  // === ENHANCED DEPTH FADE ===
-  // Stronger fade for back particles, creating depth
-  float depthFade = 0.3 + vDepthFactor * 0.7; // Back particles more transparent
+  // Depth fade (gentler)
+  float depthFade = 0.5 + vDepthFactor * 0.5;
   alpha *= depthFade;
 
-  // Standard distance fade
-  float distanceFade = 1.0 - smoothstep(35.0, 70.0, vDistance);
+  // Distance fade
+  float distanceFade = 1.0 - smoothstep(40.0, 70.0, vDistance);
   alpha *= distanceFade;
 
   gl_FragColor = vec4(color, alpha);
@@ -446,17 +436,17 @@ export function GPGPUParticleSystem({
 	const sphereRef = useRef<THREE.Mesh>(null);
 	const sphereMaterialRef = useRef<THREE.ShaderMaterial>(null);
 
-	// Softer, more cohesive color palette
+	// More saturated color palette for visible, gem-like particles
 	const colorPalette = useMemo(
 		() => [
-			new THREE.Color(0x7ec8d9), // Soft teal
-			new THREE.Color(0xb8d4e3), // Pale blue
-			new THREE.Color(0xd4c4e3), // Soft lavender
-			new THREE.Color(0xe3d4d4), // Blush
-			new THREE.Color(0xc9e4de), // Mint
-			new THREE.Color(0xe8dfd8), // Cream
-			new THREE.Color(0xd1e3dd), // Sage
-			new THREE.Color(0xdde3f0), // Periwinkle
+			new THREE.Color(0x4db8cc), // Vibrant teal
+			new THREE.Color(0x7ba3d4), // Clear blue
+			new THREE.Color(0xb894d4), // Vivid lavender
+			new THREE.Color(0xd4a0a0), // Rose pink
+			new THREE.Color(0x7dd4b8), // Bright mint
+			new THREE.Color(0xd4c490), // Warm gold
+			new THREE.Color(0x90d4a8), // Fresh green
+			new THREE.Color(0xa0b8e0), // Sky blue
 		],
 		[],
 	);
