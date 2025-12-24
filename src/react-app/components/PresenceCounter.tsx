@@ -12,39 +12,50 @@ export function PresenceCounter({ presence, className }: PresenceCounterProps) {
 		<motion.div
 			initial={{ opacity: 0 }}
 			animate={{ opacity: 1 }}
-			transition={{ duration: 0.8, delay: 0.3 }}
+			transition={{ duration: 1.2, delay: 0.5 }}
 			className={cn(
-				'flex items-center gap-2 text-white/40 pointer-events-none select-none',
+				'flex items-center gap-3 pointer-events-none select-none',
 				className,
 			)}
 			role="status"
 			aria-live="polite"
 			aria-label={`${presence.count} people breathing together`}
 		>
-			{/* Subtle pulse indicator */}
-			<span className="relative flex h-1.5 w-1.5">
+			{/* Breathing pulse - syncs with the meditation rhythm */}
+			<span className="relative flex h-2 w-2">
 				<motion.span
-					className="absolute inline-flex h-full w-full rounded-full bg-white/20"
-					animate={{ scale: [1, 1.8, 1], opacity: [0.4, 0, 0.4] }}
-					transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+					className="absolute inline-flex h-full w-full rounded-full bg-white/10"
+					animate={{
+						scale: [1, 2.5, 1],
+						opacity: [0.3, 0, 0.3],
+					}}
+					transition={{
+						duration: 4,
+						repeat: Number.POSITIVE_INFINITY,
+						ease: 'easeInOut',
+					}}
 				/>
-				<span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white/40" />
+				<span className="relative inline-flex rounded-full h-2 w-2 bg-white/25" />
 			</span>
 
-			<AnimatePresence mode="popLayout">
-				<motion.span
-					key={presence.count}
-					initial={{ opacity: 0, y: -6 }}
-					animate={{ opacity: 1, y: 0 }}
-					exit={{ opacity: 0, y: 6 }}
-					transition={{ duration: 0.25 }}
-					className="font-display text-base tabular-nums italic"
-				>
-					{presence.count}
-				</motion.span>
-			</AnimatePresence>
+			<div className="flex items-baseline gap-1.5">
+				<AnimatePresence mode="popLayout">
+					<motion.span
+						key={presence.count}
+						initial={{ opacity: 0, y: -8 }}
+						animate={{ opacity: 1, y: 0 }}
+						exit={{ opacity: 0, y: 8 }}
+						transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+						className="font-display text-lg tabular-nums italic text-white/35"
+					>
+						{presence.count}
+					</motion.span>
+				</AnimatePresence>
 
-			<span className="text-[11px] tracking-wide opacity-60">here</span>
+				<span className="text-[10px] tracking-widest uppercase text-white/20 font-light">
+					breathing
+				</span>
+			</div>
 		</motion.div>
 	);
 }
