@@ -7,23 +7,23 @@ import type { VisualizationConfig } from '../../../lib/config';
 
 const PARTICLE_COUNT = 1500;
 
-// Avatar/mood color palette
+// Avatar/mood color palette - slightly muted for softer look
 const COLOR_PALETTE = [
-	[0.31, 0.8, 0.77], // Teal
-	[1.0, 0.42, 0.42], // Coral
-	[1.0, 0.9, 0.43], // Yellow
-	[0.58, 0.88, 0.83], // Mint
-	[0.95, 0.51, 0.51], // Salmon
-	[0.67, 0.59, 0.85], // Lavender
-	[0.99, 0.73, 0.83], // Pink
-	[0.66, 0.85, 0.92], // Sky blue
-	[0.98, 0.97, 0.44], // Lemon
-	[0.53, 0.85, 0.69], // Seafoam
-	[1.0, 0.67, 0.65], // Peach
-	[0.71, 0.89, 0.98], // Light blue
-	[0.86, 0.93, 0.76], // Pale green
-	[1.0, 0.83, 0.71], // Apricot
-	[0.79, 0.69, 1.0], // Lilac
+	[0.31, 0.75, 0.72], // Teal
+	[0.9, 0.45, 0.45], // Coral
+	[0.95, 0.85, 0.45], // Yellow
+	[0.55, 0.82, 0.78], // Mint
+	[0.88, 0.52, 0.52], // Salmon
+	[0.62, 0.56, 0.78], // Lavender
+	[0.92, 0.7, 0.78], // Pink
+	[0.62, 0.8, 0.88], // Sky blue
+	[0.92, 0.9, 0.45], // Lemon
+	[0.5, 0.8, 0.65], // Seafoam
+	[0.92, 0.65, 0.62], // Peach
+	[0.68, 0.85, 0.92], // Light blue
+	[0.82, 0.88, 0.72], // Pale green
+	[0.95, 0.8, 0.68], // Apricot
+	[0.75, 0.65, 0.92], // Lilac
 ];
 
 // Simple noise function for fluid motion
@@ -40,61 +40,59 @@ function noise3D(x: number, y: number, z: number, t: number): number {
 
 // Particle state
 interface Particle {
-	// Original position (for direction reference)
 	ox: number;
 	oy: number;
 	oz: number;
-	// Current position
 	x: number;
 	y: number;
 	z: number;
-	// Original distance from center
 	originalDist: number;
-	// Phase offset for variation
 	phase: number;
 }
 
-// Vertex shader
+// Vertex shader with configurable brightness and size
 const VERTEX_SHADER = `
 attribute float size;
 
 uniform float uBreathPhase;
+uniform float uBrightness;
+uniform float uSizeMultiplier;
 
 varying vec3 vColor;
 varying float vAlpha;
-varying float vBreathPhase;
+varying float vBrightness;
 
 void main() {
 	vColor = color;
-	vBreathPhase = uBreathPhase;
+	vBrightness = uBrightness;
 
-	// Brighter on inhale (breathPhase = 1), more transparent on exhale
-	vAlpha = 0.3 + uBreathPhase * 0.6;
+	// Softer alpha variation with breath
+	vAlpha = 0.2 + uBreathPhase * 0.4;
 
 	vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-	gl_PointSize = size * (300.0 / -mvPosition.z);
+	gl_PointSize = size * uSizeMultiplier * (250.0 / -mvPosition.z);
 	gl_Position = projectionMatrix * mvPosition;
 }
 `;
 
-// Fragment shader
+// Fragment shader with reduced glow
 const FRAGMENT_SHADER = `
 varying vec3 vColor;
 varying float vAlpha;
-varying float vBreathPhase;
+varying float vBrightness;
 
 void main() {
 	float dist = length(gl_PointCoord - vec2(0.5));
 	if (dist > 0.5) discard;
 
-	float alpha = smoothstep(0.5, 0.1, dist) * vAlpha;
+	// Softer falloff
+	float alpha = smoothstep(0.5, 0.15, dist) * vAlpha;
 
-	// Add brightness boost on inhale
-	float brightness = 1.0 + vBreathPhase * 0.5;
-	vec3 color = vColor * brightness;
+	// Apply configurable brightness
+	vec3 color = vColor * vBrightness;
 
-	// Add slight glow in center
-	color += vec3(0.15) * (1.0 - dist * 2.0) * vBreathPhase;
+	// Subtle center highlight only
+	color += vec3(0.05) * (1.0 - dist * 2.0);
 
 	gl_FragColor = vec4(color, alpha);
 }
@@ -114,9 +112,13 @@ export function BreathingSphere({ breathState, config }: BreathingSphereProps) {
 	const timeRef = useRef(0);
 	breathStateRef.current = breathState;
 
-	// Radius configuration - dramatic compression
-	const expandedRadius = config.sphereExpandedRadius ?? 2.2;
-	const compressedRadius = config.sphereContractedRadius ?? 0.4;
+	// Use config values with defaults
+	const expandedRadius = config.sphereExpandedRadius;
+	const compressedRadius = config.sphereContractedRadius;
+	const noiseStrength = config.noiseStrength;
+	const rotationSpeed = config.rotationSpeed;
+	const brightness = config.particleBrightness;
+	const sizeMultiplier = config.particleSize;
 
 	// Initialize particles
 	const { particles, buffers } = useMemo(() => {
@@ -126,7 +128,6 @@ export function BreathingSphere({ breathState, config }: BreathingSphereProps) {
 		const colors = new Float32Array(PARTICLE_COUNT * 3);
 
 		for (let i = 0; i < PARTICLE_COUNT; i++) {
-			// Random spherical distribution
 			const radius = 0.8 + Math.random() * 1.2;
 			const theta = Math.random() * Math.PI * 2;
 			const phi = Math.acos(2 * Math.random() - 1);
@@ -148,15 +149,12 @@ export function BreathingSphere({ breathState, config }: BreathingSphereProps) {
 				phase: Math.random() * Math.PI * 2,
 			});
 
-			// Initial positions (expanded)
 			positions[i * 3] = ox * expandedRadius;
 			positions[i * 3 + 1] = oy * expandedRadius;
 			positions[i * 3 + 2] = oz * expandedRadius;
 
-			// Random size
 			sizes[i] = 0.5 + Math.random() * 1.5;
 
-			// Random color from palette
 			const color =
 				COLOR_PALETTE[Math.floor(Math.random() * COLOR_PALETTE.length)];
 			colors[i * 3] = color[0];
@@ -176,8 +174,11 @@ export function BreathingSphere({ breathState, config }: BreathingSphereProps) {
 		const time = timeRef.current;
 		const breathPhase = getBreathValue(breathStateRef.current);
 
-		// Update shader uniform
-		materialRef.current.uniforms.uBreathPhase.value = breathPhase;
+		// Update shader uniforms
+		const uniforms = materialRef.current.uniforms;
+		uniforms.uBreathPhase.value = breathPhase;
+		uniforms.uBrightness.value = brightness;
+		uniforms.uSizeMultiplier.value = sizeMultiplier;
 
 		const positionAttr = geometryRef.current.attributes.position;
 		const positions = positionAttr.array as Float32Array;
@@ -185,26 +186,21 @@ export function BreathingSphere({ breathState, config }: BreathingSphereProps) {
 		for (let i = 0; i < PARTICLE_COUNT; i++) {
 			const p = particles[i];
 
-			// Normalize direction
 			const nx = p.ox / p.originalDist;
 			const ny = p.oy / p.originalDist;
 			const nz = p.oz / p.originalDist;
 
-			// Target radius based on breath phase
-			// breathPhase 1 = inhaled (compressed), breathPhase 0 = exhaled (expanded)
 			const targetRadius =
 				expandedRadius - breathPhase * (expandedRadius - compressedRadius);
 
-			// Add variation based on original position for organic feel
 			const radiusVariation = (p.originalDist / 2) * 0.3;
 			const particleTargetRadius = targetRadius * (0.85 + radiusVariation);
 
-			// Calculate base position
 			let x = nx * particleTargetRadius;
 			let y = ny * particleTargetRadius;
 			let z = nz * particleTargetRadius;
 
-			// Add fluid noise displacement - less when compressed, more when expanded
+			// Configurable noise displacement
 			const noiseScale = 0.15;
 			const noiseTime = time * 0.5;
 
@@ -227,13 +223,14 @@ export function BreathingSphere({ breathState, config }: BreathingSphereProps) {
 				noiseTime + p.phase + 200,
 			);
 
-			// Noise strength decreases when inhaled (tighter formation)
-			const noiseStrength = 0.1 + (1 - breathPhase) * 0.4;
-			x += noiseX * noiseStrength;
-			y += noiseY * noiseStrength;
-			z += noiseZ * noiseStrength;
+			// Use configurable noise strength
+			const effectiveNoiseStrength =
+				(0.1 + (1 - breathPhase) * 0.4) * noiseStrength;
+			x += noiseX * effectiveNoiseStrength;
+			y += noiseY * effectiveNoiseStrength;
+			z += noiseZ * effectiveNoiseStrength;
 
-			// Add gentle floating motion - reduced when compressed
+			// Gentle floating motion
 			const floatSpeed = 0.3;
 			const floatAmount = 0.03 + (1 - breathPhase) * 0.05;
 			x += Math.sin(time * floatSpeed + p.phase) * floatAmount;
@@ -247,8 +244,8 @@ export function BreathingSphere({ breathState, config }: BreathingSphereProps) {
 
 		positionAttr.needsUpdate = true;
 
-		// Rotate the entire particle system slowly
-		pointsRef.current.rotation.y += 0.002;
+		// Configurable rotation
+		pointsRef.current.rotation.y += rotationSpeed;
 		pointsRef.current.rotation.x = Math.sin(time * 0.1) * 0.1;
 	});
 
@@ -267,6 +264,8 @@ export function BreathingSphere({ breathState, config }: BreathingSphereProps) {
 				ref={materialRef}
 				uniforms={{
 					uBreathPhase: { value: 0 },
+					uBrightness: { value: brightness },
+					uSizeMultiplier: { value: sizeMultiplier },
 				}}
 				vertexShader={VERTEX_SHADER}
 				fragmentShader={FRAGMENT_SHADER}

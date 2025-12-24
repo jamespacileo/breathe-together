@@ -4,44 +4,37 @@ import type { VisualizationConfig } from '../lib/config';
 import type { BreathState } from './useBreathSync';
 
 export interface BreathingSpringConfig {
-	stiffness: number; // Maps to tension
-	damping: number; // Maps to friction
-	restDelta?: number; // Threshold for "at rest"
+	stiffness: number;
+	damping: number;
+	restDelta?: number;
 }
+
+// Fixed breathing animation parameters
+const BREATH_IN_SCALE = 0.7;
+const BREATH_OUT_SCALE = 1.2;
+const HOLD_OSCILLATION = 0.02;
+const HOLD_OSCILLATION_SPEED = 0.003;
+const SPRING_STIFFNESS = 60;
+const SPRING_DAMPING = 14;
 
 /**
  * Calculate target scale based on breath phase and progress
  */
-export function calculateTargetScale(
-	breathState: BreathState,
-	config: VisualizationConfig,
-): number {
+export function calculateTargetScale(breathState: BreathState): number {
 	const { phase, progress } = breathState;
-	const {
-		breatheInScale,
-		breatheOutScale,
-		holdOscillation,
-		holdOscillationSpeed,
-	} = config;
 
 	if (phase === 'in') {
-		// REVERSED: Breathing in contracts (expanded → contracted)
-		// Like taking a controlled breath, visualization pulls inward
-		return breatheOutScale - (breatheOutScale - breatheInScale) * progress;
+		return BREATH_OUT_SCALE - (BREATH_OUT_SCALE - BREATH_IN_SCALE) * progress;
 	} else if (phase === 'out') {
-		// REVERSED: Breathing out expands (contracted → expanded)
-		// Like relaxing a muscle, visualization spreads outward
-		return breatheInScale + (breatheOutScale - breatheInScale) * progress;
+		return BREATH_IN_SCALE + (BREATH_OUT_SCALE - BREATH_IN_SCALE) * progress;
 	} else if (phase === 'hold-in') {
-		// Holding after inhale: subtle oscillation around contracted state
 		const oscillation =
-			Math.sin(Date.now() * holdOscillationSpeed) * holdOscillation;
-		return breatheInScale + oscillation;
+			Math.sin(Date.now() * HOLD_OSCILLATION_SPEED) * HOLD_OSCILLATION;
+		return BREATH_IN_SCALE + oscillation;
 	} else {
-		// Holding after exhale: subtle oscillation around expanded state
 		const oscillation =
-			Math.sin(Date.now() * holdOscillationSpeed) * holdOscillation;
-		return breatheOutScale + oscillation;
+			Math.sin(Date.now() * HOLD_OSCILLATION_SPEED) * HOLD_OSCILLATION;
+		return BREATH_OUT_SCALE + oscillation;
 	}
 }
 
@@ -51,37 +44,27 @@ export function calculateTargetScale(
  */
 export function useBreathingSpring(
 	breathState: BreathState,
-	config: VisualizationConfig,
+	_config?: VisualizationConfig,
 ): MotionValue<number> {
 	const targetValue = useMotionValue(1);
 
-	// Configure spring with app's physics parameters
 	const scale = useSpring(targetValue, {
-		stiffness: config.mainSpringTension,
-		damping: config.mainSpringFriction,
+		stiffness: SPRING_STIFFNESS,
+		damping: SPRING_DAMPING,
 		restDelta: 0.001,
 	});
 
-	// Update target when breath state changes
-	// biome-ignore lint/correctness/useExhaustiveDependencies: targetValue is stable (MotionValue), and we intentionally depend on specific config properties only
+	// biome-ignore lint/correctness/useExhaustiveDependencies: targetValue is stable
 	useEffect(() => {
-		const targetScale = calculateTargetScale(breathState, config);
+		const targetScale = calculateTargetScale(breathState);
 		targetValue.set(targetScale);
-	}, [breathState, config]);
+	}, [breathState]);
 
 	return scale;
 }
 
 /**
- * Convert our Spring class parameters to Framer Motion spring config
- *
- * Our Spring class:
- * - tension: spring stiffness (higher = faster)
- * - friction: damping (higher = less bouncy)
- *
- * Framer Motion:
- * - stiffness: spring constant (same as tension)
- * - damping: resistance (same as friction)
+ * Convert spring parameters to Framer Motion config
  */
 export function toFramerSpringConfig(
 	tension: number,
