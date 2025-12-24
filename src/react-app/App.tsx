@@ -77,51 +77,52 @@ function App() {
 				config={config}
 			/>
 
-			{/* Settings/Debug panel - top left */}
-			<div className="absolute top-3 left-3 sm:top-4 sm:left-4 z-50">
-				{isDevMode ? (
-					<DebugPanel
-						config={config}
-						setConfig={setConfig}
-						breathState={breathState}
-						presence={presence}
-						isOpen={showDebug}
-						setIsOpen={setShowDebug}
-						simulationControls={{
-							simulationConfig,
-							updateSimulationConfig: (updates) => {
-								updateSimulationConfig(updates);
-								updateSimConfig(updates);
-							},
-							isSimulationRunning: isRunning,
-							onStart: start,
-							onStop: stop,
-							onReset: reset,
-						}}
-					/>
-				) : (
-					<SettingsPanel
-						config={config}
-						setConfig={setConfig}
-						isOpen={showDebug}
-						setIsOpen={setShowDebug}
-						onEnableDevMode={() => setIsDevMode(true)}
-					/>
-				)}
-			</div>
+			{/* Top bar - settings left, presence center, pattern right */}
+			<div className="absolute top-0 left-0 right-0 z-20">
+				<div className="flex items-start justify-between px-3 pt-3 sm:px-5 sm:pt-5">
+					{/* Settings/Debug panel - top left */}
+					<div className="relative">
+						{isDevMode ? (
+							<DebugPanel
+								config={config}
+								setConfig={setConfig}
+								breathState={breathState}
+								presence={presence}
+								isOpen={showDebug}
+								setIsOpen={setShowDebug}
+								simulationControls={{
+									simulationConfig,
+									updateSimulationConfig: (updates) => {
+										updateSimulationConfig(updates);
+										updateSimConfig(updates);
+									},
+									isSimulationRunning: isRunning,
+									onStart: start,
+									onStop: stop,
+									onReset: reset,
+								}}
+							/>
+						) : (
+							<SettingsPanel
+								config={config}
+								setConfig={setConfig}
+								isOpen={showDebug}
+								setIsOpen={setShowDebug}
+								onEnableDevMode={() => setIsDevMode(true)}
+							/>
+						)}
+					</div>
 
-			{/* Presence counter - top center */}
-			<div className="absolute top-3 sm:top-6 left-1/2 -translate-x-1/2 z-10">
-				<PresenceCounter presence={presence} />
-			</div>
+					{/* Presence counter - top center */}
+					<PresenceCounter presence={presence} />
 
-			{/* Pattern selector - top right */}
-			<div className="absolute top-3 right-3 sm:top-6 sm:right-6 z-10">
-				<PatternSelector pattern={pattern} onChange={setPattern} />
+					{/* Pattern selector - top right */}
+					<PatternSelector pattern={pattern} onChange={setPattern} />
+				</div>
 			</div>
 
 			{/* User badge or join button - bottom center */}
-			<div className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-10">
+			<div className="absolute bottom-5 sm:bottom-6 left-1/2 -translate-x-1/2 z-10">
 				{user ? (
 					<UserBadge user={user} onClick={() => setShowIdentity(true)} />
 				) : (

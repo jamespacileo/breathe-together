@@ -1,5 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { PatternId } from '../lib/patterns';
 import { useBreathSync } from './useBreathSync';
 
 describe('useBreathSync', () => {
@@ -61,15 +62,17 @@ describe('useBreathSync', () => {
 
 	it('should respond to pattern change', async () => {
 		vi.setSystemTime(0);
-		const { result, rerender } = renderHook(
-			({ pattern }) => useBreathSync(pattern),
-			{ initialProps: { pattern: 'box' as const } },
-		);
+		const { result, rerender } = renderHook<
+			ReturnType<typeof useBreathSync>,
+			{ pattern: PatternId }
+		>(({ pattern }) => useBreathSync(pattern), {
+			initialProps: { pattern: 'box' },
+		});
 
 		expect(result.current.phase).toBe('in');
 
 		// Switch to relaxation pattern
-		rerender({ pattern: 'relaxation' as const });
+		rerender({ pattern: 'relaxation' });
 
 		// Relaxation pattern also starts with 'in' but has different timing
 		expect(result.current.phase).toBe('in');

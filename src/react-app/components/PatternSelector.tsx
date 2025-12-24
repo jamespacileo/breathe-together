@@ -1,6 +1,8 @@
+import { AnimatePresence, motion } from 'framer-motion';
+import { ChevronDown } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { PATTERNS, type PatternId } from '../lib/patterns';
 import { cn } from '../lib/utils';
-import { ToggleGroup, ToggleGroupItem } from './ui/toggle-group';
 
 interface PatternSelectorProps {
 	pattern: PatternId;
@@ -13,31 +15,126 @@ export function PatternSelector({
 	onChange,
 	className,
 }: PatternSelectorProps) {
+	const [isOpen, setIsOpen] = useState(false);
+	const containerRef = useRef<HTMLDivElement>(null);
+	const currentPattern = PATTERNS[pattern];
+
+	// Close on outside click
+	useEffect(() => {
+		function handleClickOutside(event: MouseEvent) {
+			if (
+				containerRef.current &&
+				!containerRef.current.contains(event.target as Node)
+			) {
+				setIsOpen(false);
+			}
+		}
+
+		if (isOpen) {
+			document.addEventListener('mousedown', handleClickOutside);
+			return () =>
+				document.removeEventListener('mousedown', handleClickOutside);
+		}
+	}, [isOpen]);
+
+	const handleSelect = (id: PatternId) => {
+		onChange(id);
+		setIsOpen(false);
+	};
+
 	return (
-		<ToggleGroup
-			type="single"
-			value={pattern}
-			onValueChange={(value) => value && onChange(value as PatternId)}
-			className={cn(
-				'bg-white/5 backdrop-blur-sm rounded-2xl sm:rounded-full p-1',
-				'flex-col sm:flex-row',
-				className,
-			)}
+		<motion.div
+			ref={containerRef}
+			initial={{ opacity: 0, x: 10 }}
+			animate={{ opacity: 1, x: 0 }}
+			transition={{ duration: 0.5, delay: 0.3 }}
+			className={cn('relative', className)}
 		>
-			{Object.entries(PATTERNS).map(([key, cfg]) => (
-				<ToggleGroupItem
-					key={key}
-					value={key}
-					aria-label={`${cfg.name} breathing pattern`}
+			<button
+				type="button"
+				onClick={() => setIsOpen(!isOpen)}
+				aria-expanded={isOpen}
+				aria-haspopup="listbox"
+				aria-label={`Current pattern: ${currentPattern.name}. Click to change.`}
+				className={cn(
+					'flex items-center gap-1.5 px-3 py-1.5 rounded-full',
+					'bg-white/5 backdrop-blur-sm border border-white/10',
+					'text-white/70 text-xs font-light',
+					'hover:bg-white/10 hover:border-white/20 transition-all',
+					'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/30',
+					'min-h-[36px]',
+				)}
+			>
+				<span className="hidden sm:inline">{currentPattern.name}</span>
+				<span className="sm:hidden">{getPatternShortName(pattern)}</span>
+				<ChevronDown
 					className={cn(
-						'rounded-xl sm:rounded-full px-3 py-2 sm:py-1.5 text-xs',
-						'min-h-[44px] sm:min-h-0',
-						'data-[state=on]:bg-white/20',
+						'h-3.5 w-3.5 transition-transform',
+						isOpen && 'rotate-180',
 					)}
-				>
-					{cfg.name}
-				</ToggleGroupItem>
-			))}
-		</ToggleGroup>
+				/>
+			</button>
+
+			<AnimatePresence>
+				{isOpen && (
+					<motion.div
+						initial={{ opacity: 0, y: -8, scale: 0.95 }}
+						animate={{ opacity: 1, y: 0, scale: 1 }}
+						exit={{ opacity: 0, y: -8, scale: 0.95 }}
+						transition={{ duration: 0.15 }}
+						role="listbox"
+						className={cn(
+							'absolute right-0 mt-1.5 py-1',
+							'bg-black/80 backdrop-blur-md border border-white/15 rounded-xl',
+							'shadow-xl shadow-black/30',
+							'min-w-[140px]',
+						)}
+					>
+						{Object.entries(PATTERNS).map(([key, cfg]) => (
+							<button
+								key={key}
+								type="button"
+								role="option"
+								aria-selected={pattern === key}
+								onClick={() => handleSelect(key as PatternId)}
+								className={cn(
+									'w-full px-3 py-2 text-left text-sm transition-colors',
+									'hover:bg-white/10',
+									'focus-visible:outline-none focus-visible:bg-white/10',
+									pattern === key ? 'text-white bg-white/5' : 'text-white/70',
+								)}
+							>
+								<div className="font-medium">{cfg.name}</div>
+								<div className="text-xs text-white/40 mt-0.5">
+									{getPatternDescription(key as PatternId)}
+								</div>
+							</button>
+						))}
+					</motion.div>
+				)}
+			</AnimatePresence>
+		</motion.div>
 	);
+}
+
+function getPatternShortName(pattern: PatternId): string {
+	switch (pattern) {
+		case 'box':
+			return 'Box';
+		case 'relaxation':
+			return '4-7-8';
+		default:
+			return PATTERNS[pattern].name;
+	}
+}
+
+function getPatternDescription(pattern: PatternId): string {
+	switch (pattern) {
+		case 'box':
+			return '4-4-4-4 balanced';
+		case 'relaxation':
+			return '4-7-8 calming';
+		default:
+			return '';
+	}
 }

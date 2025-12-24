@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import type { BreathState } from '../hooks/useBreathSync';
 import type { PresenceData } from '../hooks/usePresence';
 import type { VisualizationConfig } from '../lib/config';
@@ -41,22 +41,25 @@ export function BreathingOrb({
 				/>
 			</ErrorBoundary>
 
-			{/* Breathing guide text with Framer Motion animations */}
-			<div className="absolute bottom-[15%] left-1/2 -translate-x-1/2 text-center text-white pointer-events-none select-none">
-				<motion.div
-					key={breathState.phaseName}
-					initial={{ opacity: 0, y: 10 }}
-					animate={{ opacity: 0.9, y: 0 }}
-					exit={{ opacity: 0, y: -10 }}
-					transition={{ duration: 0.3 }}
-					className="text-2xl font-light tracking-[0.2em] uppercase mb-2"
-				>
-					{breathState.phaseName}
-				</motion.div>
-
-				<div className="w-48 h-0.5 bg-white/20 rounded-sm overflow-hidden mx-auto">
+			{/* Breathing guide - centered below the orb */}
+			<div className="absolute bottom-[18%] sm:bottom-[15%] left-0 right-0 flex flex-col items-center pointer-events-none select-none px-4">
+				<AnimatePresence mode="wait">
 					<motion.div
-						className="h-full bg-white/60 rounded-sm"
+						key={breathState.phaseName}
+						initial={{ opacity: 0, y: 8 }}
+						animate={{ opacity: 0.8, y: 0 }}
+						exit={{ opacity: 0, y: -8 }}
+						transition={{ duration: 0.25, ease: 'easeOut' }}
+						className="text-xl sm:text-2xl font-extralight tracking-[0.25em] uppercase text-white/90 mb-3"
+					>
+						{breathState.phaseName}
+					</motion.div>
+				</AnimatePresence>
+
+				{/* Progress bar - thin and subtle */}
+				<div className="w-32 sm:w-40 h-px bg-white/15 rounded-full overflow-hidden">
+					<motion.div
+						className="h-full bg-white/50 rounded-full"
 						initial={{ width: 0 }}
 						animate={{ width: `${breathState.progress * 100}%` }}
 						transition={{
