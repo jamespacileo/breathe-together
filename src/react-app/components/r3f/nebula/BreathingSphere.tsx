@@ -213,7 +213,6 @@ export function BreathingSphere({
 }: BreathingSphereProps) {
 	const materialRef = useRef<THREE.ShaderMaterial>(null);
 	const geometryRef = useRef<THREE.BufferGeometry>(null);
-	const startTimeRef = useRef(performance.now() / 1000);
 	const breathStateRef = useRef(breathState);
 	const prevUserCountRef = useRef(0);
 	breathStateRef.current = breathState;
@@ -306,7 +305,7 @@ export function BreathingSphere({
 
 	// Main animation loop - JS physics + GPU buffer updates
 	useFrame((state) => {
-		if (!materialRef.current || !geometryRef.current) return;
+		if (!(materialRef.current && geometryRef.current)) return;
 
 		const elapsed = state.clock.elapsedTime;
 		const breathValue = getBreathValue(breathStateRef.current);
