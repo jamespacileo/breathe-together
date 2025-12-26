@@ -1,8 +1,10 @@
 import { Cloud, Clouds } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import { memo, useRef } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import type * as THREE from 'three';
-import { useGlobalUniforms } from '../../../hooks/useGlobalUniforms';
+import { nebulaObj } from '../../../lib/theatre';
+import type { NebulaProps as TheatreNebulaProps } from '../../../lib/theatre/types';
+import { useTheatreBreath } from '../TheatreBreathProvider';
 
 /**
  * Nebula Background
@@ -10,40 +12,42 @@ import { useGlobalUniforms } from '../../../hooks/useGlobalUniforms';
  * Volumetric cloud layers creating a dreamy cosmic atmosphere.
  * Multiple cloud layers at different depths create parallax effect.
  * Breath-synchronized opacity and drift for immersive meditation.
+ * Driven by Theatre.js for cinematic control.
  */
 export const NebulaBackground = memo(() => {
 	const groupRef = useRef<THREE.Group>(null);
-	const globalUniforms = useGlobalUniforms();
+	const theatreBreath = useTheatreBreath();
+	const [theatreProps, setTheatreProps] = useState<TheatreNebulaProps>(
+		nebulaObj.value,
+	);
 
-	// Track opacity values for smooth animation
-	const opacityRef = useRef({ layer1: 0.3, layer2: 0.25, layer3: 0.2 });
+	// Subscribe to Theatre.js object changes
+	useEffect(() => {
+		const unsubscribe = nebulaObj.onValuesChange((values) => {
+			setTheatreProps(values);
+		});
+		return unsubscribe;
+	}, []);
 
 	useFrame((_, delta) => {
 		if (!groupRef.current) return;
 
-		// Read from global uniforms (computed once per frame at scene root)
-		const { breathPhase, diaphragmDirection } = globalUniforms.current;
+		// Read from Theatre.js breath values
+		const { breathPhase, diaphragmDirection } = theatreBreath.current;
 
 		// Gentle rotation for cosmic drift effect
-		const baseRotation = 0.003;
-		groupRef.current.rotation.y += baseRotation * delta;
+		groupRef.current.rotation.y += theatreProps.rotationSpeed * delta;
 
 		// Subtle vertical movement following breath
-		const targetY = diaphragmDirection * 0.5;
+		const targetY = diaphragmDirection * theatreProps.verticalDrift * 25;
 		groupRef.current.position.y +=
 			(targetY - groupRef.current.position.y) * 0.015;
 
 		// Breath-synchronized scale pulse (very subtle)
-		const targetScale = 1 + breathPhase * 0.03;
+		const targetScale = theatreProps.scale * (1 + breathPhase * 0.03);
 		const currentScale = groupRef.current.scale.x;
 		const newScale = currentScale + (targetScale - currentScale) * 0.02;
 		groupRef.current.scale.setScalar(newScale);
-
-		// Update opacity based on breath phase
-		const breathInfluence = breathPhase * 0.08;
-		opacityRef.current.layer1 = 0.3 + breathInfluence;
-		opacityRef.current.layer2 = 0.25 + breathInfluence * 0.7;
-		opacityRef.current.layer3 = 0.2 + breathInfluence * 0.5;
 	});
 
 	return (
@@ -56,7 +60,7 @@ export const NebulaBackground = memo(() => {
 					bounds={[100, 60, 40]}
 					volume={30}
 					color="#1a2a45"
-					opacity={0.5}
+					opacity={0.5 * theatreProps.opacity}
 					speed={0.02}
 					fade={80}
 					position={[0, 0, -15]}
@@ -68,7 +72,7 @@ export const NebulaBackground = memo(() => {
 					bounds={[80, 50, 30]}
 					volume={22}
 					color="#253550"
-					opacity={0.4}
+					opacity={0.4 * theatreProps.opacity}
 					speed={0.04}
 					fade={60}
 					position={[15, 8, -5]}
@@ -80,7 +84,7 @@ export const NebulaBackground = memo(() => {
 					bounds={[60, 40, 25]}
 					volume={16}
 					color="#2a4060"
-					opacity={0.35}
+					opacity={0.35 * theatreProps.opacity}
 					speed={0.05}
 					fade={50}
 					position={[-20, -8, 5]}

@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary.tsx';
+import { initializeStudio } from './lib/theatre';
 
 const queryClient = new QueryClient({
 	defaultOptions: {
@@ -56,14 +57,17 @@ if (!rootElement) {
 	throw new Error('Root element not found');
 }
 
-createRoot(rootElement).render(
-	<StrictMode>
-		<ErrorBoundary fallback={<AppErrorFallback />}>
-			<QueryClientProvider client={queryClient}>
-				<Suspense fallback={<LoadingFallback />}>
-					<App />
-				</Suspense>
-			</QueryClientProvider>
-		</ErrorBoundary>
-	</StrictMode>,
-);
+// Initialize Theatre.js Studio in dev mode, then render app
+void initializeStudio().then(() => {
+	createRoot(rootElement).render(
+		<StrictMode>
+			<ErrorBoundary fallback={<AppErrorFallback />}>
+				<QueryClientProvider client={queryClient}>
+					<Suspense fallback={<LoadingFallback />}>
+						<App />
+					</Suspense>
+				</QueryClientProvider>
+			</ErrorBoundary>
+		</StrictMode>,
+	);
+});

@@ -11,7 +11,10 @@ import { LAYER_DEPTHS } from '../../lib/layers';
  */
 export const GalaxyBackground = memo(() => {
 	return (
-		<mesh position={[0, 0, LAYER_DEPTHS.GALAXY_BACKGROUND]} scale={[200, 200, 1]}>
+		<mesh
+			position={[0, 0, LAYER_DEPTHS.GALAXY_BACKGROUND]}
+			scale={[200, 200, 1]}
+		>
 			<planeGeometry args={[1, 1]} />
 			<meshBasicMaterial transparent opacity={0.6} side={THREE.DoubleSide}>
 				<GradientTexture

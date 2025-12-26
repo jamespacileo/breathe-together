@@ -5,6 +5,7 @@
  * - Bloom: Soft glow around bright elements
  * - Vignette: Dark edges for focus
  * - Noise: Film grain for atmosphere
+ * - Driven by Theatre.js for cinematic control
  */
 import {
 	Bloom,
@@ -13,32 +14,41 @@ import {
 	Vignette,
 } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
-import type { VisualizationConfig } from '../../../lib/config';
-import { POST_PROCESSING } from '../../../lib/layers';
+import { useEffect, useState } from 'react';
+import { postProcessingObj } from '../../../lib/theatre';
+import type { PostProcessingProps as TheatrePostProps } from '../../../lib/theatre/types';
 
-interface PostProcessingEffectsProps {
-	config: VisualizationConfig;
-}
+export function PostProcessingEffects() {
+	const [theatreProps, setTheatreProps] = useState<TheatrePostProps>(
+		postProcessingObj.value,
+	);
 
-export function PostProcessingEffects({ config }: PostProcessingEffectsProps) {
+	// Subscribe to Theatre.js object changes
+	useEffect(() => {
+		const unsubscribe = postProcessingObj.onValuesChange((values) => {
+			setTheatreProps(values);
+		});
+		return unsubscribe;
+	}, []);
+
 	return (
-		<EffectComposer disableNormalPass>
+		<EffectComposer enableNormalPass={false}>
 			<Bloom
-				intensity={POST_PROCESSING.BLOOM_INTENSITY}
-				luminanceThreshold={POST_PROCESSING.BLOOM_THRESHOLD}
-				luminanceSmoothing={POST_PROCESSING.BLOOM_SMOOTHING}
+				intensity={theatreProps.bloomIntensity}
+				luminanceThreshold={theatreProps.bloomThreshold}
+				luminanceSmoothing={theatreProps.bloomSmoothing}
 				mipmapBlur
-				radius={POST_PROCESSING.BLOOM_RADIUS}
+				radius={theatreProps.bloomRadius}
 			/>
 			<Vignette
-				darkness={config.vignetteIntensity}
-				offset={POST_PROCESSING.VIGNETTE_OFFSET}
+				darkness={theatreProps.vignetteDarkness}
+				offset={theatreProps.vignetteOffset}
 				blendFunction={BlendFunction.NORMAL}
 			/>
 			<Noise
 				premultiply
 				blendFunction={BlendFunction.SOFT_LIGHT}
-				opacity={config.noiseOpacity}
+				opacity={theatreProps.noiseOpacity}
 			/>
 		</EffectComposer>
 	);

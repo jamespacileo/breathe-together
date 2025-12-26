@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
+import type { MoodId } from '../../shared/constants';
 import { getMoodGradient, MOODS } from '../lib/colors';
 import type { PatternId } from '../lib/patterns';
 import { cn } from '../lib/utils';
@@ -12,7 +13,6 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from './ui/dialog';
-import type { MoodId } from '../../shared/constants';
 
 type WizardStep = 'pattern' | 'identity';
 
@@ -140,8 +140,7 @@ function IdentityStep({ mood, setMood, onSkip, onJoin }: IdentityStepProps) {
 							)}
 							style={{
 								background: getMoodGradient(m.id as MoodId),
-								boxShadow:
-									mood === m.id ? `0 0 20px ${m.color}50` : undefined,
+								boxShadow: mood === m.id ? `0 0 20px ${m.color}50` : undefined,
 							}}
 						/>
 						<span className="text-xs text-stellar-muted font-light">

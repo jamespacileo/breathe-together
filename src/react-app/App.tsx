@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { BreathingOrb } from './components/BreathingOrb';
 import { JoinButton, JoinWizard, UserBadge } from './components/IdentityPanel';
-import { LevaControls } from './components/LevaControls';
 import { PresenceCounter } from './components/PresenceCounter';
 import { useBreathSync } from './hooks/useBreathSync';
 import { useHeartbeat, usePresence } from './hooks/usePresence';
@@ -30,14 +29,11 @@ function App() {
 	const {
 		user,
 		setUser,
-		config,
-		setConfig,
 		pattern,
 		setPattern,
 		showIdentity,
 		setShowIdentity,
 		simulationConfig,
-		updateSimulationConfig,
 	} = useAppStore();
 
 	const breathState = useBreathSync(pattern);
@@ -51,15 +47,8 @@ function App() {
 	// Send heartbeats if not in simulation mode
 	useHeartbeat(simulationConfig.enabled ? null : sessionId, user?.avatar);
 
-	// Simulation controls
-	const {
-		snapshot,
-		isRunning,
-		start,
-		stop,
-		reset,
-		updateConfig: updateSimConfig,
-	} = useSimulation(simulationConfig);
+	// Simulation for presence data
+	const { snapshot } = useSimulation(simulationConfig);
 
 	// Presence data (uses simulation snapshot when simulated)
 	const presence = usePresence({
@@ -73,30 +62,11 @@ function App() {
 
 	return (
 		<div className="fixed inset-0 h-dvh overflow-hidden bg-void">
-			{/* Leva settings panel - always visible in top right */}
-			<LevaControls
-				config={config}
-				setConfig={setConfig}
-				breathState={breathState}
-				presence={presence}
-				simulationControls={{
-					simulationConfig,
-					updateSimulationConfig: (updates) => {
-						updateSimulationConfig(updates);
-						updateSimConfig(updates);
-					},
-					isSimulationRunning: isRunning,
-					onStart: start,
-					onStop: stop,
-					onReset: reset,
-				}}
-			/>
-
 			{/* Cosmic background layers */}
 			<CosmicBackground />
 
 			{/* Main breathing visualization */}
-			<BreathingOrb breathState={breathState} config={config} />
+			<BreathingOrb breathState={breathState} />
 
 			{/* Presence counter - top center */}
 			<div className="absolute top-5 sm:top-8 left-1/2 -translate-x-1/2 z-10">

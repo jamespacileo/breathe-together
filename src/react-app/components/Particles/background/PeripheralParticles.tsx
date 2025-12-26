@@ -1,9 +1,11 @@
 import { Sparkles } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import { memo, useRef } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import type * as THREE from 'three';
-import { useGlobalUniforms } from '../../../hooks/useGlobalUniforms';
 import { LAYER_DEPTHS } from '../../../lib/layers';
+import { peripheralParticlesObj } from '../../../lib/theatre';
+import type { PeripheralParticlesProps } from '../../../lib/theatre/types';
+import { useTheatreBreath } from '../TheatreBreathProvider';
 
 /**
  * Peripheral Vision Particles using drei's Sparkles
@@ -11,23 +13,34 @@ import { LAYER_DEPTHS } from '../../../lib/layers';
  * These particles exist in the outer edges of vision - creating a subtle
  * sense of being "cocooned" in the breathing experience. Uses drei's
  * Sparkles with breath-synchronized transformations for a meditative feel.
+ * Driven by Theatre.js for cinematic control.
  */
 export const PeripheralParticles = memo(() => {
 	const groupRef = useRef<THREE.Group>(null);
-	const globalUniforms = useGlobalUniforms();
+	const theatreBreath = useTheatreBreath();
+	const [theatreProps, setTheatreProps] = useState<PeripheralParticlesProps>(
+		peripheralParticlesObj.value,
+	);
+
+	// Subscribe to Theatre.js object changes
+	useEffect(() => {
+		const unsubscribe = peripheralParticlesObj.onValuesChange((values) => {
+			setTheatreProps(values);
+		});
+		return unsubscribe;
+	}, []);
 
 	useFrame((_, delta) => {
 		if (!groupRef.current) return;
 
-		// Read from global uniforms (computed once per frame at scene root)
-		const { breathPhase, diaphragmDirection } = globalUniforms.current;
+		// Read from Theatre.js breath values
+		const { breathPhase, diaphragmDirection } = theatreBreath.current;
 
 		// Gentle counter-rotation to stars (creates depth parallax)
-		const baseRotation = -0.008;
-		groupRef.current.rotation.y += baseRotation * delta;
+		groupRef.current.rotation.y += theatreProps.rotationSpeed * delta;
 
 		// Subtle breathing scale - expand/contract with breath
-		const targetScale = 1 + breathPhase * 0.1; // 1.0 to 1.1
+		const targetScale = theatreProps.scale + breathPhase * 0.1;
 		const currentScale = groupRef.current.scale.x;
 		const newScale = currentScale + (targetScale - currentScale) * 0.03;
 		groupRef.current.scale.setScalar(newScale);
@@ -41,12 +54,12 @@ export const PeripheralParticles = memo(() => {
 	return (
 		<group ref={groupRef}>
 			<Sparkles
-				count={60}
+				count={theatreProps.count}
 				scale={[80, 80, LAYER_DEPTHS.PERIPHERAL_PARTICLES_Z]}
-				size={4}
+				size={theatreProps.size}
 				speed={0.15}
-				opacity={0.12}
-				color="#7ec8d4"
+				opacity={theatreProps.opacity}
+				color={theatreProps.color}
 				noise={0.5}
 			/>
 		</group>

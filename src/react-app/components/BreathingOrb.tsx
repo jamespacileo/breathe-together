@@ -1,12 +1,10 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import type { BreathState } from '../hooks/useBreathSync';
-import type { VisualizationConfig } from '../lib/config';
 import { BreathingFallback, ErrorBoundary } from './ErrorBoundary';
 import { ParticleScene } from './Particles';
 
 interface BreathingOrbProps {
 	breathState: BreathState;
-	config: VisualizationConfig;
 }
 
 /**
@@ -85,10 +83,10 @@ function BreathingGuide({ breathState }: { breathState: BreathState }) {
  * Main breathing visualization component
  * Uses Three.js for GPU-accelerated particle rendering
  */
-export function BreathingOrb({ breathState, config }: BreathingOrbProps) {
+export function BreathingOrb({ breathState }: BreathingOrbProps) {
 	return (
 		<div className="absolute inset-0 overflow-hidden">
-			{/* Three.js GPGPU particle scene with error boundary for GPU failures */}
+			{/* Three.js particle scene with error boundary for GPU failures */}
 			<ErrorBoundary
 				fallback={<BreathingFallback />}
 				onError={(error) => {
@@ -96,7 +94,7 @@ export function BreathingOrb({ breathState, config }: BreathingOrbProps) {
 				}}
 			>
 				{/* Decoupled from breathState.progress to avoid re-renders */}
-				<GPGPUScene config={config} />
+				<ParticleScene />
 			</ErrorBoundary>
 
 			{/* Breathing guide text with cosmic styling - this still re-renders every frame */}

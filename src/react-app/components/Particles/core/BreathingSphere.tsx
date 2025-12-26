@@ -1,14 +1,11 @@
-import { useFrame } from '@react-three/fiber';
-import { memo, useRef } from 'react';
-import { useGlobalUniforms } from '../../../hooks/useGlobalUniforms';
+import { memo, useEffect, useState } from 'react';
+import { PARTICLE_RADIUS_SCALE } from '../../../lib/layers';
+import { sceneObj } from '../../../lib/theatre';
+import type { SceneProps } from '../../../lib/theatre/types';
 import { CrystalCore } from './CrystalCore';
 import { InnerGlow } from './InnerGlow';
 import { OrbitingShell } from './OrbitingShell';
 import { OuterHalo } from './OuterHalo';
-
-interface BreathingSphereProps {
-	contractedRadius: number;
-}
 
 /**
  * Breathing Sphere - Hybrid Glass + Particles Implementation
@@ -35,68 +32,35 @@ interface BreathingSphereProps {
  *   - Very low opacity ethereal effect
  *   - Inverted fresnel for edge glow
  *
- * All layers respond to breath phases:
- * - Inhale: gathering energy, contracting
- * - Hold In: crystallized, calm, still
- * - Exhale: releasing energy, expanding
- * - Hold Out: serene, still, wide
+ * All layers respond to breath phases via TheatreBreathProvider.
  */
-export const BreathingSphere = memo(
-	({ contractedRadius }: BreathingSphereProps) => {
-		const globalUniforms = useGlobalUniforms();
+export const BreathingSphere = memo(() => {
+	const [theatreProps, setTheatreProps] = useState<SceneProps>(sceneObj.value);
 
-		// Track breath data in a ref for child components
-		const breathDataRef = useRef({
-			breathPhase: 0,
-			phaseType: 0,
-			crystallization: 0,
+	// Subscribe to Theatre.js object changes
+	useEffect(() => {
+		const unsubscribe = sceneObj.onValuesChange((values) => {
+			setTheatreProps(values);
 		});
+		return unsubscribe;
+	}, []);
 
-		// Read from global uniforms each frame (no redundant computation)
-		useFrame(() => {
-			const { breathPhase, phaseType, crystallization } = globalUniforms.current;
-			breathDataRef.current.breathPhase = breathPhase;
-			breathDataRef.current.phaseType = phaseType;
-			breathDataRef.current.crystallization = crystallization;
-		});
+	const contractedRadius =
+		theatreProps.sphereBaseRadius * PARTICLE_RADIUS_SCALE;
 
-		// Use getters for current values (components will read in their own useFrame)
-		const { breathPhase, phaseType, crystallization } = breathDataRef.current;
+	return (
+		<group>
+			{/* Layer 4: Outer atmospheric halo (renders first, behind everything) */}
+			<OuterHalo radius={contractedRadius} />
 
-		return (
-			<group>
-				{/* Layer 4: Outer atmospheric halo (renders first, behind everything) */}
-				<OuterHalo
-					radius={contractedRadius}
-					breathPhase={breathPhase}
-					phaseType={phaseType}
-					crystallization={crystallization}
-				/>
+			{/* Layer 3: Orbiting particle shell */}
+			<OrbitingShell baseRadius={contractedRadius * 0.7} />
 
-				{/* Layer 3: Orbiting particle shell */}
-				<OrbitingShell
-					baseRadius={contractedRadius * 0.7}
-					breathPhase={breathPhase}
-					phaseType={phaseType}
-					crystallization={crystallization}
-				/>
+			{/* Layer 2: Inner glow (fresnel-based) */}
+			<InnerGlow radius={contractedRadius} />
 
-				{/* Layer 2: Inner glow (fresnel-based) */}
-				<InnerGlow
-					radius={contractedRadius}
-					breathPhase={breathPhase}
-					phaseType={phaseType}
-					crystallization={crystallization}
-				/>
-
-				{/* Layer 1: Crystal core (MeshTransmissionMaterial) */}
-				<CrystalCore
-					radius={contractedRadius}
-					breathPhase={breathPhase}
-					phaseType={phaseType}
-					crystallization={crystallization}
-				/>
-			</group>
-		);
-	},
-);
+			{/* Layer 1: Crystal core (MeshTransmissionMaterial) */}
+			<CrystalCore radius={contractedRadius} />
+		</group>
+	);
+});

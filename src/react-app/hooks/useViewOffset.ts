@@ -16,8 +16,10 @@ export function useViewOffset(): React.MutableRefObject<ViewOffset> {
 
 	useEffect(() => {
 		const onMouse = (e: MouseEvent) => {
-			offsetRef.current.x = (e.clientX / window.innerWidth - 0.5) * 2 * PARALLAX_STRENGTH;
-			offsetRef.current.y = (e.clientY / window.innerHeight - 0.5) * 2 * PARALLAX_STRENGTH;
+			offsetRef.current.x =
+				(e.clientX / window.innerWidth - 0.5) * 2 * PARALLAX_STRENGTH;
+			offsetRef.current.y =
+				(e.clientY / window.innerHeight - 0.5) * 2 * PARALLAX_STRENGTH;
 		};
 		const onOrientation = (e: DeviceOrientationEvent) => {
 			if (e.gamma !== null && e.beta !== null) {

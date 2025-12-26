@@ -1,21 +1,17 @@
 import { Stats } from '@react-three/drei';
 import { Canvas } from '@react-three/fiber';
-import { useControls } from 'leva';
-import { Suspense, memo, useMemo } from 'react';
-import { GlobalUniformsProvider } from '../../hooks/useGlobalUniforms';
+import { memo, Suspense, useEffect, useMemo, useState } from 'react';
 import { getMoodColorCounts } from '../../lib/colors';
-import type { VisualizationConfig } from '../../lib/config';
-import { CAMERA, PARTICLE_RADIUS_SCALE } from '../../lib/layers';
+import { CAMERA } from '../../lib/layers';
+import { sceneObj } from '../../lib/theatre';
+import type { SceneProps } from '../../lib/theatre/types';
 import { NebulaBackground } from './background/NebulaBackground';
 import { PeripheralParticles } from './background/PeripheralParticles';
 import { StarField } from './background/StarField';
 import { BreathingSphere } from './core/BreathingSphere';
 import { UserParticlesInstanced } from './core/UserParticlesInstanced';
 import { PostProcessingEffects } from './effects/PostProcessingEffects';
-
-interface ParticleSceneProps {
-	config: VisualizationConfig;
-}
+import { TheatreBreathProvider } from './TheatreBreathProvider';
 
 // Mock color counts - will be wired to usePresence
 const MOCK_MOOD_COUNTS = {
@@ -28,13 +24,7 @@ const MOCK_MOOD_COUNTS = {
 	here: 4,
 };
 
-const InnerScene = memo(({ config }: { config: VisualizationConfig }) => {
-	const contractedRadius = config.sphereContractedRadius * PARTICLE_RADIUS_SCALE;
-
-	// Pass sphere's max scale (exhale size) for particle orbit alignment
-	// Sphere scales from 0.35 to 0.7 of contractedRadius
-	const sphereMaxScale = contractedRadius * 0.7;
-
+const InnerScene = memo(() => {
 	// TODO: Replace with real presence data from usePresence hook
 	// When updating, change deps array from [] to [presenceData]
 	const moodColorCounts = useMemo(
@@ -50,24 +40,52 @@ const InnerScene = memo(({ config }: { config: VisualizationConfig }) => {
 			<PeripheralParticles />
 
 			{/* Layer 2: User particles - 1 particle per user with mood color */}
-			<UserParticlesInstanced
-				colorCounts={moodColorCounts}
-				sphereRadius={sphereMaxScale}
-			/>
+			<UserParticlesInstanced colorCounts={moodColorCounts} />
 
 			{/* Layer 3: Central breathing sphere */}
-			<BreathingSphere contractedRadius={contractedRadius} />
+			<BreathingSphere />
 
 			{/* Post-processing effects */}
-			<PostProcessingEffects config={config} />
+			<PostProcessingEffects />
 		</>
 	);
 });
 
-export const ParticleScene = memo(({ config }: ParticleSceneProps) => {
-	const { showStats } = useControls('Debug', {
-		showStats: { value: false, label: 'Show FPS' },
-	});
+/**
+ * Helper to convert RGBA object to CSS color string
+ */
+function rgbaToCss(rgba: {
+	r: number;
+	g: number;
+	b: number;
+	a: number;
+}): string {
+	return `rgba(${Math.round(rgba.r * 255)}, ${Math.round(rgba.g * 255)}, ${Math.round(rgba.b * 255)}, ${rgba.a})`;
+}
+
+export const ParticleScene = memo(() => {
+	// Stats toggle - can be controlled via Theatre.js Studio or keyboard shortcut
+	const [showStats, setShowStats] = useState(false);
+	const [theatreProps, setTheatreProps] = useState<SceneProps>(sceneObj.value);
+
+	// Subscribe to Theatre.js object changes
+	useEffect(() => {
+		const unsubscribe = sceneObj.onValuesChange((values) => {
+			setTheatreProps(values);
+		});
+		return unsubscribe;
+	}, []);
+
+	// Toggle stats with keyboard shortcut (Shift+S)
+	useEffect(() => {
+		const handler = (e: KeyboardEvent) => {
+			if (e.shiftKey && e.key === 'S') {
+				setShowStats((prev) => !prev);
+			}
+		};
+		window.addEventListener('keydown', handler);
+		return () => window.removeEventListener('keydown', handler);
+	}, []);
 
 	const cameraProps = useMemo(
 		() => ({
@@ -86,21 +104,23 @@ export const ParticleScene = memo(({ config }: ParticleSceneProps) => {
 		[],
 	);
 
+	const bgColor = rgbaToCss(theatreProps.backgroundColor);
+
 	return (
 		<div className="w-full h-full">
 			<Canvas
 				camera={cameraProps}
 				gl={glProps}
 				dpr={[1, 2]}
-				style={{ background: config.canvasBackground }}
+				style={{ background: bgColor }}
 			>
 				{/* Background color outside Suspense to prevent blackouts during loading */}
-				<color attach="background" args={[config.canvasBackground]} />
+				<color attach="background" args={[bgColor]} />
 
 				<Suspense fallback={null}>
-					<GlobalUniformsProvider>
-						<InnerScene config={config} />
-					</GlobalUniformsProvider>
+					<TheatreBreathProvider>
+						<InnerScene />
+					</TheatreBreathProvider>
 				</Suspense>
 				{showStats ? <Stats /> : null}
 			</Canvas>

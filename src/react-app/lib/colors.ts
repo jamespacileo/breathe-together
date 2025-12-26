@@ -92,7 +92,7 @@ export const SPHERE_PHASE_COLORS = {
 } as const;
 
 /**
- * Particle color palette for GPGPU particle system
+ * Particle color palette for user presence particles
  * Soft blue/cyan tones for meditative, calming effect
  */
 export const PARTICLE_COLORS = [

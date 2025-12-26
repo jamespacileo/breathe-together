@@ -1,15 +1,20 @@
 import { Instance, Instances } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import { memo, useMemo, useRef } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { PARTICLE_RADIUS_SCALE } from '../../../lib/layers';
+import { sceneObj, userParticlesObj } from '../../../lib/theatre';
+import type {
+	SceneProps,
+	UserParticlesProps,
+} from '../../../lib/theatre/types';
 import {
-	type GlobalUniformsData,
-	useGlobalUniforms,
-} from '../../../hooks/useGlobalUniforms';
+	type TheatreBreathData,
+	useTheatreBreath,
+} from '../TheatreBreathProvider';
 
 interface UserParticlesInstancedProps {
 	colorCounts: Record<string, number>;
-	sphereRadius: number;
 }
 
 interface ParticleData {
@@ -28,15 +33,10 @@ interface ParticleData {
 }
 
 // Constants from userSim.frag.ts
-const SETTLED_RADIUS_MULT = 1.5; // Inhale: 1.5x sphere radius
-const SPREAD_RADIUS_MULT = 4.0; // Exhale: 4.0x sphere radius
 const BASE_ORBIT_SPEED = 0.18;
 const ORBIT_SPEED_BY_PHASE = [1.2, 0.8, 1.3, 0.7]; // inhale, hold-in, exhale, hold-out
-const CRYSTAL_ORBIT_REDUCTION = 0.4; // Up to 40% slower during crystallization
 const POSITION_SMOOTHING = 0.08;
-const BOB_AMOUNT = 0.3;
 const BOB_SPEED = 0.5;
-const BASE_SIZE = 0.03;
 
 const MAX_PARTICLES = 1024;
 
@@ -46,7 +46,9 @@ const tempVec3 = new THREE.Vector3();
 /**
  * Generate particle data with colors from mood configuration
  */
-function generateParticles(colorCounts: Record<string, number>): ParticleData[] {
+function generateParticles(
+	colorCounts: Record<string, number>,
+): ParticleData[] {
 	const particles: ParticleData[] = [];
 
 	// Create particles for each mood color
@@ -96,14 +98,15 @@ function lerp(a: number, b: number, t: number): number {
 interface UserParticleProps {
 	data: ParticleData;
 	sphereRadius: number;
-	globalUniforms: React.MutableRefObject<GlobalUniformsData>;
+	theatreBreath: React.RefObject<TheatreBreathData>;
+	theatreProps: UserParticlesProps;
 }
 
 /**
  * Individual user particle with orbital animation
  */
 const UserParticle = memo(
-	({ data, sphereRadius, globalUniforms }: UserParticleProps) => {
+	({ data, sphereRadius, theatreBreath, theatreProps }: UserParticleProps) => {
 		const ref = useRef<THREE.InstancedMesh>(null);
 
 		// Mutable angle state (persists across frames)
@@ -120,41 +123,54 @@ const UserParticle = memo(
 			);
 		});
 
-		useFrame((state, delta) => {
+		useFrame((_, delta) => {
 			if (!ref.current) return;
 
-			const { breathPhase, phaseType, crystallization, diaphragmDirection, time } =
-				globalUniforms.current;
+			const {
+				breathPhase,
+				phaseType,
+				crystallization,
+				diaphragmDirection,
+				time,
+			} = theatreBreath.current;
 
 			// === 1. BREATH-RESPONSIVE RADIUS ===
 			// Match BreathingSphere's exact scale calculation
 			const minScale = sphereRadius * 0.5;
 			const maxScale = sphereRadius;
-			const currentSphereScale = minScale + (maxScale - minScale) * (1 - breathPhase);
+			const currentSphereScale =
+				minScale + (maxScale - minScale) * (1 - breathPhase);
 
-			const settledRadius = currentSphereScale * SETTLED_RADIUS_MULT;
-			const spreadRadius = currentSphereScale * SPREAD_RADIUS_MULT;
+			const settledRadius = currentSphereScale * theatreProps.settledRadiusMult;
+			const spreadRadius = currentSphereScale * theatreProps.spreadRadiusMult;
 			let targetRadius = lerp(spreadRadius, settledRadius, breathPhase);
 
 			// Radius variation during exhale (±15%)
-			const radiusVariation = 0.85 + data.phase / (Math.PI * 2) * 0.3;
+			const radiusVariation = 0.85 + (data.phase / (Math.PI * 2)) * 0.3;
 			const variationAmount = 1 - breathPhase;
 			targetRadius *= lerp(1.0, radiusVariation, variationAmount);
 
 			// === 2. ORBITAL MOTION ===
 			const phaseIndex = Math.floor(phaseType) as 0 | 1 | 2 | 3;
 			let orbitSpeedMult = ORBIT_SPEED_BY_PHASE[phaseIndex] ?? 1;
-			orbitSpeedMult *= 1 - crystallization * CRYSTAL_ORBIT_REDUCTION;
+			orbitSpeedMult *=
+				1 - crystallization * theatreProps.crystalOrbitReduction;
 
-			const orbitSpeed = BASE_ORBIT_SPEED * orbitSpeedMult * data.orbitSpeed;
-			angleRef.current = (angleRef.current + orbitSpeed * delta) % (Math.PI * 2);
+			const orbitSpeed =
+				BASE_ORBIT_SPEED *
+				orbitSpeedMult *
+				data.orbitSpeed *
+				theatreProps.orbitSpeed;
+			angleRef.current =
+				(angleRef.current + orbitSpeed * delta) % (Math.PI * 2);
 
 			// === 3. VERTICAL BOBBING ===
-			const bobAmount = BOB_AMOUNT * (1 - crystallization * 0.6);
+			const bobAmount = theatreProps.bobAmount * (1 - crystallization * 0.6);
 			const verticalBob = Math.sin(time * BOB_SPEED + data.phase) * bobAmount;
 
 			// === 4. DIAPHRAGM INFLUENCE ===
-			const diaphragmInfluence = diaphragmDirection * 0.3 * (1 - crystallization);
+			const diaphragmInfluence =
+				diaphragmDirection * 0.3 * (1 - crystallization);
 
 			// === 5. SPHERICAL TO CARTESIAN ===
 			const radius = targetRadius * (1 + data.radiusOffset);
@@ -164,14 +180,14 @@ const UserParticle = memo(
 
 			// === 6. SMOOTH INTERPOLATION ===
 			// Frame-rate independent smoothing
-			const smoothing = 1 - Math.pow(1 - POSITION_SMOOTHING, delta * 60);
+			const smoothing = 1 - (1 - POSITION_SMOOTHING) ** (delta * 60);
 			tempVec3.set(x, y, z);
 			posRef.current.lerp(tempVec3, smoothing);
 
 			ref.current.position.copy(posRef.current);
 
 			// === 7. SIZE ===
-			const baseSize = BASE_SIZE + (1 - breathPhase) * 0.015;
+			const baseSize = theatreProps.baseSize + (1 - breathPhase) * 0.015;
 			ref.current.scale.setScalar(baseSize * data.size);
 		});
 
@@ -180,15 +196,33 @@ const UserParticle = memo(
 );
 
 /**
- * UserParticlesInstanced - InstancedMesh replacement for GPGPU particles
+ * UserParticlesInstanced - Instanced particle rendering for user presence
  *
  * Each particle represents one user, colored by their mood.
  * Particles orbit around the central sphere in a Dyson swarm pattern,
  * responding to breathing phases.
  */
 export const UserParticlesInstanced = memo(
-	({ colorCounts, sphereRadius }: UserParticlesInstancedProps) => {
-		const globalUniforms = useGlobalUniforms();
+	({ colorCounts }: UserParticlesInstancedProps) => {
+		const theatreBreath = useTheatreBreath();
+		const [theatreProps, setTheatreProps] = useState<UserParticlesProps>(
+			userParticlesObj.value,
+		);
+		const [sceneProps, setSceneProps] = useState<SceneProps>(sceneObj.value);
+
+		// Subscribe to Theatre.js object changes
+		useEffect(() => {
+			const unsubUser = userParticlesObj.onValuesChange((values) => {
+				setTheatreProps(values);
+			});
+			const unsubScene = sceneObj.onValuesChange((values) => {
+				setSceneProps(values);
+			});
+			return () => {
+				unsubUser();
+				unsubScene();
+			};
+		}, []);
 
 		// Generate particle data with colors from mood configuration
 		const particles = useMemo(
@@ -202,15 +236,17 @@ export const UserParticlesInstanced = memo(
 			[colorCounts],
 		);
 
+		// Calculate sphere radius for orbit alignment
+		const contractedRadius =
+			sceneProps.sphereBaseRadius * PARTICLE_RADIUS_SCALE;
+		const sphereMaxScale = contractedRadius * 0.7;
+
 		return (
-			<Instances
-				limit={MAX_PARTICLES}
-				range={totalUsers}
-				frustumCulled={false}
-			>
+			<Instances limit={MAX_PARTICLES} range={totalUsers} frustumCulled={false}>
 				<sphereGeometry args={[1, 6, 6]} />
 				<meshBasicMaterial
 					transparent
+					opacity={theatreProps.opacity}
 					depthWrite={false}
 					blending={THREE.AdditiveBlending}
 				/>
@@ -218,8 +254,9 @@ export const UserParticlesInstanced = memo(
 					<UserParticle
 						key={i}
 						data={p}
-						sphereRadius={sphereRadius}
-						globalUniforms={globalUniforms}
+						sphereRadius={sphereMaxScale}
+						theatreBreath={theatreBreath}
+						theatreProps={theatreProps}
 					/>
 				))}
 			</Instances>

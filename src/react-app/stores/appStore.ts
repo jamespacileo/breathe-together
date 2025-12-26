@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { DEFAULT_CONFIG, type VisualizationConfig } from '../lib/config';
 import type { PatternId } from '../lib/patterns';
 import {
 	DEFAULT_SIMULATION_CONFIG,
@@ -19,10 +18,6 @@ interface AppState {
 	// User identity
 	user: UserIdentity | null;
 	setUser: (user: UserIdentity) => void;
-
-	// Visualization config
-	config: VisualizationConfig;
-	setConfig: (config: VisualizationConfig) => void;
 
 	// Breathing pattern
 	pattern: PatternId;
@@ -44,10 +39,6 @@ export const useAppStore = create<AppState>()(
 			user: null,
 			setUser: (user) => set({ user }),
 
-			// Visualization config
-			config: DEFAULT_CONFIG,
-			setConfig: (config) => set({ config }),
-
 			// Breathing pattern
 			pattern: 'box',
 			setPattern: (pattern) => set({ pattern }),
@@ -67,7 +58,6 @@ export const useAppStore = create<AppState>()(
 			name: 'breathe-together-storage',
 			partialize: (state) => ({
 				user: state.user,
-				config: state.config,
 				pattern: state.pattern,
 				simulationConfig: state.simulationConfig,
 			}),
@@ -77,8 +67,6 @@ export const useAppStore = create<AppState>()(
 				return {
 					...currentState,
 					...persisted,
-					// Deep merge config with defaults to ensure all fields exist
-					config: { ...DEFAULT_CONFIG, ...(persisted.config || {}) },
 					simulationConfig: {
 						...DEFAULT_SIMULATION_CONFIG,
 						...(persisted.simulationConfig || {}),
