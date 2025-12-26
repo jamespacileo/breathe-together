@@ -1,10 +1,9 @@
 /**
  * Shaders barrel export
- * All GLSL shaders used in the particle visualization system
+ *
+ * This file previously exported GPGPU simulation shaders for particle rendering.
+ * The particle system has been migrated to drei Instances (InstancedMesh),
+ * eliminating the need for custom shaders.
  */
 
-// GPGPU simulation shaders
-export { userSimFragmentShader } from './gpgpu/userSim.frag';
-
-// User particle shaders
-export { userParticleFragmentShader, userParticleVertexShader } from './user';
+// No exports - all particle rendering now uses drei Instances with standard materials

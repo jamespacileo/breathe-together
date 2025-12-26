@@ -10,7 +10,7 @@ import { NebulaBackground } from './background/NebulaBackground';
 import { PeripheralParticles } from './background/PeripheralParticles';
 import { StarField } from './background/StarField';
 import { BreathingSphere } from './core/BreathingSphere';
-import { UserParticles } from './core/UserParticles';
+import { UserParticlesInstanced } from './core/UserParticlesInstanced';
 import { PostProcessingEffects } from './effects/PostProcessingEffects';
 
 interface GPGPUSceneProps {
@@ -50,7 +50,7 @@ const InnerScene = memo(({ config }: { config: VisualizationConfig }) => {
 			<PeripheralParticles />
 
 			{/* Layer 2: User particles - 1 particle per user with mood color */}
-			<UserParticles
+			<UserParticlesInstanced
 				colorCounts={moodColorCounts}
 				sphereRadius={sphereMaxScale}
 			/>

@@ -1,6 +1,6 @@
 // Core components
 export { BreathingSphere } from './core/BreathingSphere';
-export { UserParticles } from './core/UserParticles';
+export { UserParticlesInstanced } from './core/UserParticlesInstanced';
 
 // Background components
 export { NebulaBackground } from './background/NebulaBackground';
