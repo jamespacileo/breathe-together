@@ -2,10 +2,15 @@
  * Post-Processing Effects
  *
  * Centralized post-processing effects for the 3D scene.
- * - Bloom: Soft glow around bright elements
+ * - Bloom: Soft glow around bright elements (tuned via luminance threshold)
  * - Vignette: Dark edges for focus
  * - Noise: Film grain for atmosphere
  * - Driven by Theatre.js for cinematic control
+ *
+ * Performance Note: True selective bloom (Selection/Select) would require
+ * scene restructuring. Current approach uses luminance threshold to achieve
+ * similar selectivity - only the brightest elements (GlassOrb, OrbGlow) bloom
+ * while darker particles and background don't.
  */
 import {
 	Bloom,
@@ -13,43 +18,51 @@ import {
 	Noise,
 	Vignette,
 } from '@react-three/postprocessing';
-import { BlendFunction } from 'postprocessing';
-import { useEffect, useState } from 'react';
-import { postProcessingObj } from '../../../lib/theatre';
+import { BlendFunction, KernelSize } from 'postprocessing';
+import { memo, useMemo } from 'react';
+import { postProcessingObj, useTheatreRef } from '../../../lib/theatre';
 import type { PostProcessingProps as TheatrePostProps } from '../../../lib/theatre/types';
 
-export function PostProcessingEffects() {
-	const [theatreProps, setTheatreProps] = useState<TheatrePostProps>(
-		postProcessingObj.value,
+export const PostProcessingEffects = memo(() => {
+	// Use ref-based subscription - post-processing props animate smoothly
+	const theatrePropsRef = useTheatreRef<TheatrePostProps>(postProcessingObj);
+
+	// Memoize stable props for EffectComposer
+	const glProps = useMemo(
+		() => ({
+			multisampling: 0, // Disable MSAA in composer for performance
+			stencilBuffer: false,
+		}),
+		[],
 	);
 
-	// Subscribe to Theatre.js object changes
-	useEffect(() => {
-		const unsubscribe = postProcessingObj.onValuesChange((values) => {
-			setTheatreProps(values);
-		});
-		return unsubscribe;
-	}, []);
+	// Get current values (will be read each render, but ref avoids subscription overhead)
+	const props = theatrePropsRef.current;
 
 	return (
-		<EffectComposer enableNormalPass={false}>
+		<EffectComposer
+			enableNormalPass={false}
+			{...glProps}
+		>
 			<Bloom
-				intensity={theatreProps.bloomIntensity}
-				luminanceThreshold={theatreProps.bloomThreshold}
-				luminanceSmoothing={theatreProps.bloomSmoothing}
+				intensity={props.bloomIntensity}
+				luminanceThreshold={props.bloomThreshold}
+				luminanceSmoothing={props.bloomSmoothing}
 				mipmapBlur
-				radius={theatreProps.bloomRadius}
+				radius={props.bloomRadius}
+				kernelSize={KernelSize.MEDIUM}
+				levels={5}
 			/>
 			<Vignette
-				darkness={theatreProps.vignetteDarkness}
-				offset={theatreProps.vignetteOffset}
+				darkness={props.vignetteDarkness}
+				offset={props.vignetteOffset}
 				blendFunction={BlendFunction.NORMAL}
 			/>
 			<Noise
 				premultiply
 				blendFunction={BlendFunction.SOFT_LIGHT}
-				opacity={theatreProps.noiseOpacity}
+				opacity={props.noiseOpacity}
 			/>
 		</EffectComposer>
 	);
-}
+});
