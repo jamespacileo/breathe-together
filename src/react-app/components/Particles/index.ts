@@ -11,4 +11,4 @@ export { StarField } from './background/StarField';
 export { PostProcessingEffects } from './effects/PostProcessingEffects';
 
 // Scene
-export { GPGPUScene } from './GPGPUScene';
+export { ParticleScene } from './ParticleScene';

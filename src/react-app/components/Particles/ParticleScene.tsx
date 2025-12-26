@@ -13,7 +13,7 @@ import { BreathingSphere } from './core/BreathingSphere';
 import { UserParticlesInstanced } from './core/UserParticlesInstanced';
 import { PostProcessingEffects } from './effects/PostProcessingEffects';
 
-interface GPGPUSceneProps {
+interface ParticleSceneProps {
 	config: VisualizationConfig;
 }
 
@@ -64,7 +64,7 @@ const InnerScene = memo(({ config }: { config: VisualizationConfig }) => {
 	);
 });
 
-export const GPGPUScene = memo(({ config }: GPGPUSceneProps) => {
+export const ParticleScene = memo(({ config }: ParticleSceneProps) => {
 	const { showStats } = useControls('Debug', {
 		showStats: { value: false, label: 'Show FPS' },
 	});
