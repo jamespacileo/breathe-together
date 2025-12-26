@@ -28,11 +28,12 @@ uniform vec3 uHoldOutHue;
 
 varying vec3 vNormal;
 varying vec3 vPosition;
+varying vec3 vWorldPosition;
 varying vec2 vUv;
 
 void main() {
   // Fresnel effect for ethereal edge glow
-  vec3 viewDir = normalize(cameraPosition - vPosition);
+  vec3 viewDir = normalize(cameraPosition - vWorldPosition);
   float fresnel = pow(1.0 - max(0.0, dot(viewDir, vNormal)), FRESNEL_POWER);
 
   // Inner core glow - brighter at center, fades toward edges

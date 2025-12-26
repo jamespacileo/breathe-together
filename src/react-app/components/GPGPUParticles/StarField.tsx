@@ -2,22 +2,24 @@ import { Stars } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { useRef } from 'react';
 import type * as THREE from 'three';
-import type { EnhancedBreathData } from '../../hooks/useEnhancedBreathData';
+import { getEnhancedBreathData } from '../../hooks/useEnhancedBreathData';
 import { LAYER_DEPTHS } from '../../lib/layers';
-
-interface StarFieldProps {
-	breathData: EnhancedBreathData;
-}
+import { useViewOffset } from '../../hooks/useViewOffset';
+import { getBreathState } from '../../stores/breathStore';
 
 /**
  * Background star field using drei's Stars component
  * Subtly responds to breath phases for a connected, meditative feel
  */
-export function StarField({ breathData }: StarFieldProps) {
+export function StarField() {
 	const groupRef = useRef<THREE.Group>(null);
+	const viewOffsetRef = useViewOffset();
 
 	useFrame((_, delta) => {
 		if (!groupRef.current) return;
+
+		const breathState = getBreathState();
+		const breathData = getEnhancedBreathData(breathState, viewOffsetRef.current);
 
 		// Galaxy-like slow rotation around center
 		// Base rotation speed with breath modulation for a meditative feel

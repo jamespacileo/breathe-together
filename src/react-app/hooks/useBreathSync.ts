@@ -5,6 +5,7 @@ import {
 	type PatternId,
 	type PhaseType,
 } from '../lib/patterns';
+import { useBreathStore } from '../stores/breathStore';
 
 export interface BreathState {
 	phase: PhaseType;
@@ -18,12 +19,11 @@ export interface BreathState {
  * Hook that provides UTC-synchronized breathing state
  * All users worldwide see the same breath phase at the same moment
  *
- * Uses requestAnimationFrame instead of setInterval for:
- * - Frame-synchronized updates (no jitter on high-refresh displays)
- * - Automatic throttling when tab is inactive
- * - Better performance (browser optimizes rAF callbacks)
+ * Updates both a reactive state (for UI) and a non-reactive store (for 3D).
  */
 export function useBreathSync(patternId: PatternId = 'box'): BreathState {
+	const updateStore = useBreathStore((state) => state.update);
+
 	const [breathState, setBreathState] = useState<BreathState>(() => {
 		const pattern = PATTERNS[patternId];
 		const { phase, phaseIndex, progress, cycleProgress } =
@@ -40,11 +40,15 @@ export function useBreathSync(patternId: PatternId = 'box'): BreathState {
 	const rafRef = useRef<number>(0);
 
 	useEffect(() => {
-		const pattern = PATTERNS[patternId];
-
 		const updateBreath = () => {
+			// Update non-reactive store for 3D scene (no re-render)
+			updateStore(patternId);
+
+			// Update reactive state for UI (triggers re-render)
+			const pattern = PATTERNS[patternId];
 			const { phase, phaseIndex, progress, cycleProgress } =
 				getCurrentPhase(pattern);
+
 			setBreathState({
 				phase: phase.type,
 				phaseName: phase.name,
@@ -52,6 +56,7 @@ export function useBreathSync(patternId: PatternId = 'box'): BreathState {
 				cycleProgress,
 				phaseIndex,
 			});
+
 			rafRef.current = requestAnimationFrame(updateBreath);
 		};
 
@@ -59,7 +64,7 @@ export function useBreathSync(patternId: PatternId = 'box'): BreathState {
 		rafRef.current = requestAnimationFrame(updateBreath);
 
 		return () => cancelAnimationFrame(rafRef.current);
-	}, [patternId]);
+	}, [patternId, updateStore]);
 
 	return breathState;
 }

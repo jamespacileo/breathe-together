@@ -1,9 +1,10 @@
+import { useMemo } from 'react';
 import { BreathingOrb } from './components/BreathingOrb';
 import { JoinButton, JoinWizard, UserBadge } from './components/IdentityPanel';
 import { LevaControls } from './components/LevaControls';
 import { PresenceCounter } from './components/PresenceCounter';
 import { useBreathSync } from './hooks/useBreathSync';
-import { usePresence } from './hooks/usePresence';
+import { useHeartbeat, usePresence } from './hooks/usePresence';
 import { useSimulation } from './hooks/useSimulation';
 import { type UserIdentity, useAppStore } from './stores/appStore';
 import './App.css';
@@ -40,6 +41,15 @@ function App() {
 	} = useAppStore();
 
 	const breathState = useBreathSync(pattern);
+
+	// Generate a stable session ID for this browser session
+	const sessionId = useMemo(
+		() => Math.random().toString(36).substring(2, 15),
+		[],
+	);
+
+	// Send heartbeats if not in simulation mode
+	useHeartbeat(simulationConfig.enabled ? null : sessionId, user?.avatar);
 
 	// Simulation controls
 	const {

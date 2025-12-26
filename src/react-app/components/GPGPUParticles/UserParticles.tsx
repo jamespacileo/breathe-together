@@ -2,26 +2,29 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { GPUComputationRenderer } from 'three/examples/jsm/misc/GPUComputationRenderer.js';
-import type { EnhancedBreathData } from '../../hooks/useEnhancedBreathData';
+import { useViewOffset } from '../../hooks/useViewOffset';
+import { getEnhancedBreathData } from '../../hooks/useEnhancedBreathData';
 import {
 	createUserParticleMaterial,
 	updateUserParticleMaterialUniforms,
 } from '../../lib/materials';
 import { userSimFragmentShader } from '../../shaders/gpgpu/userSim.frag';
+import { getBreathState } from '../../stores/breathStore';
 
 interface UserParticlesProps {
-	breathData: EnhancedBreathData;
 	colorCounts: Record<string, number>;
 	sphereRadius: number;
 }
 
 const MIN_PARTICLES = 16;
+// Pre-allocate a fixed FBO size to avoid re-initialization jank
+const FIXED_FBO_SIZE = 32; // 1024 particles max for now
+const MAX_PARTICLES = FIXED_FBO_SIZE * FIXED_FBO_SIZE;
 
 /**
  * User Particles - GPGPU particle system where each particle represents one user.
  */
 export function UserParticles({
-	breathData,
 	colorCounts,
 	sphereRadius,
 }: UserParticlesProps) {
@@ -34,18 +37,15 @@ export function UserParticles({
 	} | null>(null);
 	const materialRef = useRef<THREE.ShaderMaterial | null>(null);
 	const geometryRef = useRef<THREE.BufferGeometry | null>(null);
+	const viewOffsetRef = useViewOffset();
 
 	const totalUsers = useMemo(
 		() => Object.values(colorCounts).reduce((a, b) => a + b, 0),
 		[colorCounts],
 	);
 
-	const fboSize = useMemo(() => {
-		const particleCount = Math.max(totalUsers, MIN_PARTICLES);
-		return Math.ceil(Math.sqrt(particleCount));
-	}, [totalUsers]);
-
-	const particleCount = fboSize * fboSize;
+	// Use fixed particle count to avoid re-initialization
+	const particleCount = MAX_PARTICLES;
 
 	const particleColors = useMemo(() => {
 		const colors: THREE.Color[] = [];
@@ -55,22 +55,16 @@ export function UserParticles({
 				colors.push(color);
 			}
 		}
+		// Fill remaining slots with transparent/hidden particles or default color
 		while (colors.length < particleCount) {
-			const existingColors = Object.keys(colorCounts);
-			if (existingColors.length > 0) {
-				const randomHex =
-					existingColors[Math.floor(Math.random() * existingColors.length)];
-				colors.push(new THREE.Color(randomHex));
-			} else {
-				colors.push(new THREE.Color('#7EC8D4'));
-			}
+			colors.push(new THREE.Color('#000000')); // Hidden particles
 		}
 		return colors;
 	}, [colorCounts, particleCount]);
 
-	// Create GPGPU simulation
+	// Create GPGPU simulation (only once or when sphereRadius changes)
 	useEffect(() => {
-		const gpuCompute = new GPUComputationRenderer(fboSize, fboSize, gl);
+		const gpuCompute = new GPUComputationRenderer(FIXED_FBO_SIZE, FIXED_FBO_SIZE, gl);
 
 		const positionData = new Float32Array(particleCount * 4);
 		const originalPositionData = new Float32Array(particleCount * 4);
@@ -135,7 +129,7 @@ export function UserParticles({
 			gpuCompute.dispose();
 			originalPositionTexture.dispose();
 		};
-	}, [gl, fboSize, particleCount, sphereRadius]);
+	}, [gl, sphereRadius, particleCount]);
 
 	// Create geometry and material
 	useEffect(() => {
@@ -148,8 +142,8 @@ export function UserParticles({
 		const colors = new Float32Array(particleCount * 3);
 
 		for (let i = 0; i < particleCount; i++) {
-			references[i * 2] = (i % fboSize) / fboSize;
-			references[i * 2 + 1] = Math.floor(i / fboSize) / fboSize;
+			references[i * 2] = (i % FIXED_FBO_SIZE) / FIXED_FBO_SIZE;
+			references[i * 2 + 1] = Math.floor(i / FIXED_FBO_SIZE) / FIXED_FBO_SIZE;
 			sizes[i] = 0.8 + Math.random() * 0.6;
 			phases[i] = Math.random();
 
@@ -181,13 +175,18 @@ export function UserParticles({
 			geometry.dispose();
 			material.dispose();
 		};
-	}, [fboSize, particleCount, particleColors, totalUsers]);
+	}, [particleColors, totalUsers, particleCount]);
 
 	// Animation loop
 	useFrame((state, delta) => {
 		if (!(gpgpuRef.current && materialRef.current)) return;
 
 		const time = state.clock.elapsedTime;
+		
+		// Read non-reactive breath state
+		const breathState = getBreathState();
+		const breathData = getEnhancedBreathData(breathState, viewOffsetRef.current);
+
 		const { breathPhase, phaseType, crystallization, diaphragmDirection } = breathData;
 
 		// Update simulation uniforms

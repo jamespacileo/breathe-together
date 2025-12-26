@@ -24,9 +24,10 @@ uniform vec3 uHoldOutColor;
 
 varying vec3 vNormal;
 varying vec3 vPosition;
+varying vec3 vWorldPosition;
 
 void main() {
-  vec3 viewDir = normalize(cameraPosition - vPosition);
+  vec3 viewDir = normalize(cameraPosition - vWorldPosition);
 
   // Inverted fresnel - glow at edges, transparent in center
   float fresnel = pow(1.0 - abs(dot(viewDir, vNormal)), FRESNEL_POWER);

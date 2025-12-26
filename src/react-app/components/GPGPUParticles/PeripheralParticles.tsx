@@ -2,12 +2,10 @@ import { Sparkles } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { useRef } from 'react';
 import type * as THREE from 'three';
-import type { EnhancedBreathData } from '../../hooks/useEnhancedBreathData';
+import { getEnhancedBreathData } from '../../hooks/useEnhancedBreathData';
 import { LAYER_DEPTHS } from '../../lib/layers';
-
-interface PeripheralParticlesProps {
-	breathData: EnhancedBreathData;
-}
+import { useViewOffset } from '../../hooks/useViewOffset';
+import { getBreathState } from '../../stores/breathStore';
 
 /**
  * Peripheral Vision Particles using drei's Sparkles
@@ -16,11 +14,15 @@ interface PeripheralParticlesProps {
  * sense of being "cocooned" in the breathing experience. Uses drei's
  * Sparkles with breath-synchronized transformations for a meditative feel.
  */
-export function PeripheralParticles({ breathData }: PeripheralParticlesProps) {
+export function PeripheralParticles() {
 	const groupRef = useRef<THREE.Group>(null);
+	const viewOffsetRef = useViewOffset();
 
 	useFrame((_, delta) => {
 		if (!groupRef.current) return;
+
+		const breathState = getBreathState();
+		const breathData = getEnhancedBreathData(breathState, viewOffsetRef.current);
 
 		// Gentle counter-rotation to stars (creates depth parallax)
 		const baseRotation = -0.008;

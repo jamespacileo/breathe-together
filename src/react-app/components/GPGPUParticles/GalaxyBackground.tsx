@@ -1,11 +1,6 @@
 import { GradientTexture } from '@react-three/drei';
 import * as THREE from 'three';
-import type { EnhancedBreathData } from '../../hooks/useEnhancedBreathData';
 import { LAYER_DEPTHS } from '../../lib/layers';
-
-interface GalaxyBackgroundProps {
-	breathData: EnhancedBreathData;
-}
 
 /**
  * Galaxy Background
@@ -13,7 +8,7 @@ interface GalaxyBackgroundProps {
  * Simple gradient backdrop for deep space atmosphere.
  * Intentionally minimal to avoid flickering artifacts.
  */
-export function GalaxyBackground(_props: GalaxyBackgroundProps) {
+export function GalaxyBackground() {
 	return (
 		<mesh position={[0, 0, LAYER_DEPTHS.GALAXY_BACKGROUND]} scale={[200, 200, 1]}>
 			<planeGeometry args={[1, 1]} />

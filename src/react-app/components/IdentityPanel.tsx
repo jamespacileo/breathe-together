@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
-import { getMoodGradient, MOOD_COLORS } from '../lib/colors';
+import { getMoodGradient, MOODS } from '../lib/colors';
 import type { PatternId } from '../lib/patterns';
 import { cn } from '../lib/utils';
 import type { UserIdentity } from '../stores/appStore';
@@ -12,6 +12,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from './ui/dialog';
+import type { MoodId } from '../../shared/constants';
 
 type WizardStep = 'pattern' | 'identity';
 
@@ -113,7 +114,7 @@ function IdentityStep({ mood, setMood, onSkip, onJoin }: IdentityStepProps) {
 
 			{/* Mood picker - 3 column grid */}
 			<div className="grid grid-cols-3 gap-3">
-				{MOOD_COLORS.map((m, index) => (
+				{MOODS.map((m, index) => (
 					<motion.button
 						key={m.id}
 						type="button"
@@ -138,9 +139,9 @@ function IdentityStep({ mood, setMood, onSkip, onJoin }: IdentityStepProps) {
 								mood === m.id && 'ring-2 ring-aurora shadow-glow-sm',
 							)}
 							style={{
-								background: getMoodGradient(m.id),
+								background: getMoodGradient(m.id as MoodId),
 								boxShadow:
-									mood === m.id ? `0 0 20px ${m.colors[0]}50` : undefined,
+									mood === m.id ? `0 0 20px ${m.color}50` : undefined,
 							}}
 						/>
 						<span className="text-xs text-stellar-muted font-light">
@@ -187,7 +188,7 @@ export function JoinWizard({
 }: JoinWizardProps) {
 	const [step, setStep] = useState<WizardStep>('pattern');
 	const [selectedPattern, setSelectedPattern] = useState<PatternId>(pattern);
-	const [mood, setMood] = useState(user.avatar || MOOD_COLORS[0].id);
+	const [mood, setMood] = useState(user.avatar || MOODS[0].id);
 
 	const handlePatternSelect = (p: PatternId) => {
 		setSelectedPattern(p);
@@ -244,7 +245,7 @@ interface UserBadgeProps {
 }
 
 export function UserBadge({ user, onClick }: UserBadgeProps) {
-	const moodLabel = MOOD_COLORS.find((m) => m.id === user.avatar)?.label;
+	const moodLabel = MOODS.find((m) => m.id === user.avatar)?.label;
 
 	return (
 		<motion.button
@@ -269,7 +270,7 @@ export function UserBadge({ user, onClick }: UserBadgeProps) {
 			<div
 				className="w-9 h-9 rounded-full shrink-0 shadow-glow-sm"
 				style={{
-					background: getMoodGradient(user.avatar),
+					background: getMoodGradient(user.avatar as MoodId),
 					boxShadow: '0 0 15px rgba(168, 85, 247, 0.3)',
 				}}
 			/>

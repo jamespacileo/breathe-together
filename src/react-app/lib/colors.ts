@@ -9,68 +9,69 @@ export interface MoodConfig {
 	label: string;
 	hasDetail: boolean;
 	color: string;
+	secondaryColor?: string;
 }
 
-export const MOODS: MoodConfig[] = [
-	{
+/**
+ * Single source of truth for mood metadata, combining labels, colors, and UI logic.
+ */
+export const MOOD_METADATA: Record<MoodId, MoodConfig> = {
+	moment: {
 		id: 'moment',
 		label: 'Taking a moment',
 		hasDetail: false,
 		color: '#7EC8D4', // Soft Cyan - present, grounded
+		secondaryColor: '#5A9BAA',
 	},
-	{
+	anxious: {
 		id: 'anxious',
 		label: 'Anxious about...',
 		hasDetail: true,
 		color: '#9B8EC8', // Lavender - releasing tension
+		secondaryColor: '#7E7EC1',
 	},
-	{
+	processing: {
 		id: 'processing',
 		label: 'Processing...',
 		hasDetail: true,
 		color: '#6BB8C0', // Soft Teal - working through
+		secondaryColor: '#5A9BAA',
 	},
-	{
+	preparing: {
 		id: 'preparing',
 		label: 'Preparing for...',
 		hasDetail: true,
 		color: '#8AB4D6', // Sky Blue - getting ready
+		secondaryColor: '#5A9BAA',
 	},
-	{
+	grateful: {
 		id: 'grateful',
 		label: 'Grateful for...',
 		hasDetail: true,
 		color: '#C8B87E', // Soft Gold - appreciation
+		secondaryColor: '#AA8A5A',
 	},
-	{
+	celebrating: {
 		id: 'celebrating',
 		label: 'Celebrating...',
 		hasDetail: true,
 		color: '#C8B87E', // Soft Gold - alias to grateful
+		secondaryColor: '#AA8A5A',
 	},
-	{ id: 'here', label: 'Just here', hasDetail: false, color: '#7EC8D4' }, // Soft Cyan - alias to moment
-];
+	here: {
+		id: 'here',
+		label: 'Just here',
+		hasDetail: false,
+		color: '#7EC8D4',
+		secondaryColor: '#5A9BAA',
+	},
+};
 
-export interface MoodColorConfig {
-	id: string;
-	label: string;
-	colors: [string, string];
-}
+export const MOODS: MoodConfig[] = Object.values(MOOD_METADATA);
 
-export const MOOD_COLORS: MoodColorConfig[] = [
-	{ id: 'grounding', label: 'Grounding', colors: ['#7EB5C1', '#5A9BAA'] },
-	{ id: 'releasing', label: 'Releasing', colors: ['#C17EB5', '#AA5A9B'] },
-	{ id: 'energizing', label: 'Energizing', colors: ['#C17E7E', '#AA5A5A'] },
-	{ id: 'growing', label: 'Growing', colors: ['#7EC17E', '#5AAA5A'] },
-	{ id: 'celebrating', label: 'Celebrating', colors: ['#C1A87E', '#AA8A5A'] },
-	{ id: 'reflecting', label: 'Reflecting', colors: ['#7E7EC1', '#5A5AAA'] },
-];
-
-export function getMoodGradient(moodId: string): string {
-	const mood = MOOD_COLORS.find((m) => m.id === moodId);
-	if (!mood)
-		return `linear-gradient(135deg, ${MOOD_COLORS[0].colors[0]}, ${MOOD_COLORS[0].colors[1]})`;
-	return `linear-gradient(135deg, ${mood.colors[0]}, ${mood.colors[1]})`;
+export function getMoodGradient(moodId: MoodId): string {
+	const mood = MOOD_METADATA[moodId] || MOOD_METADATA.moment;
+	return `linear-gradient(135deg, ${mood.color}, ${mood.secondaryColor || mood.color})`;
 }
 
 export const BASE_COLORS = {
@@ -110,7 +111,7 @@ export const PARTICLE_COLORS = [
  */
 export function getMoodColor(moodId: MoodId | '' | undefined): string {
 	if (!moodId) return BASE_COLORS.primary;
-	const mood = MOODS.find((m) => m.id === moodId);
+	const mood = MOOD_METADATA[moodId as MoodId];
 	return mood?.color ?? BASE_COLORS.primary;
 }
 

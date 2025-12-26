@@ -1,17 +1,18 @@
 import { Sparkles } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type * as THREE from 'three';
-import type { EnhancedBreathData } from '../../hooks/useEnhancedBreathData';
+import { useViewOffset } from '../../hooks/useViewOffset';
+import { getEnhancedBreathData } from '../../hooks/useEnhancedBreathData';
 import {
 	createGlowMaterial,
 	createSphereMaterial,
 	updateGlowMaterialUniforms,
 	updateSphereMaterialUniforms,
 } from '../../lib/materials';
+import { getBreathState, useBreathStore } from '../../stores/breathStore';
 
 interface BreathingSphereProps {
-	breathData: EnhancedBreathData;
 	expandedRadius: number;
 	contractedRadius: number;
 }
@@ -25,7 +26,6 @@ interface BreathingSphereProps {
  * - Scaling synchronized to breathPhase
  */
 export function BreathingSphere({
-	breathData,
 	expandedRadius: _expandedRadius,
 	contractedRadius,
 }: BreathingSphereProps) {
@@ -33,14 +33,35 @@ export function BreathingSphere({
 	const glowRef = useRef<THREE.Mesh>(null);
 	const sphereMaterialRef = useRef<THREE.ShaderMaterial>(null);
 	const glowMaterialRef = useRef<THREE.ShaderMaterial>(null);
+	const viewOffsetRef = useViewOffset();
 
-	// Create materials using factory
-	const sphereMaterial = useMemo(() => createSphereMaterial(), []);
-	const glowMaterial = useMemo(() => createGlowMaterial(), []);
+	// Create materials using factory with proper disposal
+	const sphereMaterial = useMemo(() => {
+		const mat = createSphereMaterial();
+		return mat;
+	}, []);
+
+	const glowMaterial = useMemo(() => {
+		const mat = createGlowMaterial();
+		return mat;
+	}, []);
+
+	// Handle disposal of materials and geometries
+	useEffect(() => {
+		return () => {
+			sphereMaterial.dispose();
+			glowMaterial.dispose();
+		};
+	}, [sphereMaterial, glowMaterial]);
 
 	// Animation loop
 	useFrame((state) => {
 		const time = state.clock.elapsedTime;
+		
+		// Read non-reactive breath state
+		const breathState = getBreathState();
+		const breathData = getEnhancedBreathData(breathState, viewOffsetRef.current);
+
 		const { breathPhase, phaseType, colorTemperature, crystallization } =
 			breathData;
 
@@ -79,6 +100,14 @@ export function BreathingSphere({
 	// Base scale for Sparkles
 	const sparkleScale = contractedRadius * 0.5 * 1.8;
 
+	// We still need some reactive data for Sparkles if we want it to update its props
+	// But Sparkles is a drei component, it might not be optimized for frame-by-frame prop updates
+	// For now, we'll just use the last known crystallization from the store if needed, 
+	// or just accept that Sparkles might re-render if we use state.
+	// Actually, let's just use the store value.
+	const crystallization = useBreathStore((s) => getEnhancedBreathData(s.state, viewOffsetRef.current).crystallization);
+	const breathPhase = useBreathStore((s) => s.state.progress); // Close enough for opacity
+
 	return (
 		<group>
 			{/* Central sphere - soft transparent fill with integrated inner core glow */}
@@ -98,8 +127,8 @@ export function BreathingSphere({
 				count={40}
 				scale={sparkleScale}
 				size={1.2}
-				speed={0.3 * (1 - breathData.crystallization)}
-				opacity={0.5 + breathData.breathPhase * 0.3}
+				speed={0.3 * (1 - crystallization)}
+				opacity={0.5 + breathPhase * 0.3}
 				color="#7ec8d4"
 				noise={0.15}
 			/>

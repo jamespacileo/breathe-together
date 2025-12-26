@@ -46,7 +46,7 @@ export interface EnhancedBreathData {
 /**
  * Calculate enhanced breath data from raw breath state
  */
-function getEnhancedBreathData(
+export function getEnhancedBreathData(
 	state: BreathState,
 	viewOffset: ViewOffset,
 ): EnhancedBreathData {

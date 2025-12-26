@@ -11,6 +11,42 @@
 export const userSimFragmentShader = /* glsl */ `
 precision highp float;
 
+// === SHADER CONSTANTS ===
+// Breathing radius
+const float SETTLED_RADIUS_OFFSET = 5.0;  // Distance from sphere when settled
+const float SPREAD_RADIUS = 18.0;         // Radius when exhaled/spread
+const float RADIUS_VARIATION_MIN = 0.85;  // Min variation factor
+const float RADIUS_VARIATION_RANGE = 0.3; // Range for variation (0.85-1.15)
+
+// Orbital motion
+const float BASE_ORBIT_SPEED = 0.18;      // Base orbital rotation speed
+const float INHALE_ORBIT_MULT = 1.2;      // Speed multiplier during inhale
+const float HOLD_IN_ORBIT_MULT = 0.8;     // Speed multiplier during hold-in
+const float EXHALE_ORBIT_MULT = 1.3;      // Speed multiplier during exhale
+const float HOLD_OUT_ORBIT_MULT = 0.7;    // Speed multiplier during hold-out
+const float CRYSTAL_ORBIT_REDUCTION = 0.4; // Max orbit reduction at full crystallization
+
+// Flutter effect
+const float FLUTTER_STRENGTH = 0.4;       // Base flutter intensity
+const float FLUTTER_CRYSTAL_REDUCTION = 0.8; // Flutter reduction at crystallization
+const float FLUTTER_BREATH_REDUCTION = 0.3;  // Flutter reduction when settled (inhale)
+const float FLUTTER_NOISE_SCALE = 0.15;   // Curl noise frequency
+const float FLUTTER_TIME_SCALE = 0.2;     // Curl noise time evolution
+
+// Vertical motion
+const float BOB_AMOUNT = 0.3;             // Vertical bobbing amplitude
+const float BOB_SPEED = 0.5;              // Bobbing frequency
+const float DIAPHRAGM_INFLUENCE = 0.3;    // Breath direction drift amount
+
+// Wind turbulence
+const float WIND_STRENGTH = 0.3;          // Wind intensity
+const float WIND_NOISE_SCALE = 0.3;       // Wind noise frequency
+const float WIND_NOISE_SPEED = 0.5;       // Wind noise time evolution
+const float WIND_NOISE_AMOUNT = 0.2;      // Additional noise variation
+
+// Position interpolation
+const float POSITION_SMOOTHING = 0.08;    // Lerp factor for smooth motion
+
 // Note: texturePosition is automatically added by GPUComputationRenderer
 uniform sampler2D uOriginalPositions;
 uniform float uTime;
@@ -78,61 +114,53 @@ void main() {
 
   // === BREATHING RADIUS ===
   // Settle close on inhale (breathPhase = 1), spread on exhale (breathPhase = 0)
-  // Comfortable orbital distance from sphere
-  float settledRadius = uSphereRadius + 5.0;  // Clear separation from sphere glow
-  float spreadRadius = 18.0;   // Expanded when exhaled
-  float targetRadius = mix(spreadRadius, settledRadius, uBreathPhase);
+  float settledRadius = uSphereRadius + SETTLED_RADIUS_OFFSET;
+  float targetRadius = mix(SPREAD_RADIUS, settledRadius, uBreathPhase);
 
   // Uniform radius on inhale, variable on exhale for spread effect
-  float radiusVariation = 0.85 + particlePhase * 0.3;  // 0.85 to 1.15
+  float radiusVariation = RADIUS_VARIATION_MIN + particlePhase * RADIUS_VARIATION_RANGE;
   float variationAmount = 1.0 - uBreathPhase;  // 0 at inhale, 1 at exhale
   targetRadius *= mix(1.0, radiusVariation, variationAmount);
 
   // === ORBITAL MOTION ===
-  // Visible Dyson swarm rotation - faster base for clear movement
-  float baseOrbitSpeed = 0.18;
-
   // Phase-specific speed modulation - keep orbiting visible during inhale
   float orbitSpeedMult = 1.0;
   if (uPhaseType == 0) {
-    orbitSpeedMult = 1.2; // Visible during inhale
+    orbitSpeedMult = INHALE_ORBIT_MULT;
   } else if (uPhaseType == 1) {
-    orbitSpeedMult = 0.8; // Less slowdown on hold-in
+    orbitSpeedMult = HOLD_IN_ORBIT_MULT;
   } else if (uPhaseType == 2) {
-    orbitSpeedMult = 1.3; // Faster during exhale
+    orbitSpeedMult = EXHALE_ORBIT_MULT;
   } else {
-    orbitSpeedMult = 0.7; // Hold-out
+    orbitSpeedMult = HOLD_OUT_ORBIT_MULT;
   }
 
   // Crystallization reduces motion - keep orbiting visible during holds
-  orbitSpeedMult *= (1.0 - uCrystallization * 0.4);
+  orbitSpeedMult *= (1.0 - uCrystallization * CRYSTAL_ORBIT_REDUCTION);
 
   // Update angle (refresh-rate independent via delta uniform)
-  float orbitSpeed = baseOrbitSpeed * orbitSpeedMult;
+  float orbitSpeed = BASE_ORBIT_SPEED * orbitSpeedMult;
   float newAngle = storedAngle + orbitSpeed * uDelta;
 
   // === FLUTTER EFFECT ===
   // Gentle organic motion via curl noise
-  float flutterStrength = 0.4 * (1.0 - uCrystallization * 0.8);
+  float flutterStrength = FLUTTER_STRENGTH * (1.0 - uCrystallization * FLUTTER_CRYSTAL_REDUCTION);
 
   // More flutter when spread out, less when settled
-  flutterStrength *= mix(1.0, 0.3, uBreathPhase);
+  flutterStrength *= mix(1.0, FLUTTER_BREATH_REDUCTION, uBreathPhase);
 
-  vec3 flutterOffset = curlNoise(origPos * 0.15 + uTime * 0.2) * flutterStrength;
+  vec3 flutterOffset = curlNoise(origPos * FLUTTER_NOISE_SCALE + uTime * FLUTTER_TIME_SCALE) * flutterStrength;
 
   // === VERTICAL BOBBING ===
-  float bobAmount = 0.3 * (1.0 - uCrystallization * 0.6);
-  float verticalBob = sin(uTime * 0.5 + particlePhase * 6.28) * bobAmount;
+  float bobAmount = BOB_AMOUNT * (1.0 - uCrystallization * 0.6);
+  float verticalBob = sin(uTime * BOB_SPEED + particlePhase * 6.28) * bobAmount;
 
   // Diaphragm drift
-  float diaphragmInfluence = uDiaphragmDirection * 0.3 * (1.0 - uCrystallization);
+  float diaphragmInfluence = uDiaphragmDirection * DIAPHRAGM_INFLUENCE * (1.0 - uCrystallization);
 
   // === WIND TURBULENCE ===
   // Active during inhale (phaseType 0) and exhale (phaseType 2)
-  float windActive = 0.0;
-  if (uPhaseType == 0 || uPhaseType == 2) {
-    windActive = 1.0;
-  }
+  float windActive = (uPhaseType == 0 || uPhaseType == 2) ? 1.0 : 0.0;
 
   // Turbulence intensity peaks mid-phase, fades at start/end
   float phaseProgress = uBreathPhase;
@@ -143,10 +171,10 @@ void main() {
 
   // Directional wind based on breath direction
   vec3 windDirection = vec3(0.0, uDiaphragmDirection, 0.0);
-  float windStrength = 0.3 * windActive * turbulenceEnvelope;
+  float windStrength = WIND_STRENGTH * windActive * turbulenceEnvelope;
 
   // Add noise-based variation for natural feel
-  vec3 windNoise = curlNoise(origPos * 0.3 + uTime * 0.5) * 0.2;
+  vec3 windNoise = curlNoise(origPos * WIND_NOISE_SCALE + uTime * WIND_NOISE_SPEED) * WIND_NOISE_AMOUNT;
   vec3 windOffset = (windDirection + windNoise) * windStrength;
 
   // === CALCULATE NEW POSITION ===
@@ -157,8 +185,8 @@ void main() {
 
   vec3 targetPos = vec3(x, y, z) + flutterOffset + windOffset;
 
-  // Smooth interpolation for organic feel
-  float smoothing = 0.08;
+  // Smooth interpolation for organic feel (refresh-rate independent)
+  float smoothing = 1.0 - pow(1.0 - POSITION_SMOOTHING, uDelta * 60.0);
   vec3 newPos = mix(pos, targetPos, smoothing);
 
   // Store position and orbital angle

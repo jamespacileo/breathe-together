@@ -4,7 +4,6 @@
  */
 
 // GPGPU simulation shaders
-export { simulationFragmentShader } from './gpgpu/simulation.frag';
 export { userSimFragmentShader } from './gpgpu/userSim.frag';
 
 // Central sphere shaders
