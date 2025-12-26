@@ -1,6 +1,7 @@
 import { GradientTexture } from '@react-three/drei';
 import * as THREE from 'three';
-import type { EnhancedBreathData } from './GPGPUScene';
+import type { EnhancedBreathData } from '../../hooks/useEnhancedBreathData';
+import { LAYER_DEPTHS } from '../../lib/layers';
 
 interface GalaxyBackgroundProps {
 	breathData: EnhancedBreathData;
@@ -14,7 +15,7 @@ interface GalaxyBackgroundProps {
  */
 export function GalaxyBackground(_props: GalaxyBackgroundProps) {
 	return (
-		<mesh position={[0, 0, -80]} scale={[200, 200, 1]}>
+		<mesh position={[0, 0, LAYER_DEPTHS.GALAXY_BACKGROUND]} scale={[200, 200, 1]}>
 			<planeGeometry args={[1, 1]} />
 			<meshBasicMaterial transparent opacity={0.6} side={THREE.DoubleSide}>
 				<GradientTexture

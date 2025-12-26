@@ -5,6 +5,25 @@
 
 export type PhaseType = 'in' | 'hold-in' | 'out' | 'hold-out';
 
+/** Map phase type string to numeric value for shaders */
+export const PHASE_TYPE_MAP: Record<PhaseType, number> = {
+	in: 0,
+	'hold-in': 1,
+	out: 2,
+	'hold-out': 3,
+} as const;
+
+/** Phase-specific properties for animation logic */
+export const PHASE_PROPERTIES: Record<
+	PhaseType,
+	{ diaphragmDirection: -1 | 0 | 1; isActive: boolean }
+> = {
+	in: { diaphragmDirection: -1, isActive: true },
+	'hold-in': { diaphragmDirection: 0, isActive: false },
+	out: { diaphragmDirection: 1, isActive: true },
+	'hold-out': { diaphragmDirection: 0, isActive: false },
+} as const;
+
 export interface Phase {
 	name: string;
 	duration: number; // seconds

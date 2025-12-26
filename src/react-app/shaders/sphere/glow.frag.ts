@@ -4,6 +4,16 @@
  * Uses inverted fresnel for edge glow effect
  */
 export const glowFragmentShader = /* glsl */ `
+// === SHADER CONSTANTS ===
+const float FRESNEL_POWER = 3.5;          // Edge glow sharpness
+const float PULSE_BASE = 0.85;            // Base glow intensity
+const float PULSE_AMPLITUDE = 0.08;       // Pulse variation range
+const float PULSE_SPEED = 0.4;            // Pulse frequency
+const float GLOW_ALPHA_BASE = 0.25;       // Base transparency
+const float INHALE_INTENSITY_MIN = 0.8;   // Glow during start of inhale
+const float INHALE_INTENSITY_RANGE = 0.4; // Added intensity at full inhale
+const float EXHALE_INTENSITY_MAX = 1.2;   // Glow at start of exhale
+
 uniform float uBreathPhase;
 uniform int uPhaseType;
 uniform float uTime;
@@ -19,7 +29,7 @@ void main() {
   vec3 viewDir = normalize(cameraPosition - vPosition);
 
   // Inverted fresnel - glow at edges, transparent in center
-  float fresnel = pow(1.0 - abs(dot(viewDir, vNormal)), 3.5);
+  float fresnel = pow(1.0 - abs(dot(viewDir, vNormal)), FRESNEL_POWER);
 
   // Select glow color based on breathing phase
   vec3 glowColor;
@@ -38,19 +48,19 @@ void main() {
   }
 
   // Gentle pulsing glow
-  float pulse = 0.85 + sin(uTime * 0.4) * 0.08;
+  float pulse = PULSE_BASE + sin(uTime * PULSE_SPEED) * PULSE_AMPLITUDE;
 
   // Phase-specific intensity for dynamic breathing feedback
   float phaseIntensity = 1.0;
   if (uPhaseType == 0) {
     // Inhale: glow builds as breath fills
-    phaseIntensity = 0.8 + uBreathPhase * 0.4;
+    phaseIntensity = INHALE_INTENSITY_MIN + uBreathPhase * INHALE_INTENSITY_RANGE;
   } else if (uPhaseType == 2) {
     // Exhale: glow releases and fades
-    phaseIntensity = 1.2 - (1.0 - uBreathPhase) * 0.4;
+    phaseIntensity = EXHALE_INTENSITY_MAX - (1.0 - uBreathPhase) * INHALE_INTENSITY_RANGE;
   }
 
-  float alpha = fresnel * 0.25 * pulse * phaseIntensity;
+  float alpha = fresnel * GLOW_ALPHA_BASE * pulse * phaseIntensity;
 
   gl_FragColor = vec4(glowColor, alpha);
 }

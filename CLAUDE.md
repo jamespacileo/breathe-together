@@ -34,25 +34,36 @@ Full-stack React + Hono application deployed on Cloudflare Workers.
 A collaborative breathing app where all users worldwide are synchronized via UTC time.
 
 ### Key Components
-- `components/BreathingOrb.tsx` - Main orchestrator combining all visual layers
-- `components/ParticleField.tsx` - WebGL particle system (200+ particles with spring physics)
-- `components/GlowOverlay.tsx` - 2D canvas radial gradient effects
+- `components/BreathingOrb.tsx` - Main orchestrator with phase text and progress bar
+- `components/GPGPUParticles/` - Three.js particle system with post-processing:
+  - `GPGPUScene.tsx` - Main scene with bloom, vignette, and film grain effects
+  - `BreathingSphere.tsx` - Central breathing sphere visualization
+  - `UserParticles.tsx` - Dyson swarm of user particles with mood colors
+  - `PeripheralParticles.tsx` - Sparse outer particle ring
+  - `StarField.tsx` - Twinkling star layer
+  - `GalaxyBackground.tsx` - Atmospheric background
 
 ### Custom Hooks
 - `hooks/useBreathSync.ts` - UTC-synchronized breathing state (phase, progress, cycle position)
 - `hooks/usePresence.ts` - Global presence tracking with heartbeat polling
+- `hooks/useBreathingSpring.ts` - Framer Motion spring physics for breathing animation
+- `hooks/useSimulation.ts` - Population simulation engine (M/M/∞ queueing model)
 - `hooks/useLevaControls.ts` - Dev-mode parameter tuning via Leva GUI (Cmd+Shift+D to toggle)
 
 ### Configuration System
-- `lib/config.ts` - 22 visualization parameters (VisualizationConfig type)
-- `lib/spring.ts` - Damped harmonic oscillator physics (tension, friction)
+- `lib/config.ts` - Visualization parameters with Zod validation (VisualizationConfig type)
 - `lib/patterns.ts` - Breathing patterns (Box 4-4-4-4, 4-7-8 Relaxation)
 - `lib/colors.ts` - Color palettes and mood configurations
 
+### Library Utilities
+- `lib/breathEasing.ts` - Physiological easing functions (anticipation, overshoot, diaphragm simulation)
+- `lib/simulation.ts` - SimulationEngine class for synthetic user testing
+- `lib/simulationConfig.ts` - Configuration for population simulation
+- `lib/userGenerator.ts` - Generates synthetic users with moods
+
 ### Rendering Patterns
-- WebGL POINTS for particle rendering with custom shaders
-- Trail effect via partial buffer clear
-- Separate 2D canvas layer for radial gradients (WebGL limitation)
+- Three.js with React Three Fiber for 3D scene management
+- Post-processing effects: bloom, vignette, film grain
 - 60fps animation loops via requestAnimationFrame
 
 ### Global Synchronization

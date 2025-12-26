@@ -1,10 +1,16 @@
 /**
  * Central Sphere Fragment Shader
- * Ethereal sphere with fresnel glow and phase-specific coloring
+ * Ethereal sphere with fresnel glow, inner core glow, and phase-specific coloring
  * Colors passed via uniforms for centralized palette management
  */
 export const sphereFragmentShader = /* glsl */ `
 precision highp float;
+
+// === SHADER CONSTANTS ===
+const float FRESNEL_POWER = 2.5;         // Edge transparency falloff
+const float SHIMMER_FREQUENCY = 20.0;    // Surface wave frequency
+const float CORE_GLOW_FALLOFF = 2.5;     // Inner core glow intensity falloff
+const vec3 CORE_COLOR = vec3(0.753, 0.91, 0.941);  // #c0e8f0 inner core
 
 uniform float uTime;
 uniform float uBreathPhase;
@@ -27,7 +33,12 @@ varying vec2 vUv;
 void main() {
   // Fresnel effect for ethereal edge glow
   vec3 viewDir = normalize(cameraPosition - vPosition);
-  float fresnel = pow(1.0 - max(0.0, dot(viewDir, vNormal)), 2.5);
+  float fresnel = pow(1.0 - max(0.0, dot(viewDir, vNormal)), FRESNEL_POWER);
+
+  // Inner core glow - brighter at center, fades toward edges
+  float distFromCenter = length(vPosition);
+  float coreGlow = exp(-distFromCenter * CORE_GLOW_FALLOFF);
+  float coreOpacity = 0.12 + uBreathPhase * 0.08;
 
   // Gradient based on vertical position
   float gradient = vPosition.y * 0.5 + 0.5;
@@ -75,8 +86,11 @@ void main() {
 
   // Subtle surface shimmer (reduced during crystallization)
   float shimmerStrength = 0.02 * (1.0 - uCrystallization * 0.6);
-  float shimmer = sin(vPosition.x * 20.0 + uTime) * sin(vPosition.y * 20.0 + uTime * 1.3) * shimmerStrength;
+  float shimmer = sin(vPosition.x * SHIMMER_FREQUENCY + uTime) * sin(vPosition.y * SHIMMER_FREQUENCY + uTime * 1.3) * shimmerStrength;
   color += shimmer;
+
+  // Blend in inner core glow (replaces separate inner core mesh)
+  color = mix(color, CORE_COLOR, coreGlow * coreOpacity);
 
   // Soft alpha with fresnel - more visible during exhale (expanded)
   float baseAlpha = 0.12;
@@ -87,7 +101,7 @@ void main() {
     // Slightly less visible during inhale (contracting)
     baseAlpha = 0.1 + uBreathPhase * 0.05;
   }
-  float alpha = baseAlpha + fresnel * 0.3;
+  float alpha = baseAlpha + fresnel * 0.3 + coreGlow * coreOpacity * 0.15;
 
   gl_FragColor = vec4(color, alpha);
 }

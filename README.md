@@ -1,90 +1,49 @@
-# React + Vite + Hono + Cloudflare Workers
+# Breathe Together
 
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/cloudflare/templates/tree/main/vite-react-template)
+A collaborative breathing meditation app where users worldwide breathe in sync via UTC time synchronization.
 
-This template provides a minimal setup for building a React application with TypeScript and Vite, designed to run on Cloudflare Workers. It features hot module replacement, ESLint integration, and the flexibility of Workers deployments.
+## Features
 
-![React + TypeScript + Vite + Cloudflare Workers](https://imagedelivery.net/wSMYJvS3Xw-n339CbDyDIA/fc7b4b62-442b-4769-641b-ad4422d74300/public)
+- **Global Synchronization** - All users breathe together using UTC-based timing
+- **3D Particle Visualization** - Three.js scene with bloom, vignette, and film grain effects
+- **Multiple Breathing Patterns** - Box breathing (4-4-4-4) and 4-7-8 Relaxation
+- **Mood-Based Presence** - See other users as colored particles based on their mood
+- **Responsive Design** - Works on desktop and mobile devices
 
-<!-- dash-content-start -->
-
-🚀 Supercharge your web development with this powerful stack:
-
-- [**React**](https://react.dev/) - A modern UI library for building interactive interfaces
-- [**Vite**](https://vite.dev/) - Lightning-fast build tooling and development server
-- [**Hono**](https://hono.dev/) - Ultralight, modern backend framework
-- [**Cloudflare Workers**](https://developers.cloudflare.com/workers/) - Edge computing platform for global deployment
-
-### ✨ Key Features
-
-- 🔥 Hot Module Replacement (HMR) for rapid development
-- 📦 TypeScript support out of the box
-- 🛠️ ESLint configuration included
-- ⚡ Zero-config deployment to Cloudflare's global network
-- 🎯 API routes with Hono's elegant routing
-- 🔄 Full-stack development setup
-- 🔎 Built-in Observability to monitor your Worker
-
-Get started in minutes with local development or deploy directly via the Cloudflare dashboard. Perfect for building modern, performant web applications at the edge.
-
-<!-- dash-content-end -->
-
-## Getting Started
-
-To start a new project with this template, run:
+## Quick Start
 
 ```bash
-npm create cloudflare@latest -- --template=cloudflare/templates/vite-react-template
-```
-
-A live deployment of this template is available at:
-[https://react-vite-template.templates.workers.dev](https://react-vite-template.templates.workers.dev)
-
-## Development
-
-Install dependencies:
-
-```bash
+# Install dependencies
 npm install
-```
 
-Start the development server with:
-
-```bash
+# Start development server
 npm run dev
 ```
 
-Your application will be available at [http://localhost:5173](http://localhost:5173).
+Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-## Production
-
-Build your project for production:
+## Development
 
 ```bash
-npm run build
+npm run dev       # Start Vite dev server
+npm run build     # Production build
+npm run check     # Type check + build + dry-run deploy
+npm run test      # Run test suite
+npm run deploy    # Deploy to Cloudflare Workers
 ```
 
-Preview your build locally:
+## Tech Stack
 
-```bash
-npm run preview
-```
+**Frontend**
+- React 19 + TypeScript
+- Three.js with React Three Fiber
+- Framer Motion for animations
+- Tailwind CSS
 
-Deploy your project to Cloudflare Workers:
+**Backend**
+- Hono framework on Cloudflare Workers
+- Cloudflare KV for presence storage
 
-```bash
-npm run build && npm run deploy
-```
+## Architecture
 
-Monitor your workers:
-
-```bash
-npx wrangler tail
-```
-
-## Additional Resources
-
-- [Cloudflare Workers Documentation](https://developers.cloudflare.com/workers/)
-- [Vite Documentation](https://vitejs.dev/guide/)
-- [React Documentation](https://reactjs.org/)
-- [Hono Documentation](https://hono.dev/)
+See [CLAUDE.md](./CLAUDE.md) for detailed architecture documentation.

@@ -2,7 +2,8 @@ import { Stars } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { useRef } from 'react';
 import type * as THREE from 'three';
-import type { EnhancedBreathData } from './GPGPUScene';
+import type { EnhancedBreathData } from '../../hooks/useEnhancedBreathData';
+import { LAYER_DEPTHS } from '../../lib/layers';
 
 interface StarFieldProps {
 	breathData: EnhancedBreathData;
@@ -33,8 +34,8 @@ export function StarField({ breathData }: StarFieldProps) {
 	return (
 		<group ref={groupRef}>
 			<Stars
-				radius={100}
-				depth={50}
+				radius={LAYER_DEPTHS.STAR_FIELD_RADIUS}
+				depth={LAYER_DEPTHS.STAR_FIELD_DEPTH}
 				count={300}
 				factor={4}
 				saturation={0.3}

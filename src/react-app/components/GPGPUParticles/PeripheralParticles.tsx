@@ -2,7 +2,8 @@ import { Sparkles } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { useRef } from 'react';
 import type * as THREE from 'three';
-import type { EnhancedBreathData } from './GPGPUScene';
+import type { EnhancedBreathData } from '../../hooks/useEnhancedBreathData';
+import { LAYER_DEPTHS } from '../../lib/layers';
 
 interface PeripheralParticlesProps {
 	breathData: EnhancedBreathData;
@@ -41,7 +42,7 @@ export function PeripheralParticles({ breathData }: PeripheralParticlesProps) {
 		<group ref={groupRef}>
 			<Sparkles
 				count={60}
-				scale={[80, 80, 50]}
+				scale={[80, 80, LAYER_DEPTHS.PERIPHERAL_PARTICLES_Z]}
 				size={4}
 				speed={0.15}
 				opacity={0.12}
