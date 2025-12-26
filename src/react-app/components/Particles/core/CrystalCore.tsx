@@ -1,6 +1,6 @@
 import { MeshTransmissionMaterial } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { SPHERE_PHASE_COLORS } from '../../../lib/colors';
 import { crystalCoreObj } from '../../../lib/theatre';
@@ -48,14 +48,12 @@ export const CrystalCore = memo(({ radius }: CrystalCoreProps) => {
 	const meshRef = useRef<THREE.Mesh>(null);
 	const materialRef = useRef<any>(null);
 	const theatreBreath = useTheatreBreath();
-	const [theatreProps, setTheatreProps] = useState<TheatreCrystalProps>(
-		crystalCoreObj.value,
-	);
+	const theatrePropsRef = useRef<TheatreCrystalProps>(crystalCoreObj.value);
 
-	// Subscribe to Theatre.js object changes
+	// Subscribe to Theatre.js object changes (Ref-only, no re-renders)
 	useEffect(() => {
 		const unsubscribe = crystalCoreObj.onValuesChange((values) => {
-			setTheatreProps(values);
+			theatrePropsRef.current = values;
 		});
 		return unsubscribe;
 	}, []);
@@ -65,6 +63,7 @@ export const CrystalCore = memo(({ radius }: CrystalCoreProps) => {
 		if (!(meshRef.current && materialRef.current)) return;
 
 		const { breathPhase, phaseType, crystallization } = theatreBreath.current;
+		const theatreProps = theatrePropsRef.current;
 
 		// 1. Update Scale
 		// breathPhase: 0 = exhaled (expanded), 1 = inhaled (contracted)

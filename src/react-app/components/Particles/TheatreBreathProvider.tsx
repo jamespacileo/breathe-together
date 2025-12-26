@@ -69,14 +69,10 @@ interface TheatreBreathProviderProps {
 export const TheatreBreathProvider = memo(
 	({ children }: TheatreBreathProviderProps) => {
 		const dataRef = useRef<TheatreBreathData>(createInitialData());
-		const viewOffsetRef = useRef({ x: 0, y: 0 });
 
 		// Start breathing animation sequence
 		useEffect(() => {
 			// Play the sequence in a loop
-			// Note: The sequence duration is defined by keyframes in Studio.
-			// Until keyframes are designed, this plays the default 10s loop.
-			// After adding keyframes at 16s in Studio, the full breath cycle will play.
 			sequence.play({
 				iterationCount: Number.POSITIVE_INFINITY,
 				rate: 1,
@@ -97,36 +93,19 @@ export const TheatreBreathProvider = memo(
 			return unsubscribe;
 		}, []);
 
-		// Track mouse/touch for parallax effect
-		useEffect(() => {
-			const onMouse = (e: MouseEvent) => {
-				viewOffsetRef.current.x =
-					(e.clientX / window.innerWidth - 0.5) * 2 * PARALLAX_STRENGTH;
-				viewOffsetRef.current.y =
-					(e.clientY / window.innerHeight - 0.5) * 2 * PARALLAX_STRENGTH;
-			};
-
-			const onOrientation = (e: DeviceOrientationEvent) => {
-				if (e.gamma !== null && e.beta !== null) {
-					viewOffsetRef.current.x = (e.gamma / 90) * PARALLAX_STRENGTH;
-					viewOffsetRef.current.y = (e.beta / 90) * PARALLAX_STRENGTH;
-				}
-			};
-
-			window.addEventListener('mousemove', onMouse);
-			window.addEventListener('deviceorientation', onOrientation);
-
-			return () => {
-				window.removeEventListener('mousemove', onMouse);
-				window.removeEventListener('deviceorientation', onOrientation);
-			};
-		}, []);
-
-		// Update time values each frame
+		// Update time and parallax each frame
 		useFrame((state, delta) => {
 			dataRef.current.time = state.clock.elapsedTime;
 			dataRef.current.delta = delta;
-			dataRef.current.viewOffset = viewOffsetRef.current;
+
+			// Smooth parallax using R3F pointer
+			const targetX = state.pointer.x * PARALLAX_STRENGTH;
+			const targetY = state.pointer.y * PARALLAX_STRENGTH;
+
+			dataRef.current.viewOffset.x +=
+				(targetX - dataRef.current.viewOffset.x) * 0.05;
+			dataRef.current.viewOffset.y +=
+				(targetY - dataRef.current.viewOffset.y) * 0.05;
 		});
 
 		// Stable context value

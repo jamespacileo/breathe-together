@@ -10,6 +10,7 @@ import type {
 	BreathCycleProps,
 	CameraProps,
 	CrystalCoreProps,
+	DebugProps,
 	InnerGlowProps,
 	NebulaProps,
 	OrbitingShellProps,
@@ -77,10 +78,14 @@ export const cameraObj = sheet.object('camera', {
 	fov: types.number(50, { range: [20, 120], nudgeMultiplier: 1 }),
 });
 
+// =============================================================================
+// SPHERE LAYERS (grouped in sphere/ folder in Studio)
+// =============================================================================
+
 /**
  * Crystal core layer object
  */
-export const crystalCoreObj = sheet.object('crystalCore', {
+export const crystalCoreObj = sheet.object('sphere/crystalCore', {
 	scale: types.number(0.35, { range: [0.1, 2], nudgeMultiplier: 0.01 }),
 	transmission: types.number(0.98, { range: [0, 1], nudgeMultiplier: 0.01 }),
 	thickness: types.number(0.3, { range: [0, 2], nudgeMultiplier: 0.01 }),
@@ -100,7 +105,7 @@ export const crystalCoreObj = sheet.object('crystalCore', {
 /**
  * Inner glow layer object (custom shader)
  */
-export const innerGlowObj = sheet.object('innerGlow', {
+export const innerGlowObj = sheet.object('sphere/innerGlow', {
 	scale: types.number(0.48, { range: [0.1, 2], nudgeMultiplier: 0.01 }),
 	glowIntensity: types.number(0.6, { range: [0, 1], nudgeMultiplier: 0.01 }),
 	pulseAmount: types.number(0.08, { range: [0, 0.3], nudgeMultiplier: 0.01 }),
@@ -115,7 +120,7 @@ export const innerGlowObj = sheet.object('innerGlow', {
 /**
  * Orbiting shell layer object
  */
-export const orbitingShellObj = sheet.object('orbitingShell', {
+export const orbitingShellObj = sheet.object('sphere/orbitingShell', {
 	minRadiusScale: types.number(1.2, { range: [0.5, 2], nudgeMultiplier: 0.01 }),
 	maxRadiusScale: types.number(1.8, { range: [1, 4], nudgeMultiplier: 0.01 }),
 	orbitSpeed: types.number(0.15, { range: [0, 1], nudgeMultiplier: 0.01 }),
@@ -133,7 +138,7 @@ export const orbitingShellObj = sheet.object('orbitingShell', {
 /**
  * Outer halo layer object
  */
-export const outerHaloObj = sheet.object('outerHalo', {
+export const outerHaloObj = sheet.object('sphere/outerHalo', {
 	minScale: types.number(1.5, { range: [0.5, 3], nudgeMultiplier: 0.01 }),
 	maxScale: types.number(2.2, { range: [1, 5], nudgeMultiplier: 0.01 }),
 	opacity: types.number(0.12, { range: [0, 1], nudgeMultiplier: 0.01 }),
@@ -168,10 +173,14 @@ export const userParticlesObj = sheet.object('userParticles', {
 	}),
 });
 
+// =============================================================================
+// BACKGROUND LAYERS (grouped in background/ folder in Studio)
+// =============================================================================
+
 /**
  * Nebula background object
  */
-export const nebulaObj = sheet.object('nebula', {
+export const nebulaObj = sheet.object('background/nebula', {
 	rotationSpeed: types.number(0.003, {
 		range: [0, 0.02],
 		nudgeMultiplier: 0.001,
@@ -184,7 +193,7 @@ export const nebulaObj = sheet.object('nebula', {
 /**
  * Star field object
  */
-export const starFieldObj = sheet.object('starField', {
+export const starFieldObj = sheet.object('background/starField', {
 	rotationSpeed: types.number(0.05, { range: [0, 0.2], nudgeMultiplier: 0.01 }),
 	verticalDrift: types.number(0.01, { range: [0, 0.1], nudgeMultiplier: 0.01 }),
 	count: types.number(300, { range: [50, 1000], nudgeMultiplier: 10 }),
@@ -194,7 +203,7 @@ export const starFieldObj = sheet.object('starField', {
 /**
  * Peripheral particles object
  */
-export const peripheralParticlesObj = sheet.object('peripheralParticles', {
+export const peripheralParticlesObj = sheet.object('background/peripheralParticles', {
 	count: types.number(60, { range: [10, 200], nudgeMultiplier: 5 }),
 	size: types.number(4, { range: [1, 10], nudgeMultiplier: 0.5 }),
 	opacity: types.number(0.12, { range: [0, 1], nudgeMultiplier: 0.01 }),
@@ -230,6 +239,24 @@ export const sceneObj = sheet.object('scene', {
 	}),
 });
 
+/**
+ * Debug visualization controls
+ * Toggle visibility of helper guides in Theatre.js Studio
+ */
+export const debugObj = sheet.object('debug', {
+	enabled: types.boolean(false, { label: 'Enable Debug' }),
+	showAxes: types.boolean(true, { label: 'Show Axes' }),
+	showOrbitRings: types.boolean(true, { label: 'Show Orbit Rings' }),
+	showLayerPlanes: types.boolean(false, { label: 'Show Layer Planes' }),
+	ringOpacity: types.number(0.4, {
+		range: [0.1, 1],
+		nudgeMultiplier: 0.05,
+		label: 'Ring Opacity',
+	}),
+	settledRingColor: types.string('#4ade80', { label: 'Settled Ring Color' }),
+	spreadRingColor: types.string('#f97316', { label: 'Spread Ring Color' }),
+});
+
 // =============================================================================
 // TYPE EXPORTS FOR OBJECT VALUES
 // =============================================================================
@@ -238,6 +265,7 @@ export type {
 	BreathCycleProps,
 	CameraProps,
 	CrystalCoreProps,
+	DebugProps,
 	InnerGlowProps,
 	NebulaProps,
 	OrbitingShellProps,

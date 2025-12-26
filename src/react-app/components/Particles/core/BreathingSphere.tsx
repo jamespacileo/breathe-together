@@ -40,7 +40,12 @@ export const BreathingSphere = memo(() => {
 	// Subscribe to Theatre.js object changes
 	useEffect(() => {
 		const unsubscribe = sceneObj.onValuesChange((values) => {
-			setTheatreProps(values);
+			setTheatreProps((prev) => {
+				if (prev.sphereBaseRadius !== values.sphereBaseRadius) {
+					return values;
+				}
+				return prev;
+			});
 		});
 		return unsubscribe;
 	}, []);

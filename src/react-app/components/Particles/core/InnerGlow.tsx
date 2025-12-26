@@ -1,6 +1,7 @@
 import { useFrame } from '@react-three/fiber';
-import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
+import CustomShaderMaterial from 'three-custom-shader-material';
 import { SPHERE_PHASE_COLORS } from '../../../lib/colors';
 import { innerGlowObj } from '../../../lib/theatre';
 import type { InnerGlowProps as TheatreGlowProps } from '../../../lib/theatre/types';
@@ -10,20 +11,8 @@ interface InnerGlowProps {
 	radius: number;
 }
 
-// Vertex shader - pass position and normal to fragment
-const vertexShader = /* glsl */ `
-varying vec3 vNormal;
-varying vec3 vViewPosition;
-
-void main() {
-	vNormal = normalize(normalMatrix * normal);
-	vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-	vViewPosition = -mvPosition.xyz;
-	gl_Position = projectionMatrix * mvPosition;
-}
-`;
-
 // Fragment shader - fresnel-based inner glow with phase colors
+// Using CSM to patch MeshBasicMaterial
 const fragmentShader = /* glsl */ `
 uniform float uTime;
 uniform float uBreathPhase;
@@ -35,8 +24,8 @@ uniform float uFresnelPower;
 uniform float uCoreGlowPower;
 uniform float uEdgeHighlightPower;
 
-varying vec3 vNormal;
 varying vec3 vViewPosition;
+varying vec3 vNormal;
 
 void main() {
 	// Fresnel effect - glow stronger at edges
@@ -65,7 +54,7 @@ void main() {
 	// Alpha based on glow intensity and breath phase
 	float alpha = glowIntensity * uGlowIntensity * (0.35 + uBreathPhase * 0.15);
 
-	gl_FragColor = vec4(color, alpha);
+	csm_DiffuseColor = vec4(color, alpha);
 }
 `;
 
@@ -78,19 +67,18 @@ void main() {
  * - Core glow for depth
  * - Phase-specific color tinting
  * - Subtle pulsing animation
+ * - Uses three-custom-shader-material for better scene integration
  */
 export const InnerGlow = memo(({ radius }: InnerGlowProps) => {
 	const meshRef = useRef<THREE.Mesh>(null);
-	const materialRef = useRef<THREE.ShaderMaterial>(null);
+	const materialRef = useRef<any>(null);
 	const theatreBreath = useTheatreBreath();
-	const [theatreProps, setTheatreProps] = useState<TheatreGlowProps>(
-		innerGlowObj.value,
-	);
+	const theatrePropsRef = useRef<TheatreGlowProps>(innerGlowObj.value);
 
-	// Subscribe to Theatre.js object changes
+	// Subscribe to Theatre.js object changes (Ref-only, no re-renders)
 	useEffect(() => {
 		const unsubscribe = innerGlowObj.onValuesChange((values) => {
-			setTheatreProps(values);
+			theatrePropsRef.current = values;
 		});
 		return unsubscribe;
 	}, []);
@@ -122,56 +110,40 @@ export const InnerGlow = memo(({ radius }: InnerGlowProps) => {
 		[],
 	);
 
-	// Create shader material
-	const material = useMemo(() => {
-		return new THREE.ShaderMaterial({
-			vertexShader,
-			fragmentShader,
-			uniforms: {
-				uTime: { value: 0 },
-				uBreathPhase: { value: 0 },
-				uCrystallization: { value: 0 },
-				uPhaseColor: { value: new THREE.Vector3(0.42, 0.72, 0.82) },
-				uGlowIntensity: { value: 0.6 },
-				uPulseAmount: { value: 0.08 },
-				uFresnelPower: { value: 2.0 },
-				uCoreGlowPower: { value: 1.5 },
-				uEdgeHighlightPower: { value: 0.6 },
-			},
-			transparent: true,
-			depthWrite: false,
-			blending: THREE.AdditiveBlending,
-			side: THREE.FrontSide,
-		});
-	}, []);
-
-	// Cleanup on unmount
-	useEffect(() => {
-		return () => {
-			material.dispose();
-		};
-	}, [material]);
+	// Uniforms
+	const uniforms = useMemo(
+		() => ({
+			uTime: { value: 0 },
+			uBreathPhase: { value: 0 },
+			uCrystallization: { value: 0 },
+			uPhaseColor: { value: new THREE.Vector3(0.42, 0.72, 0.82) },
+			uGlowIntensity: { value: 0.6 },
+			uPulseAmount: { value: 0.08 },
+			uFresnelPower: { value: 2.0 },
+			uCoreGlowPower: { value: 1.5 },
+			uEdgeHighlightPower: { value: 0.6 },
+		}),
+		[],
+	);
 
 	// Animation loop
 	useFrame((state) => {
 		if (!(materialRef.current && meshRef.current)) return;
 
 		const { breathPhase, phaseType, crystallization } = theatreBreath.current;
+		const theatreProps = theatrePropsRef.current;
 		const time = state.clock.elapsedTime;
 
 		// Update uniforms from Theatre.js props
-		materialRef.current.uniforms.uTime.value = time;
-		materialRef.current.uniforms.uBreathPhase.value = breathPhase;
-		materialRef.current.uniforms.uCrystallization.value = crystallization;
-		materialRef.current.uniforms.uGlowIntensity.value =
-			theatreProps.glowIntensity;
-		materialRef.current.uniforms.uPulseAmount.value = theatreProps.pulseAmount;
-		materialRef.current.uniforms.uFresnelPower.value =
-			theatreProps.fresnelPower;
-		materialRef.current.uniforms.uCoreGlowPower.value =
-			theatreProps.coreGlowPower;
-		materialRef.current.uniforms.uEdgeHighlightPower.value =
-			theatreProps.edgeHighlightPower;
+		const u = materialRef.current.uniforms;
+		u.uTime.value = time;
+		u.uBreathPhase.value = breathPhase;
+		u.uCrystallization.value = crystallization;
+		u.uGlowIntensity.value = theatreProps.glowIntensity;
+		u.uPulseAmount.value = theatreProps.pulseAmount;
+		u.uFresnelPower.value = theatreProps.fresnelPower;
+		u.uCoreGlowPower.value = theatreProps.coreGlowPower;
+		u.uEdgeHighlightPower.value = theatreProps.edgeHighlightPower;
 
 		// Update phase color (mix Theatre.js color with phase color)
 		const phaseColor = phaseColors[phaseType] || phaseColors[0];
@@ -181,9 +153,7 @@ export const InnerGlow = memo(({ radius }: InnerGlowProps) => {
 			theatreProps.colorB,
 		);
 		// Blend phase color with Theatre.js base color
-		materialRef.current.uniforms.uPhaseColor.value
-			.copy(phaseColor)
-			.lerp(theatreColor, 0.3);
+		u.uPhaseColor.value.copy(phaseColor).lerp(theatreColor, 0.3);
 
 		// Update scale
 		const minScale = radius * theatreProps.scale;
@@ -195,7 +165,16 @@ export const InnerGlow = memo(({ radius }: InnerGlowProps) => {
 	return (
 		<mesh ref={meshRef} renderOrder={2}>
 			<sphereGeometry args={[1, 32, 32]} />
-			<primitive object={material} ref={materialRef} attach="material" />
+			<CustomShaderMaterial
+				ref={materialRef}
+				baseMaterial={THREE.MeshBasicMaterial}
+				fragmentShader={fragmentShader}
+				uniforms={uniforms}
+				transparent
+				depthWrite={false}
+				blending={THREE.AdditiveBlending}
+				side={THREE.FrontSide}
+			/>
 		</mesh>
 	);
 });

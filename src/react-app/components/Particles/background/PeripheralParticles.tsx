@@ -4,7 +4,6 @@ import { memo, useEffect, useRef, useState } from 'react';
 import type * as THREE from 'three';
 import { LAYER_DEPTHS } from '../../../lib/layers';
 import { peripheralParticlesObj } from '../../../lib/theatre';
-import type { PeripheralParticlesProps } from '../../../lib/theatre/types';
 import { useTheatreBreath } from '../TheatreBreathProvider';
 
 /**
@@ -18,14 +17,40 @@ import { useTheatreBreath } from '../TheatreBreathProvider';
 export const PeripheralParticles = memo(() => {
 	const groupRef = useRef<THREE.Group>(null);
 	const theatreBreath = useTheatreBreath();
-	const [theatreProps, setTheatreProps] = useState<PeripheralParticlesProps>(
-		peripheralParticlesObj.value,
-	);
+
+	// Ref for high-frequency animation values
+	const theatrePropsRef = useRef(peripheralParticlesObj.value);
+
+	// State for structural/material values that require re-render
+	const [theatreProps, setTheatreProps] = useState({
+		count: peripheralParticlesObj.value.count,
+		size: peripheralParticlesObj.value.size,
+		opacity: peripheralParticlesObj.value.opacity,
+		color: peripheralParticlesObj.value.color,
+	});
 
 	// Subscribe to Theatre.js object changes
 	useEffect(() => {
 		const unsubscribe = peripheralParticlesObj.onValuesChange((values) => {
-			setTheatreProps(values);
+			theatrePropsRef.current = values;
+
+			// Only update state for structural/material changes
+			setTheatreProps((prev) => {
+				if (
+					prev.count !== values.count ||
+					prev.size !== values.size ||
+					prev.opacity !== values.opacity ||
+					prev.color !== values.color
+				) {
+					return {
+						count: values.count,
+						size: values.size,
+						opacity: values.opacity,
+						color: values.color,
+					};
+				}
+				return prev;
+			});
 		});
 		return unsubscribe;
 	}, []);
@@ -33,14 +58,15 @@ export const PeripheralParticles = memo(() => {
 	useFrame((_, delta) => {
 		if (!groupRef.current) return;
 
+		const props = theatrePropsRef.current;
 		// Read from Theatre.js breath values
 		const { breathPhase, diaphragmDirection } = theatreBreath.current;
 
 		// Gentle counter-rotation to stars (creates depth parallax)
-		groupRef.current.rotation.y += theatreProps.rotationSpeed * delta;
+		groupRef.current.rotation.y += props.rotationSpeed * delta;
 
 		// Subtle breathing scale - expand/contract with breath
-		const targetScale = theatreProps.scale + breathPhase * 0.1;
+		const targetScale = props.scale + breathPhase * 0.1;
 		const currentScale = groupRef.current.scale.x;
 		const newScale = currentScale + (targetScale - currentScale) * 0.03;
 		groupRef.current.scale.setScalar(newScale);

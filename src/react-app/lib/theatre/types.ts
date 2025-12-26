@@ -180,6 +180,19 @@ export interface SceneProps {
 }
 
 /**
+ * Debug visualization controls
+ */
+export interface DebugProps {
+	enabled: boolean;
+	showAxes: boolean;
+	showOrbitRings: boolean;
+	showLayerPlanes: boolean;
+	ringOpacity: number;
+	settledRingColor: string;
+	spreadRingColor: string;
+}
+
+/**
  * Combined Theatre.js props for the entire scene
  */
 export interface TheatreProps {
@@ -194,4 +207,5 @@ export interface TheatreProps {
 	peripheralParticles: PeripheralParticlesProps;
 	postProcessing: PostProcessingProps;
 	scene: SceneProps;
+	debug: DebugProps;
 }

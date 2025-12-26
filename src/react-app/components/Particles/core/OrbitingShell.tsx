@@ -34,14 +34,12 @@ const BASE_ORBIT_SPEED = 0.15;
 export const OrbitingShell = memo(({ baseRadius }: OrbitingShellProps) => {
 	const instancesRef = useRef<THREE.InstancedMesh>(null);
 	const theatreBreath = useTheatreBreath();
-	const [theatreProps, setTheatreProps] = useState<TheatreShellProps>(
-		orbitingShellObj.value,
-	);
+	const theatrePropsRef = useRef<TheatreShellProps>(orbitingShellObj.value);
 
-	// Subscribe to Theatre.js object changes
+	// Subscribe to Theatre.js object changes (Ref-only, no re-renders)
 	useEffect(() => {
 		const unsubscribe = orbitingShellObj.onValuesChange((values) => {
-			setTheatreProps(values);
+			theatrePropsRef.current = values;
 		});
 		return unsubscribe;
 	}, []);
@@ -67,16 +65,22 @@ export const OrbitingShell = memo(({ baseRadius }: OrbitingShellProps) => {
 		return data;
 	}, []);
 
-	// Color from Theatre.js
-	const color = useMemo(
-		() =>
-			new THREE.Color(
-				theatreProps.colorR,
-				theatreProps.colorG,
-				theatreProps.colorB,
-			),
-		[theatreProps.colorR, theatreProps.colorG, theatreProps.colorB],
+	// Color from Theatre.js (This will still re-render when color changes, which is fine for material updates)
+	const [color, setColor] = useState(
+		new THREE.Color(
+			theatrePropsRef.current.colorR,
+			theatrePropsRef.current.colorG,
+			theatrePropsRef.current.colorB,
+		),
 	);
+	const [opacity, setOpacity] = useState(theatrePropsRef.current.opacity);
+
+	useEffect(() => {
+		return orbitingShellObj.onValuesChange((values) => {
+			setColor(new THREE.Color(values.colorR, values.colorG, values.colorB));
+			setOpacity(values.opacity);
+		});
+	}, []);
 
 	return (
 		<Instances
@@ -89,7 +93,7 @@ export const OrbitingShell = memo(({ baseRadius }: OrbitingShellProps) => {
 			<meshBasicMaterial
 				color={color}
 				transparent
-				opacity={theatreProps.opacity}
+				opacity={opacity}
 				depthWrite={false}
 				blending={THREE.AdditiveBlending}
 			/>
@@ -99,7 +103,7 @@ export const OrbitingShell = memo(({ baseRadius }: OrbitingShellProps) => {
 					data={particle}
 					baseRadius={baseRadius}
 					theatreBreath={theatreBreath}
-					theatreProps={theatreProps}
+					theatrePropsRef={theatrePropsRef}
 				/>
 			))}
 		</Instances>
@@ -110,7 +114,7 @@ interface OrbitingParticleProps {
 	data: ParticleData;
 	baseRadius: number;
 	theatreBreath: React.MutableRefObject<any>;
-	theatreProps: TheatreShellProps;
+	theatrePropsRef: React.MutableRefObject<TheatreShellProps>;
 }
 
 const OrbitingParticle = memo(
@@ -118,7 +122,7 @@ const OrbitingParticle = memo(
 		data,
 		baseRadius,
 		theatreBreath,
-		theatreProps,
+		theatrePropsRef,
 	}: OrbitingParticleProps) => {
 		const instanceRef = useRef<THREE.InstancedMesh>(null);
 
@@ -126,6 +130,7 @@ const OrbitingParticle = memo(
 			if (!instanceRef.current) return;
 
 			const { breathPhase, phaseType, crystallization } = theatreBreath.current;
+			const theatreProps = theatrePropsRef.current;
 			const time = state.clock.elapsedTime;
 
 			// 1. Calculate Radius

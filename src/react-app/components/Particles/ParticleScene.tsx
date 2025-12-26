@@ -10,6 +10,7 @@ import { PeripheralParticles } from './background/PeripheralParticles';
 import { StarField } from './background/StarField';
 import { BreathingSphere } from './core/BreathingSphere';
 import { UserParticlesInstanced } from './core/UserParticlesInstanced';
+import { DebugGuides } from './debug';
 import { PostProcessingEffects } from './effects/PostProcessingEffects';
 import { TheatreBreathProvider } from './TheatreBreathProvider';
 
@@ -120,6 +121,7 @@ export const ParticleScene = memo(() => {
 				<Suspense fallback={null}>
 					<TheatreBreathProvider>
 						<InnerScene />
+						<DebugGuides />
 					</TheatreBreathProvider>
 				</Suspense>
 				{showStats ? <Stats /> : null}

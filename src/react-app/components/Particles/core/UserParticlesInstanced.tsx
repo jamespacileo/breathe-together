@@ -99,14 +99,19 @@ interface UserParticleProps {
 	data: ParticleData;
 	sphereRadius: number;
 	theatreBreath: React.RefObject<TheatreBreathData>;
-	theatreProps: UserParticlesProps;
+	theatrePropsRef: React.MutableRefObject<UserParticlesProps>;
 }
 
 /**
  * Individual user particle with orbital animation
  */
 const UserParticle = memo(
-	({ data, sphereRadius, theatreBreath, theatreProps }: UserParticleProps) => {
+	({
+		data,
+		sphereRadius,
+		theatreBreath,
+		theatrePropsRef,
+	}: UserParticleProps) => {
 		const ref = useRef<THREE.InstancedMesh>(null);
 
 		// Mutable angle state (persists across frames)
@@ -133,6 +138,8 @@ const UserParticle = memo(
 				diaphragmDirection,
 				time,
 			} = theatreBreath.current;
+
+			const theatreProps = theatrePropsRef.current;
 
 			// === 1. BREATH-RESPONSIVE RADIUS ===
 			// Match BreathingSphere's exact scale calculation
@@ -205,23 +212,27 @@ const UserParticle = memo(
 export const UserParticlesInstanced = memo(
 	({ colorCounts }: UserParticlesInstancedProps) => {
 		const theatreBreath = useTheatreBreath();
-		const [theatreProps, setTheatreProps] = useState<UserParticlesProps>(
-			userParticlesObj.value,
-		);
-		const [sceneProps, setSceneProps] = useState<SceneProps>(sceneObj.value);
+		const theatrePropsRef = useRef<UserParticlesProps>(userParticlesObj.value);
+		const scenePropsRef = useRef<SceneProps>(sceneObj.value);
 
-		// Subscribe to Theatre.js object changes
+		// Subscribe to Theatre.js object changes (Ref-only, no re-renders)
 		useEffect(() => {
 			const unsubUser = userParticlesObj.onValuesChange((values) => {
-				setTheatreProps(values);
+				theatrePropsRef.current = values;
 			});
 			const unsubScene = sceneObj.onValuesChange((values) => {
-				setSceneProps(values);
+				scenePropsRef.current = values;
 			});
 			return () => {
 				unsubUser();
 				unsubScene();
 			};
+		}, []);
+
+		// Opacity state for material (reactive)
+		const [opacity, setOpacity] = useState(theatrePropsRef.current.opacity);
+		useEffect(() => {
+			return userParticlesObj.onValuesChange((v) => setOpacity(v.opacity));
 		}, []);
 
 		// Generate particle data with colors from mood configuration
@@ -238,7 +249,7 @@ export const UserParticlesInstanced = memo(
 
 		// Calculate sphere radius for orbit alignment
 		const contractedRadius =
-			sceneProps.sphereBaseRadius * PARTICLE_RADIUS_SCALE;
+			scenePropsRef.current.sphereBaseRadius * PARTICLE_RADIUS_SCALE;
 		const sphereMaxScale = contractedRadius * 0.7;
 
 		return (
@@ -246,7 +257,7 @@ export const UserParticlesInstanced = memo(
 				<sphereGeometry args={[1, 6, 6]} />
 				<meshBasicMaterial
 					transparent
-					opacity={theatreProps.opacity}
+					opacity={opacity}
 					depthWrite={false}
 					blending={THREE.AdditiveBlending}
 				/>
@@ -256,7 +267,7 @@ export const UserParticlesInstanced = memo(
 						data={p}
 						sphereRadius={sphereMaxScale}
 						theatreBreath={theatreBreath}
-						theatreProps={theatreProps}
+						theatrePropsRef={theatrePropsRef}
 					/>
 				))}
 			</Instances>

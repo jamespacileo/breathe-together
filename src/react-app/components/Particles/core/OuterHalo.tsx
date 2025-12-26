@@ -1,5 +1,5 @@
 import { useFrame } from '@react-three/fiber';
-import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { outerHaloObj } from '../../../lib/theatre';
 import type { OuterHaloProps as TheatreHaloProps } from '../../../lib/theatre/types';
@@ -76,14 +76,12 @@ export const OuterHalo = memo(({ radius }: OuterHaloProps) => {
 	const meshRef = useRef<THREE.Mesh>(null);
 	const materialRef = useRef<THREE.ShaderMaterial>(null);
 	const theatreBreath = useTheatreBreath();
-	const [theatreProps, setTheatreProps] = useState<TheatreHaloProps>(
-		outerHaloObj.value,
-	);
+	const theatrePropsRef = useRef<TheatreHaloProps>(outerHaloObj.value);
 
-	// Subscribe to Theatre.js object changes
+	// Subscribe to Theatre.js object changes (Ref-only, no re-renders)
 	useEffect(() => {
 		const unsubscribe = outerHaloObj.onValuesChange((values) => {
-			setTheatreProps(values);
+			theatrePropsRef.current = values;
 		});
 		return unsubscribe;
 	}, []);
@@ -121,6 +119,7 @@ export const OuterHalo = memo(({ radius }: OuterHaloProps) => {
 		if (!(materialRef.current && meshRef.current)) return;
 
 		const { breathPhase, crystallization } = theatreBreath.current;
+		const theatreProps = theatrePropsRef.current;
 		const time = state.clock.elapsedTime;
 
 		// Update uniforms from Theatre.js props

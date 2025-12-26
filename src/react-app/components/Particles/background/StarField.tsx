@@ -15,16 +15,26 @@ import { useTheatreBreath } from '../TheatreBreathProvider';
 export const StarField = memo(() => {
 	const groupRef = useRef<THREE.Group>(null);
 	const theatreBreath = useTheatreBreath();
-	const [theatreProps, setTheatreProps] = useState<TheatreStarFieldProps>(
-		starFieldObj.value,
-	);
+	const theatrePropsRef = useRef<TheatreStarFieldProps>(starFieldObj.value);
 
-	// Subscribe to Theatre.js object changes
+	// Subscribe to Theatre.js object changes (Ref-only, no re-renders)
 	useEffect(() => {
 		const unsubscribe = starFieldObj.onValuesChange((values) => {
-			setTheatreProps(values);
+			theatrePropsRef.current = values;
 		});
 		return unsubscribe;
+	}, []);
+
+	// Reactive state for Stars component props that require re-render
+	const [starsConfig, setStarsConfig] = useState({
+		count: theatrePropsRef.current.count,
+		factor: theatrePropsRef.current.factor,
+	});
+
+	useEffect(() => {
+		return starFieldObj.onValuesChange((v) => {
+			setStarsConfig({ count: v.count, factor: v.factor });
+		});
 	}, []);
 
 	useFrame((_, delta) => {
@@ -32,6 +42,7 @@ export const StarField = memo(() => {
 
 		// Read from Theatre.js breath values
 		const { breathPhase, diaphragmDirection } = theatreBreath.current;
+		const theatreProps = theatrePropsRef.current;
 
 		// Galaxy-like slow rotation around center
 		// Base rotation speed with breath modulation for a meditative feel
@@ -50,8 +61,8 @@ export const StarField = memo(() => {
 			<Stars
 				radius={LAYER_DEPTHS.STAR_FIELD_RADIUS}
 				depth={LAYER_DEPTHS.STAR_FIELD_DEPTH}
-				count={theatreProps.count}
-				factor={4}
+				count={starsConfig.count}
+				factor={starsConfig.factor}
 				saturation={0.3}
 				fade
 				speed={0.3}
