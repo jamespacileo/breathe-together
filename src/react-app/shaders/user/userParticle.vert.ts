@@ -5,6 +5,43 @@
 export const userParticleVertexShader = /* glsl */ `
 precision highp float;
 
+// === SHADER CONSTANTS ===
+// Velocity estimation
+const float ORBITAL_VELOCITY_SCALE = 0.0012;  // Orbital contribution factor
+const float ACTIVE_PHASE_VELOCITY = 0.15;     // Velocity during inhale/exhale
+const float HOLD_PHASE_VELOCITY = 0.05;       // Velocity during holds
+
+// Size attenuation
+const float DISTANCE_ATTENUATION_FACTOR = 150.0;
+const float BASE_SIZE_MULT = 0.8;
+const float COUNT_SCALE_MIN_USERS = 2.0;      // User count for max scale
+const float COUNT_SCALE_MAX_USERS = 200.0;    // User count for normal scale
+
+// Phase size modulation
+const float INHALE_SIZE_MIN = 0.9;
+const float INHALE_SIZE_RANGE = 0.1;
+const float HOLD_IN_PULSE_SPEED = 2.0;
+const float HOLD_IN_PULSE_AMOUNT = 0.05;
+const float EXHALE_SIZE_BASE = 1.1;
+const float EXHALE_SIZE_RANGE = 0.15;
+const float HOLD_OUT_PULSE_SPEED = 1.5;
+const float HOLD_OUT_PULSE_AMOUNT = 0.04;
+const float HOLD_OUT_SIZE_BASE = 1.05;
+
+// Twinkle
+const float TWINKLE_SPEED = 2.5;
+const float TWINKLE_PHASE_SPREAD = 50.0;
+const float TWINKLE_SHARPNESS = 12.0;
+const float TWINKLE_SIZE_BOOST = 0.3;
+const float TWINKLE_CRYSTAL_REDUCTION = 0.7;
+
+// Color temperature
+const float COLOR_SATURATION = 0.95;
+const vec3 COOL_SHIFT = vec3(-0.02, 0.02, 0.05);  // Cyan tint
+const vec3 WARM_SHIFT = vec3(0.03, 0.0, 0.02);    // Rose tint
+const float INHALE_TEMP = -0.5;
+const float EXHALE_TEMP = 0.3;
+
 uniform sampler2D uPositions;
 uniform float uTime;
 uniform float uBreathPhase;
@@ -29,60 +66,53 @@ void main() {
   vec3 pos = posData.xyz;
 
   // Estimate velocity for trail effect based on orbital motion and breathing phase
-  float orbitalVelocity = 0.12 * length(pos.xz) * 0.01;  // Orbital contribution
-  float breathingVelocity = 0.0;
-  if (uPhaseType == 0 || uPhaseType == 2) {
-    breathingVelocity = 0.15;  // Active breathing phases have more motion
-  } else {
-    breathingVelocity = 0.05;  // Hold phases - subtle motion
-  }
+  float orbitalVelocity = ORBITAL_VELOCITY_SCALE * length(pos.xz);
+  float breathingVelocity = (uPhaseType == 0 || uPhaseType == 2) ? ACTIVE_PHASE_VELOCITY : HOLD_PHASE_VELOCITY;
   vVelocity = orbitalVelocity + breathingVelocity;
 
   vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
   vDistance = -mvPosition.z;
 
   // Depth-based size attenuation
-  float distanceAttenuation = 150.0 / max(vDistance, 1.0);
+  float distanceAttenuation = DISTANCE_ATTENUATION_FACTOR / max(vDistance, 1.0);
 
   // Dynamic size based on user count: fewer users = bigger particles
-  // 2.0x for 2 users, 1.3x for 50 users, 1.0x for 200 users, 0.7x for 500+
-  float countScale = 1.0 + 1.0 * (1.0 - smoothstep(2.0, 200.0, uUserCount));
+  float countScale = 1.0 + 1.0 * (1.0 - smoothstep(COUNT_SCALE_MIN_USERS, COUNT_SCALE_MAX_USERS, uUserCount));
 
   // Base size for user particles with count scaling
-  float baseSize = aSize * 0.8 * distanceAttenuation * countScale;
+  float baseSize = aSize * BASE_SIZE_MULT * distanceAttenuation * countScale;
 
   // Phase-specific size modulation
   float sizePhase = 1.0;
   if (uPhaseType == 0) {
     // Inhale: slightly smaller, contracting feel
-    sizePhase = 0.9 + uBreathPhase * 0.1;
+    sizePhase = INHALE_SIZE_MIN + uBreathPhase * INHALE_SIZE_RANGE;
   } else if (uPhaseType == 1) {
     // Hold-in: stable with gentle pulse
-    float pulse = sin(uTime * 2.0 + aPhase * 6.28) * 0.05;
+    float pulse = sin(uTime * HOLD_IN_PULSE_SPEED + aPhase * 6.28) * HOLD_IN_PULSE_AMOUNT;
     sizePhase = 1.0 + pulse * (1.0 - uCrystallization * 0.8);
   } else if (uPhaseType == 2) {
     // Exhale: expanding
-    sizePhase = 1.1 - uBreathPhase * 0.15;
+    sizePhase = EXHALE_SIZE_BASE - uBreathPhase * EXHALE_SIZE_RANGE;
   } else {
     // Hold-out: soft floating pulse
-    float pulse = sin(uTime * 1.5 + aPhase * 6.28) * 0.04;
-    sizePhase = 1.05 + pulse * (1.0 - uCrystallization * 0.8);
+    float pulse = sin(uTime * HOLD_OUT_PULSE_SPEED + aPhase * 6.28) * HOLD_OUT_PULSE_AMOUNT;
+    sizePhase = HOLD_OUT_SIZE_BASE + pulse * (1.0 - uCrystallization * 0.8);
   }
   baseSize *= sizePhase;
 
   // Gentle twinkle effect
-  float twinkleSpeed = 2.5;
-  float twinklePhase = uTime * twinkleSpeed + aPhase * 50.0;
-  float twinkle1 = pow(max(0.0, sin(twinklePhase)), 12.0);
-  float twinkle2 = pow(max(0.0, sin(twinklePhase * 1.3 + 1.5)), 12.0);
+  float twinklePhase = uTime * TWINKLE_SPEED + aPhase * TWINKLE_PHASE_SPREAD;
+  float twinkle1 = pow(max(0.0, sin(twinklePhase)), TWINKLE_SHARPNESS);
+  float twinkle2 = pow(max(0.0, sin(twinklePhase * 1.3 + 1.5)), TWINKLE_SHARPNESS);
   float twinkle = max(twinkle1, twinkle2);
 
   // Reduce twinkle during crystallization for stillness
-  twinkle *= (1.0 - uCrystallization * 0.7);
+  twinkle *= (1.0 - uCrystallization * TWINKLE_CRYSTAL_REDUCTION);
   vTwinkle = twinkle;
 
   // Apply twinkle to size
-  baseSize *= (1.0 + twinkle * 0.3);
+  baseSize *= (1.0 + twinkle * TWINKLE_SIZE_BOOST);
 
   gl_PointSize = baseSize * uPixelRatio;
   gl_Position = projectionMatrix * mvPosition;
@@ -92,20 +122,17 @@ void main() {
 
   // Keep colors vivid with minimal desaturation
   vec3 gray = vec3(dot(color, vec3(0.299, 0.587, 0.114)));
-  color = mix(gray, color, 0.95);
+  color = mix(gray, color, COLOR_SATURATION);
 
   // Phase-based color temperature
-  vec3 coolShift = vec3(-0.02, 0.02, 0.05);  // Cyan shift
-  vec3 warmShift = vec3(0.03, 0.0, 0.02);    // Rose shift
-
   float temperature = 0.0;
   if (uPhaseType == 0) {
-    temperature = -0.5; // Cool during inhale
+    temperature = INHALE_TEMP;
   } else if (uPhaseType == 2) {
-    temperature = 0.3;  // Slightly warm during exhale
+    temperature = EXHALE_TEMP;
   }
 
-  vec3 tempShift = mix(coolShift, warmShift, temperature * 0.5 + 0.5);
+  vec3 tempShift = mix(COOL_SHIFT, WARM_SHIFT, temperature * 0.5 + 0.5);
   color += tempShift * 0.5;
 
   vColor = clamp(color, 0.0, 1.0);
