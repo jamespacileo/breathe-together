@@ -13,8 +13,8 @@ import {
 	Vignette,
 } from '@react-three/postprocessing';
 import { BlendFunction } from 'postprocessing';
-import type { VisualizationConfig } from '../../lib/config';
-import { POST_PROCESSING } from '../../lib/layers';
+import type { VisualizationConfig } from '../../../lib/config';
+import { POST_PROCESSING } from '../../../lib/layers';
 
 interface PostProcessingEffectsProps {
 	config: VisualizationConfig;
@@ -22,11 +22,12 @@ interface PostProcessingEffectsProps {
 
 export function PostProcessingEffects({ config }: PostProcessingEffectsProps) {
 	return (
-		<EffectComposer>
+		<EffectComposer disableNormalPass>
 			<Bloom
 				intensity={POST_PROCESSING.BLOOM_INTENSITY}
 				luminanceThreshold={POST_PROCESSING.BLOOM_THRESHOLD}
 				luminanceSmoothing={POST_PROCESSING.BLOOM_SMOOTHING}
+				mipmapBlur
 				radius={POST_PROCESSING.BLOOM_RADIUS}
 			/>
 			<Vignette

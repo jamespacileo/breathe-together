@@ -5,49 +5,33 @@ export interface ViewOffset {
 	y: number;
 }
 
+const PARALLAX_STRENGTH = 0.02;
+
 /**
- * Hook to track mouse/touch position for micro-saccade parallax effect
- * Uses refs instead of state to avoid re-renders per R3F best practices
+ * Track mouse/touch position for micro-saccade parallax effect.
+ * Returns a ref to avoid re-renders - read in useFrame loops.
  */
 export function useViewOffset(): React.MutableRefObject<ViewOffset> {
-	const targetRef = useRef<ViewOffset>({ x: 0, y: 0 });
-	const currentRef = useRef<ViewOffset>({ x: 0, y: 0 });
-	const animFrameRef = useRef(0);
+	const offsetRef = useRef<ViewOffset>({ x: 0, y: 0 });
 
 	useEffect(() => {
-		const handleMouseMove = (e: MouseEvent) => {
-			const x = (e.clientX / window.innerWidth - 0.5) * 2;
-			const y = (e.clientY / window.innerHeight - 0.5) * 2;
-			targetRef.current = { x: x * 0.02, y: y * 0.02 }; // Very subtle
+		const onMouse = (e: MouseEvent) => {
+			offsetRef.current.x = (e.clientX / window.innerWidth - 0.5) * 2 * PARALLAX_STRENGTH;
+			offsetRef.current.y = (e.clientY / window.innerHeight - 0.5) * 2 * PARALLAX_STRENGTH;
 		};
-
-		const handleOrientation = (e: DeviceOrientationEvent) => {
+		const onOrientation = (e: DeviceOrientationEvent) => {
 			if (e.gamma !== null && e.beta !== null) {
-				const x = (e.gamma / 90) * 0.02;
-				const y = (e.beta / 90) * 0.02;
-				targetRef.current = { x, y };
+				offsetRef.current.x = (e.gamma / 90) * PARALLAX_STRENGTH;
+				offsetRef.current.y = (e.beta / 90) * PARALLAX_STRENGTH;
 			}
 		};
-
-		// Smooth interpolation via refs (no setState to avoid re-renders)
-		const animate = () => {
-			currentRef.current.x +=
-				(targetRef.current.x - currentRef.current.x) * 0.05;
-			currentRef.current.y +=
-				(targetRef.current.y - currentRef.current.y) * 0.05;
-			animFrameRef.current = requestAnimationFrame(animate);
-		};
-
-		window.addEventListener('mousemove', handleMouseMove);
-		window.addEventListener('deviceorientation', handleOrientation);
-		animFrameRef.current = requestAnimationFrame(animate);
-
+		window.addEventListener('mousemove', onMouse);
+		window.addEventListener('deviceorientation', onOrientation);
 		return () => {
-			window.removeEventListener('mousemove', handleMouseMove);
-			window.removeEventListener('deviceorientation', handleOrientation);
-			cancelAnimationFrame(animFrameRef.current);
+			window.removeEventListener('mousemove', onMouse);
+			window.removeEventListener('deviceorientation', onOrientation);
 		};
 	}, []);
 
-	return currentRef;
+	return offsetRef;
 }

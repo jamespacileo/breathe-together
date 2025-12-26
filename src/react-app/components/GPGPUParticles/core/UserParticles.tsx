@@ -2,21 +2,18 @@ import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { GPUComputationRenderer } from 'three/examples/jsm/misc/GPUComputationRenderer.js';
-import { useViewOffset } from '../../hooks/useViewOffset';
-import { getEnhancedBreathData } from '../../hooks/useEnhancedBreathData';
+import { useGlobalUniforms } from '../../../hooks/useGlobalUniforms';
 import {
 	createUserParticleMaterial,
 	updateUserParticleMaterialUniforms,
-} from '../../lib/materials';
-import { userSimFragmentShader } from '../../shaders/gpgpu/userSim.frag';
-import { getBreathState } from '../../stores/breathStore';
+} from '../../../lib/materials';
+import { userSimFragmentShader } from '../../../shaders/gpgpu/userSim.frag';
 
 interface UserParticlesProps {
 	colorCounts: Record<string, number>;
 	sphereRadius: number;
 }
 
-const MIN_PARTICLES = 16;
 // Pre-allocate a fixed FBO size to avoid re-initialization jank
 const FIXED_FBO_SIZE = 32; // 1024 particles max for now
 const MAX_PARTICLES = FIXED_FBO_SIZE * FIXED_FBO_SIZE;
@@ -37,7 +34,8 @@ export function UserParticles({
 	} | null>(null);
 	const materialRef = useRef<THREE.ShaderMaterial | null>(null);
 	const geometryRef = useRef<THREE.BufferGeometry | null>(null);
-	const viewOffsetRef = useViewOffset();
+	const globalUniforms = useGlobalUniforms();
+	const isDisposedRef = useRef(false);
 
 	const totalUsers = useMemo(
 		() => Object.values(colorCounts).reduce((a, b) => a + b, 0),
@@ -64,6 +62,7 @@ export function UserParticles({
 
 	// Create GPGPU simulation (only once or when sphereRadius changes)
 	useEffect(() => {
+		isDisposedRef.current = false;
 		const gpuCompute = new GPUComputationRenderer(FIXED_FBO_SIZE, FIXED_FBO_SIZE, gl);
 
 		const positionData = new Float32Array(particleCount * 4);
@@ -73,7 +72,8 @@ export function UserParticles({
 			const i4 = i * 4;
 			const theta = Math.random() * Math.PI * 2;
 			const phi = Math.acos(2 * Math.random() - 1);
-			const radius = 12 + Math.random() * 4;
+			// Initialize at ~2.5-3.5x sphere radius (between settled and spread)
+			const radius = sphereRadius * (2.5 + Math.random() * 1.0);
 
 			const x = Math.sin(phi) * Math.cos(theta) * radius;
 			const y = Math.cos(phi) * radius;
@@ -121,11 +121,16 @@ export function UserParticles({
 		const error = gpuCompute.init();
 		if (error !== null) {
 			console.error('UserParticles GPUCompute init error:', error);
+			gpuCompute.dispose();
+			originalPositionTexture.dispose();
+			return;
 		}
 
 		gpgpuRef.current = { gpuCompute, positionVariable, originalPositionTexture };
 
 		return () => {
+			isDisposedRef.current = true;
+			gpgpuRef.current = null;
 			gpuCompute.dispose();
 			originalPositionTexture.dispose();
 		};
@@ -157,16 +162,17 @@ export function UserParticles({
 		geometry.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
 		geometry.setAttribute('aPhase', new THREE.BufferAttribute(phases, 1));
 		geometry.setAttribute('aColor', new THREE.BufferAttribute(colors, 3));
+		// Position attribute required for Points geometry count, values overridden by shader
 		geometry.setAttribute(
 			'position',
 			new THREE.BufferAttribute(new Float32Array(particleCount * 3), 3),
 		);
 
-		const positionTexture = gpgpuRef.current.gpuCompute.getCurrentRenderTarget(
+		// Use the current texture from GPGPU for initial material creation
+		const initialTexture = gpgpuRef.current.gpuCompute.getCurrentRenderTarget(
 			gpgpuRef.current.positionVariable,
 		).texture;
-
-		const material = createUserParticleMaterial(positionTexture, totalUsers);
+		const material = createUserParticleMaterial(initialTexture, totalUsers);
 
 		geometryRef.current = geometry;
 		materialRef.current = material;
@@ -179,15 +185,15 @@ export function UserParticles({
 
 	// Animation loop
 	useFrame((state, delta) => {
+		// Check for disposal to prevent race condition
+		if (isDisposedRef.current) return;
 		if (!(gpgpuRef.current && materialRef.current)) return;
 
 		const time = state.clock.elapsedTime;
-		
-		// Read non-reactive breath state
-		const breathState = getBreathState();
-		const breathData = getEnhancedBreathData(breathState, viewOffsetRef.current);
 
-		const { breathPhase, phaseType, crystallization, diaphragmDirection } = breathData;
+		// Read from global uniforms (computed once per frame at scene root)
+		const { breathPhase, phaseType, crystallization, diaphragmDirection } =
+			globalUniforms.current;
 
 		// Update simulation uniforms
 		const simUniforms = gpgpuRef.current.positionVariable.material.uniforms;
@@ -197,18 +203,26 @@ export function UserParticles({
 		simUniforms.uPhaseType.value = phaseType;
 		simUniforms.uCrystallization.value = crystallization;
 		simUniforms.uDiaphragmDirection.value = diaphragmDirection;
-		simUniforms.uSphereRadius.value = sphereRadius * (1 - breathPhase * 0.3);
+
+		// Match BreathingSphere's exact scale calculation
+		// sphereRadius = maxScale (exhale), minScale = 0.5 * maxScale (inhale)
+		const minScale = sphereRadius * 0.5;
+		const maxScale = sphereRadius;
+		const currentSphereScale =
+			minScale + (maxScale - minScale) * (1 - breathPhase);
+		simUniforms.uSphereRadius.value = currentSphereScale;
 
 		gpgpuRef.current.gpuCompute.compute();
 
-		// Update particle material using helper
-		const positionTexture = gpgpuRef.current.gpuCompute.getCurrentRenderTarget(
+		// CRITICAL: Get the texture from the current render target AFTER compute()
+		// This prevents the race condition where we read from the texture being written to
+		const currentTexture = gpgpuRef.current.gpuCompute.getCurrentRenderTarget(
 			gpgpuRef.current.positionVariable,
 		).texture;
 
 		updateUserParticleMaterialUniforms(
 			materialRef.current,
-			positionTexture,
+			currentTexture,
 			breathPhase,
 			phaseType,
 			crystallization,
@@ -226,6 +240,7 @@ export function UserParticles({
 			ref={pointsRef}
 			geometry={geometryRef.current}
 			material={materialRef.current}
+			frustumCulled={false}
 		/>
 	);
 }

@@ -2,10 +2,8 @@ import { Stars } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { memo, useRef } from 'react';
 import type * as THREE from 'three';
-import { getEnhancedBreathData } from '../../hooks/useEnhancedBreathData';
-import { LAYER_DEPTHS } from '../../lib/layers';
-import { useViewOffset } from '../../hooks/useViewOffset';
-import { getBreathState } from '../../lib/breathUtils';
+import { useGlobalUniforms } from '../../../hooks/useGlobalUniforms';
+import { LAYER_DEPTHS } from '../../../lib/layers';
 
 /**
  * Background star field using drei's Stars component
@@ -13,22 +11,22 @@ import { getBreathState } from '../../lib/breathUtils';
  */
 export const StarField = memo(() => {
 	const groupRef = useRef<THREE.Group>(null);
-	const viewOffsetRef = useViewOffset();
+	const globalUniforms = useGlobalUniforms();
 
 	useFrame((_, delta) => {
 		if (!groupRef.current) return;
 
-		const breathState = getBreathState();
-		const breathData = getEnhancedBreathData(breathState, viewOffsetRef.current);
+		// Read from global uniforms (computed once per frame at scene root)
+		const { breathPhase, diaphragmDirection } = globalUniforms.current;
 
 		// Galaxy-like slow rotation around center
 		// Base rotation speed with breath modulation for a meditative feel
 		const baseRotation = 0.02; // Radians per second
-		const breathModulation = 0.7 + breathData.breathPhase * 0.3; // 0.7 to 1.0
+		const breathModulation = 0.7 + breathPhase * 0.3; // 0.7 to 1.0
 		groupRef.current.rotation.y += baseRotation * breathModulation * delta;
 
 		// Subtle vertical drift following diaphragm direction
-		const targetY = breathData.diaphragmDirection * 0.3;
+		const targetY = diaphragmDirection * 0.3;
 		groupRef.current.position.y +=
 			(targetY - groupRef.current.position.y) * 0.02;
 	});

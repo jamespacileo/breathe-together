@@ -122,9 +122,11 @@ export function useEnhancedBreathData(
 ): EnhancedBreathData {
 	const viewOffsetRef = useViewOffset();
 
-	// Note: viewOffset is accessed via ref to avoid re-renders per R3F best practices
+	// viewOffset is accessed via ref - not included in deps since ref is stable
+	// and we want fresh viewOffset value on each breathState change
 	return useMemo(
 		() => getEnhancedBreathData(breathState, viewOffsetRef.current),
-		[breathState, viewOffsetRef.current],
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[breathState],
 	);
 }

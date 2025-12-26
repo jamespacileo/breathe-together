@@ -2,10 +2,8 @@ import { Sparkles } from '@react-three/drei';
 import { useFrame } from '@react-three/fiber';
 import { memo, useRef } from 'react';
 import type * as THREE from 'three';
-import { getEnhancedBreathData } from '../../hooks/useEnhancedBreathData';
-import { LAYER_DEPTHS } from '../../lib/layers';
-import { useViewOffset } from '../../hooks/useViewOffset';
-import { getBreathState } from '../../lib/breathUtils';
+import { useGlobalUniforms } from '../../../hooks/useGlobalUniforms';
+import { LAYER_DEPTHS } from '../../../lib/layers';
 
 /**
  * Peripheral Vision Particles using drei's Sparkles
@@ -16,26 +14,26 @@ import { getBreathState } from '../../lib/breathUtils';
  */
 export const PeripheralParticles = memo(() => {
 	const groupRef = useRef<THREE.Group>(null);
-	const viewOffsetRef = useViewOffset();
+	const globalUniforms = useGlobalUniforms();
 
 	useFrame((_, delta) => {
 		if (!groupRef.current) return;
 
-		const breathState = getBreathState();
-		const breathData = getEnhancedBreathData(breathState, viewOffsetRef.current);
+		// Read from global uniforms (computed once per frame at scene root)
+		const { breathPhase, diaphragmDirection } = globalUniforms.current;
 
 		// Gentle counter-rotation to stars (creates depth parallax)
 		const baseRotation = -0.008;
 		groupRef.current.rotation.y += baseRotation * delta;
 
 		// Subtle breathing scale - expand/contract with breath
-		const targetScale = 1 + breathData.breathPhase * 0.1; // 1.0 to 1.1
+		const targetScale = 1 + breathPhase * 0.1; // 1.0 to 1.1
 		const currentScale = groupRef.current.scale.x;
 		const newScale = currentScale + (targetScale - currentScale) * 0.03;
 		groupRef.current.scale.setScalar(newScale);
 
 		// Vertical drift following diaphragm (opposite to stars for depth)
-		const targetY = -breathData.diaphragmDirection * 0.15;
+		const targetY = -diaphragmDirection * 0.15;
 		groupRef.current.position.y +=
 			(targetY - groupRef.current.position.y) * 0.02;
 	});

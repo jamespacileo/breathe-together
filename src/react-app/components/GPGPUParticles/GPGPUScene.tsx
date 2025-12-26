@@ -1,16 +1,17 @@
 import { Stats } from '@react-three/drei';
 import { Canvas } from '@react-three/fiber';
 import { useControls } from 'leva';
-import { Suspense } from 'react';
+import { Suspense, memo, useMemo } from 'react';
+import { GlobalUniformsProvider } from '../../hooks/useGlobalUniforms';
 import { getMoodColorCounts } from '../../lib/colors';
 import type { VisualizationConfig } from '../../lib/config';
 import { CAMERA, PARTICLE_RADIUS_SCALE } from '../../lib/layers';
-import { BreathingSphere } from './BreathingSphere';
-import { GalaxyBackground } from './GalaxyBackground';
-import { PeripheralParticles } from './PeripheralParticles';
-import { PostProcessingEffects } from './PostProcessingEffects';
-import { StarField } from './StarField';
-import { UserParticles } from './UserParticles';
+import { NebulaBackground } from './background/NebulaBackground';
+import { PeripheralParticles } from './background/PeripheralParticles';
+import { StarField } from './background/StarField';
+import { BreathingSphere } from './core/BreathingSphere';
+import { UserParticles } from './core/UserParticles';
+import { PostProcessingEffects } from './effects/PostProcessingEffects';
 
 interface GPGPUSceneProps {
 	config: VisualizationConfig;
@@ -27,62 +28,82 @@ const MOCK_MOOD_COUNTS = {
 	here: 4,
 };
 
-function InnerScene({ config }: { config: VisualizationConfig }) {
-	const expandedRadius = config.sphereExpandedRadius * PARTICLE_RADIUS_SCALE;
+const InnerScene = memo(({ config }: { config: VisualizationConfig }) => {
 	const contractedRadius = config.sphereContractedRadius * PARTICLE_RADIUS_SCALE;
 
-	// Sphere glow radius for Dyson swarm positioning
-	const sphereGlowRadius = contractedRadius * 0.35 * 1.15;
+	// Pass sphere's max scale (exhale size) for particle orbit alignment
+	// Sphere scales from 0.35 to 0.7 of contractedRadius
+	const sphereMaxScale = contractedRadius * 0.7;
 
-	const moodColorCounts = getMoodColorCounts(MOCK_MOOD_COUNTS);
+	// TODO: Replace with real presence data from usePresence hook
+	// When updating, change deps array from [] to [presenceData]
+	const moodColorCounts = useMemo(
+		() => getMoodColorCounts(MOCK_MOOD_COUNTS),
+		[],
+	);
 
 	return (
 		<>
 			{/* Layer 1: Background atmospheric effects */}
-			<GalaxyBackground />
+			<NebulaBackground />
 			<StarField />
 			<PeripheralParticles />
 
 			{/* Layer 2: User particles - 1 particle per user with mood color */}
 			<UserParticles
 				colorCounts={moodColorCounts}
-				sphereRadius={sphereGlowRadius}
+				sphereRadius={sphereMaxScale}
 			/>
 
 			{/* Layer 3: Central breathing sphere */}
-			<BreathingSphere
-				expandedRadius={expandedRadius}
-				contractedRadius={contractedRadius}
-			/>
+			<BreathingSphere contractedRadius={contractedRadius} />
 
 			{/* Post-processing effects */}
 			<PostProcessingEffects config={config} />
 		</>
 	);
-}
+});
 
-export function GPGPUScene({ config }: GPGPUSceneProps) {
+export const GPGPUScene = memo(({ config }: GPGPUSceneProps) => {
 	const { showStats } = useControls('Debug', {
 		showStats: { value: false, label: 'Show FPS' },
 	});
 
+	const cameraProps = useMemo(
+		() => ({
+			position: [0, 0, CAMERA.POSITION_Z] as [number, number, number],
+			fov: CAMERA.FOV,
+		}),
+		[],
+	);
+
+	const glProps = useMemo(
+		() => ({
+			antialias: true,
+			alpha: false,
+			powerPreference: 'high-performance' as const,
+		}),
+		[],
+	);
+
 	return (
 		<div className="w-full h-full">
 			<Canvas
-				camera={{ position: [0, 0, CAMERA.POSITION_Z], fov: CAMERA.FOV }}
-				gl={{
-					antialias: true,
-					alpha: false,
-					powerPreference: 'high-performance',
-				}}
+				camera={cameraProps}
+				gl={glProps}
 				dpr={[1, 2]}
 				style={{ background: config.canvasBackground }}
 			>
+				{/* Background color outside Suspense to prevent blackouts during loading */}
+				<color attach="background" args={[config.canvasBackground]} />
+
 				<Suspense fallback={null}>
-					<InnerScene config={config} />
+					<GlobalUniformsProvider>
+						<InnerScene config={config} />
+					</GlobalUniformsProvider>
 				</Suspense>
 				{showStats ? <Stats /> : null}
 			</Canvas>
 		</div>
 	);
-}
+});

@@ -1,5 +1,4 @@
 import { button, folder, useControls } from 'leva';
-import { useEffect, useRef } from 'react';
 import { DEFAULT_CONFIG, type VisualizationConfig } from '../lib/config';
 import type { SimulationConfig } from '../lib/simulationConfig';
 import type { BreathState } from './useBreathSync';
@@ -20,6 +19,32 @@ interface UseLevaControlsOptions {
 	};
 }
 
+/** Helper to create a numeric config control with onChange */
+function numericControl(
+	config: VisualizationConfig,
+	setConfig: (c: VisualizationConfig) => void,
+	key: keyof VisualizationConfig,
+	opts: { min?: number; max?: number; step?: number } = {},
+) {
+	return {
+		value: config[key] as number,
+		...opts,
+		onChange: (v: number) => setConfig({ ...config, [key]: v }),
+	};
+}
+
+/** Helper to create a string config control with onChange */
+function stringControl(
+	config: VisualizationConfig,
+	setConfig: (c: VisualizationConfig) => void,
+	key: keyof VisualizationConfig,
+) {
+	return {
+		value: config[key] as string,
+		onChange: (v: string) => setConfig({ ...config, [key]: v }),
+	};
+}
+
 export function useLevaControls({
 	config,
 	setConfig,
@@ -27,249 +52,62 @@ export function useLevaControls({
 	presence,
 	simulationControls,
 }: UseLevaControlsOptions) {
-	// Track the latest callbacks in refs to avoid stale closures
-	const callbacksRef = useRef(simulationControls);
-	const configRef = useRef(config);
-	const setConfigRef = useRef(setConfig);
+	const { simulationConfig, updateSimulationConfig, isSimulationRunning, onStart, onStop, onReset } = simulationControls;
+	const n = (key: keyof VisualizationConfig, opts: { min?: number; max?: number; step?: number } = {}) =>
+		numericControl(config, setConfig, key, opts);
+	const s = (key: keyof VisualizationConfig) => stringControl(config, setConfig, key);
 
-	useEffect(() => {
-		callbacksRef.current = simulationControls;
-		configRef.current = config;
-		setConfigRef.current = setConfig;
-	});
-
-	// Live State (read-only monitoring)
-	useControls(
-		'Live State',
-		{
-			phase: {
-				value: breathState.phase,
-				editable: false,
-			},
-			progress: {
-				value: `${Math.round(breathState.progress * 100)}%`,
-				editable: false,
-			},
-			activeUsers: {
-				value: presence.count,
-				editable: false,
-			},
-			simulating: {
-				value: simulationControls.isSimulationRunning
-					? '▶ Running'
-					: '⏹ Stopped',
-				editable: false,
-			},
-		},
-		[
-			breathState.phase,
-			breathState.progress,
-			presence.count,
-			simulationControls.isSimulationRunning,
-		],
-	);
+	// Live State (read-only)
+	useControls('Live State', {
+		phase: { value: breathState.phase, editable: false },
+		progress: { value: `${Math.round(breathState.progress * 100)}%`, editable: false },
+		activeUsers: { value: presence.count, editable: false },
+		simulating: { value: isSimulationRunning ? '▶ Running' : '⏹ Stopped', editable: false },
+	}, [breathState.phase, breathState.progress, presence.count, isSimulationRunning]);
 
 	// Simulation Controls
-	useControls('Simulation', () => ({
-		targetPopulation: {
-			value: simulationControls.simulationConfig.targetPopulation,
-			min: 1,
-			max: 200,
-			step: 1,
-			onChange: (v: number) => {
-				callbacksRef.current.updateSimulationConfig({ targetPopulation: v });
-			},
-		},
-		Start: button(() => callbacksRef.current.onStart()),
-		Stop: button(() => callbacksRef.current.onStop()),
-		Reset: button(() => callbacksRef.current.onReset()),
-	}));
+	useControls('Simulation', {
+		targetPopulation: { value: simulationConfig.targetPopulation, min: 1, max: 200, step: 1, onChange: (v: number) => updateSimulationConfig({ targetPopulation: v }) },
+		Start: button(onStart),
+		Stop: button(onStop),
+		Reset: button(onReset),
+	});
 
-	// Visualization Config Controls with onChange handlers
-	const [, setVisualization] = useControls('Visualization', () => ({
+	// Visualization Config
+	useControls('Visualization', {
 		'Breathing Animation': folder({
-			breatheInScale: {
-				value: config.breatheInScale,
-				min: 0.3,
-				max: 1,
-				step: 0.01,
-				onChange: (v: number) =>
-					setConfigRef.current({ ...configRef.current, breatheInScale: v }),
-			},
-			breatheOutScale: {
-				value: config.breatheOutScale,
-				min: 1,
-				max: 2,
-				step: 0.01,
-				onChange: (v: number) =>
-					setConfigRef.current({ ...configRef.current, breatheOutScale: v }),
-			},
-			holdOscillation: {
-				value: config.holdOscillation,
-				min: 0,
-				max: 0.1,
-				step: 0.001,
-				onChange: (v: number) =>
-					setConfigRef.current({ ...configRef.current, holdOscillation: v }),
-			},
-			holdOscillationSpeed: {
-				value: config.holdOscillationSpeed,
-				min: 0.0001,
-				max: 0.01,
-				step: 0.0001,
-				onChange: (v: number) =>
-					setConfigRef.current({
-						...configRef.current,
-						holdOscillationSpeed: v,
-					}),
-			},
+			breatheInScale: n('breatheInScale', { min: 0.3, max: 1, step: 0.01 }),
+			breatheOutScale: n('breatheOutScale', { min: 1, max: 2, step: 0.01 }),
+			holdOscillation: n('holdOscillation', { min: 0, max: 0.1, step: 0.001 }),
+			holdOscillationSpeed: n('holdOscillationSpeed', { min: 0.0001, max: 0.01, step: 0.0001 }),
 		}),
 		'Spring Physics': folder({
-			mainSpringTension: {
-				value: config.mainSpringTension,
-				min: 20,
-				max: 200,
-				step: 1,
-				onChange: (v: number) =>
-					setConfigRef.current({ ...configRef.current, mainSpringTension: v }),
-			},
-			mainSpringFriction: {
-				value: config.mainSpringFriction,
-				min: 5,
-				max: 40,
-				step: 0.5,
-				onChange: (v: number) =>
-					setConfigRef.current({ ...configRef.current, mainSpringFriction: v }),
-			},
+			mainSpringTension: n('mainSpringTension', { min: 20, max: 200, step: 1 }),
+			mainSpringFriction: n('mainSpringFriction', { min: 5, max: 40, step: 0.5 }),
 		}),
 		'3D Sphere': folder({
-			sphereContractedRadius: {
-				value: config.sphereContractedRadius,
-				min: 0.3,
-				max: 1.5,
-				step: 0.01,
-				onChange: (v: number) =>
-					setConfigRef.current({
-						...configRef.current,
-						sphereContractedRadius: v,
-					}),
-			},
-			sphereExpandedRadius: {
-				value: config.sphereExpandedRadius,
-				min: 1,
-				max: 4,
-				step: 0.1,
-				onChange: (v: number) =>
-					setConfigRef.current({
-						...configRef.current,
-						sphereExpandedRadius: v,
-					}),
-			},
+			sphereContractedRadius: n('sphereContractedRadius', { min: 0.3, max: 1.5, step: 0.01 }),
+			sphereExpandedRadius: n('sphereExpandedRadius', { min: 1, max: 4, step: 0.1 }),
 		}),
 		Particles: folder({
-			particleDensity: {
-				value: config.particleDensity,
-				min: 32,
-				max: 80,
-				step: 1,
-				onChange: (v: number) =>
-					setConfigRef.current({ ...configRef.current, particleDensity: v }),
-			},
-			peripheralParticleCount: {
-				value: config.peripheralParticleCount,
-				min: 20,
-				max: 120,
-				step: 1,
-				onChange: (v: number) =>
-					setConfigRef.current({
-						...configRef.current,
-						peripheralParticleCount: v,
-					}),
-			},
+			particleDensity: n('particleDensity', { min: 32, max: 80, step: 1 }),
+			peripheralParticleCount: n('peripheralParticleCount', { min: 20, max: 120, step: 1 }),
 		}),
 		Rendering: folder({
-			canvasBackground: {
-				value: config.canvasBackground,
-				onChange: (v: string) =>
-					setConfigRef.current({ ...configRef.current, canvasBackground: v }),
-			},
-			vignetteIntensity: {
-				value: config.vignetteIntensity,
-				min: 0,
-				max: 1,
-				step: 0.01,
-				onChange: (v: number) =>
-					setConfigRef.current({
-						...configRef.current,
-						vignetteIntensity: v,
-					}),
-			},
-			noiseOpacity: {
-				value: config.noiseOpacity,
-				min: 0,
-				max: 0.3,
-				step: 0.01,
-				onChange: (v: number) =>
-					setConfigRef.current({ ...configRef.current, noiseOpacity: v }),
-			},
+			canvasBackground: s('canvasBackground'),
+			vignetteIntensity: n('vignetteIntensity', { min: 0, max: 1, step: 0.01 }),
+			noiseOpacity: n('noiseOpacity', { min: 0, max: 0.3, step: 0.01 }),
 		}),
 		Colors: folder({
-			primaryColor: {
-				value: config.primaryColor,
-				onChange: (v: string) =>
-					setConfigRef.current({ ...configRef.current, primaryColor: v }),
-			},
-			backgroundColor: {
-				value: config.backgroundColor,
-				onChange: (v: string) =>
-					setConfigRef.current({ ...configRef.current, backgroundColor: v }),
-			},
-			backgroundColorMid: {
-				value: config.backgroundColorMid,
-				onChange: (v: string) =>
-					setConfigRef.current({
-						...configRef.current,
-						backgroundColorMid: v,
-					}),
-			},
+			primaryColor: s('primaryColor'),
+			backgroundColor: s('backgroundColor'),
+			backgroundColorMid: s('backgroundColorMid'),
 		}),
-	}));
+	});
 
-	// Sync external config changes to Leva (e.g., from localStorage persistence)
-	// Note: Type cast required because Leva's folder types don't expose flat property keys
-	const prevConfigRef = useRef(config);
-	useEffect(() => {
-		// Only sync if config actually changed from external source
-		if (prevConfigRef.current !== config) {
-			(setVisualization as (values: Record<string, unknown>) => void)({
-				breatheInScale: config.breatheInScale,
-				breatheOutScale: config.breatheOutScale,
-				holdOscillation: config.holdOscillation,
-				holdOscillationSpeed: config.holdOscillationSpeed,
-				mainSpringTension: config.mainSpringTension,
-				mainSpringFriction: config.mainSpringFriction,
-				sphereContractedRadius: config.sphereContractedRadius,
-				sphereExpandedRadius: config.sphereExpandedRadius,
-				particleDensity: config.particleDensity,
-				peripheralParticleCount: config.peripheralParticleCount,
-				canvasBackground: config.canvasBackground,
-				vignetteIntensity: config.vignetteIntensity,
-				noiseOpacity: config.noiseOpacity,
-				primaryColor: config.primaryColor,
-				backgroundColor: config.backgroundColor,
-				backgroundColorMid: config.backgroundColorMid,
-			});
-			prevConfigRef.current = config;
-		}
-	}, [config, setVisualization]);
-
-	// Actions panel - Reset and Export
+	// Actions
 	useControls('Actions', {
-		'Reset to Defaults': button(() => {
-			setConfigRef.current(DEFAULT_CONFIG);
-		}),
-		'Copy Config': button(() => {
-			navigator.clipboard.writeText(JSON.stringify(configRef.current, null, 2));
-		}),
+		'Reset to Defaults': button(() => setConfig(DEFAULT_CONFIG)),
+		'Copy Config': button(() => navigator.clipboard.writeText(JSON.stringify(config, null, 2))),
 	});
 }

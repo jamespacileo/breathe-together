@@ -1,4 +1,5 @@
 import { GradientTexture } from '@react-three/drei';
+import { memo } from 'react';
 import * as THREE from 'three';
 import { LAYER_DEPTHS } from '../../lib/layers';
 
@@ -8,7 +9,7 @@ import { LAYER_DEPTHS } from '../../lib/layers';
  * Simple gradient backdrop for deep space atmosphere.
  * Intentionally minimal to avoid flickering artifacts.
  */
-export function GalaxyBackground() {
+export const GalaxyBackground = memo(() => {
 	return (
 		<mesh position={[0, 0, LAYER_DEPTHS.GALAXY_BACKGROUND]} scale={[200, 200, 1]}>
 			<planeGeometry args={[1, 1]} />
@@ -20,4 +21,4 @@ export function GalaxyBackground() {
 			</meshBasicMaterial>
 		</mesh>
 	);
-}
+});

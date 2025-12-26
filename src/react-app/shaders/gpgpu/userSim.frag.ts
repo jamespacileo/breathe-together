@@ -3,8 +3,8 @@
  * Handles breath-synchronized radius, orbital motion, and flutter effects
  *
  * Behavior:
- * - Inhale: particles settle close to sphere surface (radius ~8)
- * - Exhale: particles spread outward (radius ~18)
+ * - Inhale: particles settle close to sphere surface (1.5x sphere radius)
+ * - Exhale: particles spread outward (4x sphere radius)
  * - Gentle flutter via curl noise
  * - Slow orbital rotation around Y-axis
  */
@@ -12,11 +12,11 @@ export const userSimFragmentShader = /* glsl */ `
 precision highp float;
 
 // === SHADER CONSTANTS ===
-// Breathing radius
-const float SETTLED_RADIUS_OFFSET = 5.0;  // Distance from sphere when settled
-const float SPREAD_RADIUS = 18.0;         // Radius when exhaled/spread
-const float RADIUS_VARIATION_MIN = 0.85;  // Min variation factor
-const float RADIUS_VARIATION_RANGE = 0.3; // Range for variation (0.85-1.15)
+// Breathing radius - multipliers relative to uSphereRadius
+const float SETTLED_RADIUS_MULTIPLIER = 1.5;  // Orbit at 1.5x sphere radius when settled
+const float SPREAD_RADIUS_MULTIPLIER = 4.0;   // Spread to 4x sphere radius when exhaled
+const float RADIUS_VARIATION_MIN = 0.85;      // Min variation factor
+const float RADIUS_VARIATION_RANGE = 0.3;     // Range for variation (0.85-1.15)
 
 // Orbital motion
 const float BASE_ORBIT_SPEED = 0.18;      // Base orbital rotation speed
@@ -114,8 +114,10 @@ void main() {
 
   // === BREATHING RADIUS ===
   // Settle close on inhale (breathPhase = 1), spread on exhale (breathPhase = 0)
-  float settledRadius = uSphereRadius + SETTLED_RADIUS_OFFSET;
-  float targetRadius = mix(SPREAD_RADIUS, settledRadius, uBreathPhase);
+  // Both radii are relative to the sphere's current scale
+  float settledRadius = uSphereRadius * SETTLED_RADIUS_MULTIPLIER;
+  float spreadRadius = uSphereRadius * SPREAD_RADIUS_MULTIPLIER;
+  float targetRadius = mix(spreadRadius, settledRadius, uBreathPhase);
 
   // Uniform radius on inhale, variable on exhale for spread effect
   float radiusVariation = RADIUS_VARIATION_MIN + particlePhase * RADIUS_VARIATION_RANGE;
@@ -140,7 +142,7 @@ void main() {
 
   // Update angle (refresh-rate independent via delta uniform)
   float orbitSpeed = BASE_ORBIT_SPEED * orbitSpeedMult;
-  float newAngle = storedAngle + orbitSpeed * uDelta;
+  float newAngle = mod(storedAngle + orbitSpeed * uDelta, 6.28318530718);
 
   // === FLUTTER EFFECT ===
   // Gentle organic motion via curl noise

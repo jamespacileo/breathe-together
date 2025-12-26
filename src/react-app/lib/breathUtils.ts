@@ -1,4 +1,23 @@
+import { getCurrentPhase, PATTERNS } from './patterns';
+import { useAppStore } from '../stores/appStore';
 import type { BreathState } from '../hooks/useBreathSync';
+
+/**
+ * Get current breath state by computing directly from UTC time
+ * Non-reactive - safe to call in useFrame loops without triggering re-renders
+ */
+export function getBreathState(): BreathState {
+	const patternId = useAppStore.getState().pattern || 'box';
+	const pattern = PATTERNS[patternId] || PATTERNS.box;
+	const { phase, phaseIndex, progress, cycleProgress } = getCurrentPhase(pattern);
+	return {
+		phase: phase.type,
+		phaseName: phase.name,
+		progress,
+		cycleProgress,
+		phaseIndex,
+	};
+}
 
 /**
  * Calculate breath value (0 = exhaled, 1 = inhaled) with smoothstep interpolation
