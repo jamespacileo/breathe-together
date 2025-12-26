@@ -7,14 +7,14 @@
 // Project and sheet
 export {
 	// Objects
+	atmosphericHaloObj,
 	breathCycleObj,
 	cameraObj,
-	crystalCoreObj,
 	debugObj,
-	innerGlowObj,
+	glassOrbObj,
 	nebulaObj,
-	orbitingShellObj,
-	outerHaloObj,
+	orbGlowObj,
+	orbitalParticlesObj,
 	peripheralParticlesObj,
 	postProcessingObj,
 	project,
@@ -22,23 +22,33 @@ export {
 	sequence,
 	sheet,
 	starFieldObj,
-	userParticlesObj,
+	userPresenceObj,
 } from './project';
 // Studio initialization
 export { getStudio, initializeStudio } from './studioInit';
+// Subscription helpers
+export {
+	useTheatreColor,
+	useTheatreObject,
+	useTheatreRef,
+} from './subscriptionHelpers';
+export type {
+	UseTheatreObjectOptions,
+	UseTheatreObjectResult,
+} from './subscriptionHelpers';
 // Types
 export type {
+	AtmosphericHaloProps,
 	BreathCycleProps,
 	CameraProps,
-	CrystalCoreProps,
 	DebugProps,
-	InnerGlowProps,
+	GlassOrbProps,
 	NebulaProps,
-	OrbitingShellProps,
-	OuterHaloProps,
+	OrbGlowProps,
+	OrbitalParticlesProps,
 	PeripheralParticlesProps,
 	PostProcessingProps,
 	SceneProps,
 	StarFieldProps,
-	UserParticlesProps,
+	UserPresenceProps,
 } from './types';

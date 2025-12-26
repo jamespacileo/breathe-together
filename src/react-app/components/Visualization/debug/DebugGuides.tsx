@@ -33,9 +33,9 @@ export const DebugGuides = memo(() => {
 
 	return (
 		<group name="debug-guides" renderOrder={1000}>
-			{debugProps.showAxes && <SceneAxes />}
+			{!!debugProps.showAxes && <SceneAxes />}
 
-			{debugProps.showOrbitRings && (
+			{!!debugProps.showOrbitRings && (
 				<OrbitRings
 					ringOpacity={debugProps.ringOpacity}
 					settledRingColor={debugProps.settledRingColor}
@@ -43,7 +43,7 @@ export const DebugGuides = memo(() => {
 				/>
 			)}
 
-			{debugProps.showLayerPlanes && <LayerPlanes />}
+			{!!debugProps.showLayerPlanes && <LayerPlanes />}
 		</group>
 	);
 });

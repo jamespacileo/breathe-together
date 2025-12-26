@@ -7,19 +7,19 @@
 
 import { getProject, types } from '@theatre/core';
 import type {
+	AtmosphericHaloProps,
 	BreathCycleProps,
 	CameraProps,
-	CrystalCoreProps,
 	DebugProps,
-	InnerGlowProps,
+	GlassOrbProps,
 	NebulaProps,
-	OrbitingShellProps,
-	OuterHaloProps,
+	OrbGlowProps,
+	OrbitalParticlesProps,
 	PeripheralParticlesProps,
 	PostProcessingProps,
 	SceneProps,
 	StarFieldProps,
-	UserParticlesProps,
+	UserPresenceProps,
 } from './types';
 
 // Import saved state for production (will be created after designing in Studio)
@@ -79,13 +79,13 @@ export const cameraObj = sheet.object('camera', {
 });
 
 // =============================================================================
-// SPHERE LAYERS (grouped in sphere/ folder in Studio)
+// ORB LAYERS (grouped in orb / folder in Studio)
 // =============================================================================
 
 /**
- * Crystal core layer object
+ * Glass orb layer object (refractive core)
  */
-export const crystalCoreObj = sheet.object('sphere/crystalCore', {
+export const glassOrbObj = sheet.object('orb / glassOrb', {
 	scale: types.number(0.35, { range: [0.1, 2], nudgeMultiplier: 0.01 }),
 	transmission: types.number(0.98, { range: [0, 1], nudgeMultiplier: 0.01 }),
 	thickness: types.number(0.3, { range: [0, 2], nudgeMultiplier: 0.01 }),
@@ -103,9 +103,9 @@ export const crystalCoreObj = sheet.object('sphere/crystalCore', {
 });
 
 /**
- * Inner glow layer object (custom shader)
+ * Orb glow layer object (custom shader)
  */
-export const innerGlowObj = sheet.object('sphere/innerGlow', {
+export const orbGlowObj = sheet.object('orb / orbGlow', {
 	scale: types.number(0.48, { range: [0.1, 2], nudgeMultiplier: 0.01 }),
 	glowIntensity: types.number(0.6, { range: [0, 1], nudgeMultiplier: 0.01 }),
 	pulseAmount: types.number(0.08, { range: [0, 0.3], nudgeMultiplier: 0.01 }),
@@ -118,9 +118,9 @@ export const innerGlowObj = sheet.object('sphere/innerGlow', {
 });
 
 /**
- * Orbiting shell layer object
+ * Orbital particles layer object
  */
-export const orbitingShellObj = sheet.object('sphere/orbitingShell', {
+export const orbitalParticlesObj = sheet.object('orb / orbitalParticles', {
 	minRadiusScale: types.number(1.2, { range: [0.5, 2], nudgeMultiplier: 0.01 }),
 	maxRadiusScale: types.number(1.8, { range: [1, 4], nudgeMultiplier: 0.01 }),
 	orbitSpeed: types.number(0.15, { range: [0, 1], nudgeMultiplier: 0.01 }),
@@ -136,9 +136,9 @@ export const orbitingShellObj = sheet.object('sphere/orbitingShell', {
 });
 
 /**
- * Outer halo layer object
+ * Atmospheric halo layer object
  */
-export const outerHaloObj = sheet.object('sphere/outerHalo', {
+export const atmosphericHaloObj = sheet.object('orb / atmosphericHalo', {
 	minScale: types.number(1.5, { range: [0.5, 3], nudgeMultiplier: 0.01 }),
 	maxScale: types.number(2.2, { range: [1, 5], nudgeMultiplier: 0.01 }),
 	opacity: types.number(0.12, { range: [0, 1], nudgeMultiplier: 0.01 }),
@@ -150,9 +150,9 @@ export const outerHaloObj = sheet.object('sphere/outerHalo', {
 });
 
 /**
- * User particles swarm object
+ * User presence swarm object
  */
-export const userParticlesObj = sheet.object('userParticles', {
+export const userPresenceObj = sheet.object('userPresence', {
 	settledRadiusMult: types.number(1.5, { range: [1, 3], nudgeMultiplier: 0.1 }),
 	spreadRadiusMult: types.number(4.0, { range: [2, 8], nudgeMultiplier: 0.1 }),
 	orbitSpeed: types.number(0.3, { range: [0, 1], nudgeMultiplier: 0.01 }),
@@ -174,13 +174,13 @@ export const userParticlesObj = sheet.object('userParticles', {
 });
 
 // =============================================================================
-// BACKGROUND LAYERS (grouped in background/ folder in Studio)
+// BACKGROUND LAYERS (grouped in background / folder in Studio)
 // =============================================================================
 
 /**
  * Nebula background object
  */
-export const nebulaObj = sheet.object('background/nebula', {
+export const nebulaObj = sheet.object('background / nebula', {
 	rotationSpeed: types.number(0.003, {
 		range: [0, 0.02],
 		nudgeMultiplier: 0.001,
@@ -193,7 +193,7 @@ export const nebulaObj = sheet.object('background/nebula', {
 /**
  * Star field object
  */
-export const starFieldObj = sheet.object('background/starField', {
+export const starFieldObj = sheet.object('background / starField', {
 	rotationSpeed: types.number(0.05, { range: [0, 0.2], nudgeMultiplier: 0.01 }),
 	verticalDrift: types.number(0.01, { range: [0, 0.1], nudgeMultiplier: 0.01 }),
 	count: types.number(300, { range: [50, 1000], nudgeMultiplier: 10 }),
@@ -203,17 +203,20 @@ export const starFieldObj = sheet.object('background/starField', {
 /**
  * Peripheral particles object
  */
-export const peripheralParticlesObj = sheet.object('background/peripheralParticles', {
-	count: types.number(60, { range: [10, 200], nudgeMultiplier: 5 }),
-	size: types.number(4, { range: [1, 10], nudgeMultiplier: 0.5 }),
-	opacity: types.number(0.12, { range: [0, 1], nudgeMultiplier: 0.01 }),
-	color: types.string('#7ec8d4', { label: 'Color' }),
-	rotationSpeed: types.number(-0.008, {
-		range: [-0.05, 0.05],
-		nudgeMultiplier: 0.001,
-	}),
-	scale: types.number(1, { range: [0.5, 2], nudgeMultiplier: 0.01 }),
-});
+export const peripheralParticlesObj = sheet.object(
+	'background / peripheralParticles',
+	{
+		count: types.number(60, { range: [10, 200], nudgeMultiplier: 5 }),
+		size: types.number(4, { range: [1, 10], nudgeMultiplier: 0.5 }),
+		opacity: types.number(0.12, { range: [0, 1], nudgeMultiplier: 0.01 }),
+		color: types.string('#7ec8d4', { label: 'Color' }),
+		rotationSpeed: types.number(-0.008, {
+			range: [-0.05, 0.05],
+			nudgeMultiplier: 0.001,
+		}),
+		scale: types.number(1, { range: [0.5, 2], nudgeMultiplier: 0.01 }),
+	},
+);
 
 /**
  * Post-processing effects object
@@ -262,17 +265,17 @@ export const debugObj = sheet.object('debug', {
 // =============================================================================
 
 export type {
+	AtmosphericHaloProps,
 	BreathCycleProps,
 	CameraProps,
-	CrystalCoreProps,
 	DebugProps,
-	InnerGlowProps,
+	GlassOrbProps,
 	NebulaProps,
-	OrbitingShellProps,
-	OuterHaloProps,
+	OrbGlowProps,
+	OrbitalParticlesProps,
 	PeripheralParticlesProps,
 	PostProcessingProps,
 	SceneProps,
 	StarFieldProps,
-	UserParticlesProps,
+	UserPresenceProps,
 };

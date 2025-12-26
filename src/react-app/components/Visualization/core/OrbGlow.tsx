@@ -3,16 +3,26 @@ import { memo, useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import CustomShaderMaterial from 'three-custom-shader-material';
 import { SPHERE_PHASE_COLORS } from '../../../lib/colors';
-import { innerGlowObj } from '../../../lib/theatre';
-import type { InnerGlowProps as TheatreGlowProps } from '../../../lib/theatre/types';
+import { orbGlowObj } from '../../../lib/theatre';
+import type { OrbGlowProps as TheatreGlowProps } from '../../../lib/theatre/types';
 import { useTheatreBreath } from '../TheatreBreathProvider';
 
-interface InnerGlowProps {
+interface OrbGlowProps {
 	radius: number;
 }
 
+// Vertex shader - compute vViewPosition for fresnel calculations
+const vertexShader = /* glsl */ `
+varying vec3 vViewPosition;
+
+void main() {
+	vViewPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+}
+`;
+
 // Fragment shader - fresnel-based inner glow with phase colors
 // Using CSM to patch MeshBasicMaterial
+// Note: vNormal is provided by CSM, do not redeclare
 const fragmentShader = /* glsl */ `
 uniform float uTime;
 uniform float uBreathPhase;
@@ -25,7 +35,6 @@ uniform float uCoreGlowPower;
 uniform float uEdgeHighlightPower;
 
 varying vec3 vViewPosition;
-varying vec3 vNormal;
 
 void main() {
 	// Fresnel effect - glow stronger at edges
@@ -59,7 +68,7 @@ void main() {
 `;
 
 /**
- * Inner Glow - Soft fresnel-based inner light
+ * Orb Glow - Soft fresnel-based inner light
  *
  * Creates a soft atmospheric glow inside the crystal:
  * - Driven by Theatre.js for cinematic control
@@ -69,15 +78,15 @@ void main() {
  * - Subtle pulsing animation
  * - Uses three-custom-shader-material for better scene integration
  */
-export const InnerGlow = memo(({ radius }: InnerGlowProps) => {
+export const OrbGlow = memo(({ radius }: OrbGlowProps) => {
 	const meshRef = useRef<THREE.Mesh>(null);
-	const materialRef = useRef<any>(null);
+	const materialRef = useRef<THREE.ShaderMaterial>(null);
 	const theatreBreath = useTheatreBreath();
-	const theatrePropsRef = useRef<TheatreGlowProps>(innerGlowObj.value);
+	const theatrePropsRef = useRef<TheatreGlowProps>(orbGlowObj.value);
 
 	// Subscribe to Theatre.js object changes (Ref-only, no re-renders)
 	useEffect(() => {
-		const unsubscribe = innerGlowObj.onValuesChange((values) => {
+		const unsubscribe = orbGlowObj.onValuesChange((values) => {
 			theatrePropsRef.current = values;
 		});
 		return unsubscribe;
@@ -168,6 +177,7 @@ export const InnerGlow = memo(({ radius }: InnerGlowProps) => {
 			<CustomShaderMaterial
 				ref={materialRef}
 				baseMaterial={THREE.MeshBasicMaterial}
+				vertexShader={vertexShader}
 				fragmentShader={fragmentShader}
 				uniforms={uniforms}
 				transparent

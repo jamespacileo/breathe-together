@@ -1,6 +1,7 @@
 import { Stats } from '@react-three/drei';
 import { Canvas } from '@react-three/fiber';
 import { memo, Suspense, useEffect, useMemo, useState } from 'react';
+import type { MoodId } from '../../../shared/constants';
 import { getMoodColorCounts } from '../../lib/colors';
 import { CAMERA } from '../../lib/layers';
 import { sceneObj } from '../../lib/theatre';
@@ -8,29 +9,21 @@ import type { SceneProps } from '../../lib/theatre/types';
 import { NebulaBackground } from './background/NebulaBackground';
 import { PeripheralParticles } from './background/PeripheralParticles';
 import { StarField } from './background/StarField';
-import { BreathingSphere } from './core/BreathingSphere';
-import { UserParticlesInstanced } from './core/UserParticlesInstanced';
+import { CoreOrb } from './core/CoreOrb';
+import { UserPresence } from './core/UserPresence';
 import { DebugGuides } from './debug';
 import { PostProcessingEffects } from './effects/PostProcessingEffects';
 import { TheatreBreathProvider } from './TheatreBreathProvider';
 
-// Mock color counts - will be wired to usePresence
-const MOCK_MOOD_COUNTS = {
-	moment: 5,
-	anxious: 3,
-	processing: 2,
-	preparing: 4,
-	grateful: 3,
-	celebrating: 2,
-	here: 4,
-};
+interface InnerSceneProps {
+	moodCounts: Record<MoodId, number>;
+}
 
-const InnerScene = memo(() => {
-	// TODO: Replace with real presence data from usePresence hook
-	// When updating, change deps array from [] to [presenceData]
+const InnerScene = memo(({ moodCounts }: InnerSceneProps) => {
+	// Convert mood counts to color counts for UserPresence particles
 	const moodColorCounts = useMemo(
-		() => getMoodColorCounts(MOCK_MOOD_COUNTS),
-		[],
+		() => getMoodColorCounts(moodCounts),
+		[moodCounts],
 	);
 
 	return (
@@ -40,11 +33,11 @@ const InnerScene = memo(() => {
 			<StarField />
 			<PeripheralParticles />
 
-			{/* Layer 2: User particles - 1 particle per user with mood color */}
-			<UserParticlesInstanced colorCounts={moodColorCounts} />
+			{/* Layer 2: User presence swarm */}
+			<UserPresence colorCounts={moodColorCounts} />
 
-			{/* Layer 3: Central breathing sphere */}
-			<BreathingSphere />
+			{/* Layer 3: Central breathing orb */}
+			<CoreOrb />
 
 			{/* Post-processing effects */}
 			<PostProcessingEffects />
@@ -64,7 +57,11 @@ function rgbaToCss(rgba: {
 	return `rgba(${Math.round(rgba.r * 255)}, ${Math.round(rgba.g * 255)}, ${Math.round(rgba.b * 255)}, ${rgba.a})`;
 }
 
-export const ParticleScene = memo(() => {
+interface BreathingSceneProps {
+	moodCounts: Record<MoodId, number>;
+}
+
+export const BreathingScene = memo(({ moodCounts }: BreathingSceneProps) => {
 	// Stats toggle - can be controlled via Theatre.js Studio or keyboard shortcut
 	const [showStats, setShowStats] = useState(false);
 	const [theatreProps, setTheatreProps] = useState<SceneProps>(sceneObj.value);
@@ -120,7 +117,7 @@ export const ParticleScene = memo(() => {
 
 				<Suspense fallback={null}>
 					<TheatreBreathProvider>
-						<InnerScene />
+						<InnerScene moodCounts={moodCounts} />
 						<DebugGuides />
 					</TheatreBreathProvider>
 				</Suspense>

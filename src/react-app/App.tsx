@@ -66,7 +66,7 @@ function App() {
 			<CosmicBackground />
 
 			{/* Main breathing visualization */}
-			<BreathingOrb breathState={breathState} />
+			<BreathingOrb breathState={breathState} presence={presence} />
 
 			{/* Presence counter - top center */}
 			<div className="absolute top-5 sm:top-8 left-1/2 -translate-x-1/2 z-10">

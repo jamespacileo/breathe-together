@@ -24,12 +24,20 @@ import { breathCycleObj, sequence } from '../../lib/theatre';
 import type { BreathCycleProps } from '../../lib/theatre/types';
 
 /**
- * Extended breath data including time and view offset
+ * Extended breath data including time
+ *
+ * Breath Phase Convention:
+ * - breathPhase: 0 = fully exhaled (orb expanded, particles spread)
+ *                1 = fully inhaled (orb contracted, particles settled)
+ *
+ * Visual interpretation across components:
+ * - Scale: maxScale at breathPhase=0, minScale at breathPhase=1
+ * - Radius: spreadRadius at breathPhase=0, settledRadius at breathPhase=1
+ * - Crystallization: 0 during breathing phases, peaks during holds
  */
 export interface TheatreBreathData extends BreathCycleProps {
 	time: number;
 	delta: number;
-	viewOffset: { x: number; y: number };
 }
 
 /**
@@ -50,14 +58,11 @@ function createInitialData(): TheatreBreathData {
 		phaseTransitionBlend: 0,
 		time: 0,
 		delta: 0.016,
-		viewOffset: { x: 0, y: 0 },
 	};
 }
 
 const TheatreBreathContext =
 	createContext<React.MutableRefObject<TheatreBreathData> | null>(null);
-
-const PARALLAX_STRENGTH = 0.02;
 
 interface TheatreBreathProviderProps {
 	children: ReactNode;
@@ -93,19 +98,10 @@ export const TheatreBreathProvider = memo(
 			return unsubscribe;
 		}, []);
 
-		// Update time and parallax each frame
+		// Update time each frame
 		useFrame((state, delta) => {
 			dataRef.current.time = state.clock.elapsedTime;
 			dataRef.current.delta = delta;
-
-			// Smooth parallax using R3F pointer
-			const targetX = state.pointer.x * PARALLAX_STRENGTH;
-			const targetY = state.pointer.y * PARALLAX_STRENGTH;
-
-			dataRef.current.viewOffset.x +=
-				(targetX - dataRef.current.viewOffset.x) * 0.05;
-			dataRef.current.viewOffset.y +=
-				(targetY - dataRef.current.viewOffset.y) * 0.05;
 		});
 
 		// Stable context value

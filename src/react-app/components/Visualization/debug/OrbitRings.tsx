@@ -2,11 +2,8 @@ import { useFrame } from '@react-three/fiber';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import type * as THREE from 'three';
 import { PARTICLE_RADIUS_SCALE } from '../../../lib/layers';
-import { sceneObj, userParticlesObj } from '../../../lib/theatre';
-import type {
-	SceneProps,
-	UserParticlesProps,
-} from '../../../lib/theatre/types';
+import { sceneObj, userPresenceObj } from '../../../lib/theatre';
+import type { SceneProps, UserPresenceProps } from '../../../lib/theatre/types';
 import { useTheatreBreath } from '../TheatreBreathProvider';
 
 interface OrbitRingsProps {
@@ -98,14 +95,14 @@ const AnimatedOrbitRing = memo(
 export const OrbitRings = memo(
 	({ ringOpacity, settledRingColor, spreadRingColor }: OrbitRingsProps) => {
 		const [sceneProps, setSceneProps] = useState<SceneProps>(sceneObj.value);
-		const [userProps, setUserProps] = useState<UserParticlesProps>(
-			userParticlesObj.value,
+		const [userProps, setUserProps] = useState<UserPresenceProps>(
+			userPresenceObj.value,
 		);
 
 		// Subscribe to Theatre.js changes
 		useEffect(() => {
 			const unsubScene = sceneObj.onValuesChange(setSceneProps);
-			const unsubUser = userParticlesObj.onValuesChange(setUserProps);
+			const unsubUser = userPresenceObj.onValuesChange(setUserProps);
 			return () => {
 				unsubScene();
 				unsubUser();
@@ -119,7 +116,7 @@ export const OrbitRings = memo(
 			const sphereMaxScale = contractedRadius * 0.7;
 			const minScale = sphereMaxScale * 0.5;
 
-			// These match the calculations in UserParticlesInstanced.tsx
+			// These match the calculations in UserPresence.tsx
 			const settled = minScale * userProps.settledRadiusMult;
 			const spread = minScale * userProps.spreadRadiusMult;
 

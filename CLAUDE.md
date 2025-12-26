@@ -35,18 +35,21 @@ A collaborative breathing app where all users worldwide are synchronized via UTC
 
 ### Key Components
 - `components/BreathingOrb.tsx` - Main orchestrator with phase text and progress bar
-- `components/GPGPUParticles/` - Three.js particle system with post-processing:
-  - `GPGPUScene.tsx` - Main scene with bloom, vignette, and film grain effects
-  - `BreathingSphere.tsx` - Central breathing sphere visualization
-  - `UserParticles.tsx` - Dyson swarm of user particles with mood colors
-  - `PeripheralParticles.tsx` - Sparse outer particle ring
-  - `StarField.tsx` - Twinkling star layer
-  - `GalaxyBackground.tsx` - Atmospheric background
+- `components/Visualization/` - High-performance Three.js visualization stack:
+  - `BreathingScene.tsx` - Main R3F Canvas with post-processing and Theatre.js integration
+  - `core/CoreOrb.tsx` - Central breathing visualization orchestrator
+  - `core/GlassOrb.tsx` - Refractive glass sphere with chromatic aberration
+  - `core/OrbGlow.tsx` - Fresnel-based inner glow (Custom Shader)
+  - `core/OrbitalParticles.tsx` - Instanced particle shell surrounding the orb
+  - `core/AtmosphericHalo.tsx` - Soft outer atmospheric glow
+  - `core/UserPresence.tsx` - Dyson swarm of user particles (InstancedMesh)
+  - `background/` - Nebula, StarField, and Peripheral particle layers
+  - `TheatreBreathProvider.tsx` - Cinematic data orchestration via Theatre.js
 
 ### Custom Hooks
 - `hooks/useBreathSync.ts` - UTC-synchronized breathing state (phase, progress, cycle position)
 - `hooks/usePresence.ts` - Global presence tracking with heartbeat polling
-- `hooks/useBreathingSpring.ts` - Framer Motion spring physics for breathing animation
+- `hooks/useBreathingSpring.ts` - Framer Motion spring physics for UI elements
 - `hooks/useSimulation.ts` - Population simulation engine (M/M/∞ queueing model)
 - `hooks/useLevaControls.ts` - Dev-mode parameter tuning via Leva GUI (Cmd+Shift+D to toggle)
 

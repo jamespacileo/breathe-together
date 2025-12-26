@@ -1,10 +1,12 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import type { BreathState } from '../hooks/useBreathSync';
+import type { PresenceData } from '../hooks/usePresence';
 import { BreathingFallback, ErrorBoundary } from './ErrorBoundary';
-import { ParticleScene } from './Particles';
+import { BreathingScene } from './Visualization';
 
 interface BreathingOrbProps {
 	breathState: BreathState;
+	presence: PresenceData;
 }
 
 /**
@@ -83,7 +85,7 @@ function BreathingGuide({ breathState }: { breathState: BreathState }) {
  * Main breathing visualization component
  * Uses Three.js for GPU-accelerated particle rendering
  */
-export function BreathingOrb({ breathState }: BreathingOrbProps) {
+export function BreathingOrb({ breathState, presence }: BreathingOrbProps) {
 	return (
 		<div className="absolute inset-0 overflow-hidden">
 			{/* Three.js particle scene with error boundary for GPU failures */}
@@ -94,7 +96,7 @@ export function BreathingOrb({ breathState }: BreathingOrbProps) {
 				}}
 			>
 				{/* Decoupled from breathState.progress to avoid re-renders */}
-				<ParticleScene />
+				<BreathingScene moodCounts={presence?.moods ?? {}} />
 			</ErrorBoundary>
 
 			{/* Breathing guide text with cosmic styling - this still re-renders every frame */}

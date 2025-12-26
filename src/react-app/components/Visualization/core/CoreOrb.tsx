@@ -1,40 +1,40 @@
 import { memo, useEffect, useState } from 'react';
+import * as THREE from 'three';
 import { PARTICLE_RADIUS_SCALE } from '../../../lib/layers';
-import { sceneObj } from '../../../lib/theatre';
+import { atmosphericHaloObj, orbGlowObj, sceneObj } from '../../../lib/theatre';
 import type { SceneProps } from '../../../lib/theatre/types';
-import { CrystalCore } from './CrystalCore';
-import { InnerGlow } from './InnerGlow';
-import { OrbitingShell } from './OrbitingShell';
-import { OuterHalo } from './OuterHalo';
+import { GlassOrb } from './GlassOrb';
+import { GlowSphere } from './GlowSphere';
+import { OrbitalParticles } from './OrbitalParticles';
 
 /**
- * Breathing Sphere - Hybrid Glass + Particles Implementation
+ * Core Orb - Hybrid Glass + Particles Implementation
  *
  * A stunning 4-layer visualization that creates maximum visual impact:
  *
- * Layer 1 (innermost): CrystalCore
+ * Layer 1 (innermost): GlassOrb
  *   - MeshTransmissionMaterial glass orb with refraction
  *   - Chromatic aberration for rainbow edge effects
  *   - Distortion calms during hold phases
  *
- * Layer 2: InnerGlow
+ * Layer 2: OrbGlow
  *   - Fresnel-based soft inner light
  *   - Phase-specific color tinting
  *   - Subtle pulsing animation
  *
- * Layer 3: OrbitingShell
+ * Layer 3: OrbitalParticles
  *   - 500 particles in spherical shells
  *   - Contract on inhale, expand on exhale
  *   - Slow orbit during holds, faster during breathing
  *
- * Layer 4 (outermost): OuterHalo
+ * Layer 4 (outermost): AtmosphericHalo
  *   - Soft atmospheric glow
  *   - Very low opacity ethereal effect
  *   - Inverted fresnel for edge glow
  *
  * All layers respond to breath phases via TheatreBreathProvider.
  */
-export const BreathingSphere = memo(() => {
+export const CoreOrb = memo(() => {
 	const [theatreProps, setTheatreProps] = useState<SceneProps>(sceneObj.value);
 
 	// Subscribe to Theatre.js object changes
@@ -56,16 +56,27 @@ export const BreathingSphere = memo(() => {
 	return (
 		<group>
 			{/* Layer 4: Outer atmospheric halo (renders first, behind everything) */}
-			<OuterHalo radius={contractedRadius} />
+			<GlowSphere 
+				radius={contractedRadius} 
+				theatreObject={atmosphericHaloObj} 
+				side={THREE.BackSide}
+				renderOrder={0}
+			/>
 
 			{/* Layer 3: Orbiting particle shell */}
-			<OrbitingShell baseRadius={contractedRadius * 0.7} />
+			<OrbitalParticles baseRadius={contractedRadius * 0.7} />
 
 			{/* Layer 2: Inner glow (fresnel-based) */}
-			<InnerGlow radius={contractedRadius} />
+			<GlowSphere 
+				radius={contractedRadius} 
+				theatreObject={orbGlowObj} 
+				side={THREE.FrontSide}
+				renderOrder={2}
+				isInnerGlow
+			/>
 
 			{/* Layer 1: Crystal core (MeshTransmissionMaterial) */}
-			<CrystalCore radius={contractedRadius} />
+			<GlassOrb radius={contractedRadius} />
 		</group>
 	);
 });

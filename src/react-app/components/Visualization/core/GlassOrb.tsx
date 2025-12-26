@@ -3,11 +3,11 @@ import { useFrame } from '@react-three/fiber';
 import { memo, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { SPHERE_PHASE_COLORS } from '../../../lib/colors';
-import { crystalCoreObj } from '../../../lib/theatre';
-import type { CrystalCoreProps as TheatreCrystalProps } from '../../../lib/theatre/types';
+import { glassOrbObj } from '../../../lib/theatre';
+import type { GlassOrbProps as TheatreGlassProps } from '../../../lib/theatre/types';
 import { useTheatreBreath } from '../TheatreBreathProvider';
 
-interface CrystalCoreProps {
+interface GlassOrbProps {
 	radius: number;
 }
 
@@ -36,7 +36,7 @@ const PHASE_COLORS = [
 ];
 
 /**
- * Crystal Core - Glass/crystal sphere with MeshTransmissionMaterial
+ * Glass Orb - Glass/crystal sphere with MeshTransmissionMaterial
  *
  * Creates a stunning refractive crystal orb that responds to breathing phases.
  * - Driven by Theatre.js for cinematic control
@@ -44,15 +44,15 @@ const PHASE_COLORS = [
  * - Thickness varies with breath for visual depth
  * - Chromatic aberration creates rainbow edge effects
  */
-export const CrystalCore = memo(({ radius }: CrystalCoreProps) => {
+export const GlassOrb = memo(({ radius }: GlassOrbProps) => {
 	const meshRef = useRef<THREE.Mesh>(null);
-	const materialRef = useRef<any>(null);
+	const materialRef = useRef<THREE.MeshPhysicalMaterial>(null);
 	const theatreBreath = useTheatreBreath();
-	const theatrePropsRef = useRef<TheatreCrystalProps>(crystalCoreObj.value);
+	const theatrePropsRef = useRef<TheatreGlassProps>(glassOrbObj.value);
 
 	// Subscribe to Theatre.js object changes (Ref-only, no re-renders)
 	useEffect(() => {
-		const unsubscribe = crystalCoreObj.onValuesChange((values) => {
+		const unsubscribe = glassOrbObj.onValuesChange((values) => {
 			theatrePropsRef.current = values;
 		});
 		return unsubscribe;

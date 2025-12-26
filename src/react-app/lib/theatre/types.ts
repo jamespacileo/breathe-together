@@ -34,9 +34,9 @@ export interface BreathCycleProps {
 }
 
 /**
- * Crystal core layer props
+ * Glass orb layer props (refractive core)
  */
-export interface CrystalCoreProps {
+export interface GlassOrbProps {
 	scale: number;
 	transmission: number;
 	thickness: number;
@@ -48,9 +48,9 @@ export interface CrystalCoreProps {
 }
 
 /**
- * Inner glow layer props (custom shader)
+ * Orb glow layer props (custom shader)
  */
-export interface InnerGlowProps {
+export interface OrbGlowProps {
 	scale: number;
 	glowIntensity: number;
 	pulseAmount: number;
@@ -63,9 +63,9 @@ export interface InnerGlowProps {
 }
 
 /**
- * Orbiting shell layer props
+ * Orbital particles layer props
  */
-export interface OrbitingShellProps {
+export interface OrbitalParticlesProps {
 	minRadiusScale: number;
 	maxRadiusScale: number;
 	orbitSpeed: number;
@@ -78,9 +78,9 @@ export interface OrbitingShellProps {
 }
 
 /**
- * Outer halo layer props
+ * Atmospheric halo layer props
  */
-export interface OuterHaloProps {
+export interface AtmosphericHaloProps {
 	minScale: number;
 	maxScale: number;
 	opacity: number;
@@ -92,9 +92,9 @@ export interface OuterHaloProps {
 }
 
 /**
- * User particles swarm props
+ * User presence swarm props
  */
-export interface UserParticlesProps {
+export interface UserPresenceProps {
 	settledRadiusMult: number;
 	spreadRadiusMult: number;
 	orbitSpeed: number;
@@ -197,11 +197,11 @@ export interface DebugProps {
  */
 export interface TheatreProps {
 	breathCycle: BreathCycleProps;
-	crystalCore: CrystalCoreProps;
-	innerGlow: InnerGlowProps;
-	orbitingShell: OrbitingShellProps;
-	outerHalo: OuterHaloProps;
-	userParticles: UserParticlesProps;
+	glassOrb: GlassOrbProps;
+	orbGlow: OrbGlowProps;
+	orbitalParticles: OrbitalParticlesProps;
+	atmosphericHalo: AtmosphericHaloProps;
+	userPresence: UserPresenceProps;
 	nebula: NebulaProps;
 	starField: StarFieldProps;
 	peripheralParticles: PeripheralParticlesProps;
